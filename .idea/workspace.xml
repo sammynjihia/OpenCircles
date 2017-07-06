@@ -2,100 +2,8 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="c446a03d-4dc8-4729-876e-727a77447669" name="Default" comment="">
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/.idea/OpenCircles.iml" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/.idea/dataSources.local.xml" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/.idea/dataSources.xml" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/.idea/dataSources/9a2bc593-5ead-47f3-89ed-139d65c7b8c7.xml" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/.idea/dataSources/9a2bc593-5ead-47f3-89ed-139d65c7b8c7/storage.xml" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/profiles_settings.xml" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/.idea/misc.xml" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/.idea/modules.xml" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/.idea/vcs.xml" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/OpenCircles/__init__.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/OpenCircles/settings.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/OpenCircles/urls.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/OpenCircles/wsgi.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/app_settings/__init__.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/app_settings/admin.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/app_settings/apps.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/app_settings/migrations/__init__.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/app_settings/models.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/app_settings/tests.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/app_settings/views.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/chat/__init__.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/chat/admin.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/chat/apps.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/chat/migrations/__init__.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/chat/models.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/chat/tests.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/chat/views.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/circle/__init__.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/circle/admin.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/circle/apps.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/circle/migrations/__init__.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/circle/models.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/circle/tests.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/circle/views.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/credit_rating/__init__.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/credit_rating/admin.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/credit_rating/apps.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/credit_rating/migrations/__init__.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/credit_rating/models.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/credit_rating/tests.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/credit_rating/views.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/deposit/__init__.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/deposit/admin.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/deposit/apps.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/deposit/deposit_utils.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/deposit/migrations/__init__.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/deposit/models.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/deposit/tests.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/deposit/views.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/investment/__init__.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/investment/admin.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/investment/apps.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/investment/migrations/__init__.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/investment/models.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/investment/tests.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/investment/views.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/loan/__init__.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/loan/admin.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/loan/apps.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/loan/loan_utils.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/loan/migrations/__init__.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/loan/models.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/loan/tests.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/loan/views.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/manage.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/member/__init__.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/member/admin.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/member/apps.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/member/migrations/__init__.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/member/models.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/member/tests.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/member/views.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/shares/__init__.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/shares/admin.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/shares/apps.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/shares/migrations/__init__.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/shares/models.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/shares/tests.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/shares/views.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/tool/__init__.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/tool/admin.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/tool/apps.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/tool/migrations/__init__.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/tool/models.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/tool/tests.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/tool/views.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/video/__init__.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/video/admin.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/video/apps.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/video/migrations/__init__.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/video/models.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/video/tests.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/video/views.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/deposit/models.py" afterPath="$PROJECT_DIR$/deposit/models.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/member/models.py" afterPath="$PROJECT_DIR$/member/models.py" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -135,30 +43,6 @@
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
       <file leaf-file-name="models.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/loan/models.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="525">
-              <caret line="35" column="49" lean-forward="true" selection-start-line="35" selection-start-column="49" selection-end-line="35" selection-end-column="49" />
-              <folding>
-                <element signature="e#0#39#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="models.py" pinned="false" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/circle/models.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="284">
-              <caret line="63" column="18" lean-forward="false" selection-start-line="63" selection-start-column="18" selection-end-line="63" selection-end-column="18" />
-              <folding>
-                <element signature="e#0#28#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="models.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/app_settings/models.py">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="165">
@@ -168,14 +52,24 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="models.py" pinned="false" current-in-tab="false">
+      <file leaf-file-name="models.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/deposit/models.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="585">
-              <caret line="39" column="0" lean-forward="false" selection-start-line="39" selection-start-column="0" selection-end-line="39" selection-end-column="0" />
+            <state relative-caret-position="209">
+              <caret line="14" column="42" lean-forward="false" selection-start-line="14" selection-start-column="42" selection-end-line="14" selection-end-column="42" />
               <folding>
                 <element signature="e#0#39#0" expanded="true" />
               </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="models.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/member/models.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="1740">
+              <caret line="116" column="0" lean-forward="true" selection-start-line="116" selection-start-column="0" selection-end-line="116" selection-end-column="0" />
+              <folding />
             </state>
           </provider>
         </entry>
@@ -210,11 +104,11 @@
         <option value="$PROJECT_DIR$/OpenCircles/settings.py" />
         <option value="$PROJECT_DIR$/deposit/deposit_utils.py" />
         <option value="$PROJECT_DIR$/loan/models.py" />
-        <option value="$PROJECT_DIR$/member/models.py" />
         <option value="$PROJECT_DIR$/credit_rating/models.py" />
         <option value="$PROJECT_DIR$/app_settings/models.py" />
-        <option value="$PROJECT_DIR$/deposit/models.py" />
         <option value="$PROJECT_DIR$/circle/models.py" />
+        <option value="$PROJECT_DIR$/member/models.py" />
+        <option value="$PROJECT_DIR$/deposit/models.py" />
       </list>
     </option>
   </component>
@@ -256,6 +150,20 @@
             </PATH_ELEMENT>
             <PATH_ELEMENT>
               <option name="myItemId" value="OpenCircles" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+          </PATH>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="OpenCircles" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="OpenCircles" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="deposit" />
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
           </PATH>
@@ -587,9 +495,9 @@
   </component>
   <component name="ToolWindowManager">
     <frame x="0" y="24" width="1366" height="744" extended-state="6" />
-    <editor active="false" />
+    <editor active="true" />
     <layout>
-      <window_info id="Project" active="true" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.26136363" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
+      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.26136363" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32972136" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="true" content_ui="tabs" />
       <window_info id="Database" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32954547" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
@@ -911,24 +819,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/loan/models.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="525">
-          <caret line="35" column="49" lean-forward="true" selection-start-line="35" selection-start-column="49" selection-end-line="35" selection-end-column="49" />
-          <folding>
-            <element signature="e#0#39#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/member/models.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1425">
-          <caret line="95" column="0" lean-forward="true" selection-start-line="95" selection-start-column="0" selection-end-line="95" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/loan/loan_utils.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="1380">
@@ -957,6 +847,34 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/circle/models.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="284">
+          <caret line="63" column="18" lean-forward="false" selection-start-line="63" selection-start-column="18" selection-end-line="63" selection-end-column="18" />
+          <folding>
+            <element signature="e#0#28#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/loan/models.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="525">
+          <caret line="35" column="49" lean-forward="true" selection-start-line="35" selection-start-column="49" selection-end-line="35" selection-end-column="49" />
+          <folding>
+            <element signature="e#0#39#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/member/models.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1740">
+          <caret line="116" column="0" lean-forward="true" selection-start-line="116" selection-start-column="0" selection-end-line="116" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/app_settings/models.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="165">
@@ -967,20 +885,10 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/deposit/models.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="585">
-          <caret line="39" column="0" lean-forward="false" selection-start-line="39" selection-start-column="0" selection-end-line="39" selection-end-column="0" />
+        <state relative-caret-position="209">
+          <caret line="14" column="42" lean-forward="false" selection-start-line="14" selection-start-column="42" selection-end-line="14" selection-end-column="42" />
           <folding>
             <element signature="e#0#39#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/circle/models.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="284">
-          <caret line="63" column="18" lean-forward="false" selection-start-line="63" selection-start-column="18" selection-end-line="63" selection-end-column="18" />
-          <folding>
-            <element signature="e#0#28#0" expanded="true" />
           </folding>
         </state>
       </provider>

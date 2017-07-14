@@ -38,6 +38,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
+    'rest_framework',
+
     'app_settings.apps.AppSettingsConfig',
     'circle.apps.CircleConfig',
     'deposit.apps.DepositConfig',

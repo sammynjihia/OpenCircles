@@ -16,7 +16,6 @@ class Deposit(models.Model):
     )
 
     DEPOSIT_TYPE = (
-        ('REGISTRATION', 'Registration fee'),
         ('LOAN_REPAYMENT', 'Loan repayment'),
         ('SHARES', 'Shares')
     )
@@ -32,8 +31,6 @@ class Deposit(models.Model):
 
     class Meta:
         db_table = 'Deposit'
-
-
 
 
 

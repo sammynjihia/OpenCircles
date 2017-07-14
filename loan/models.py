@@ -19,7 +19,8 @@ class LoanApplication(models.Model):
 
     DISBURSEMENT_CHANNELS = (
         ('MPESA', 'M-pesa'),
-        ('BANK_ACCOUNT', 'Bank Account')
+        ('BANK_ACCOUNT', 'Bank Account'),
+        ('PAYPAL', 'Paypal')
     )
 
     loan_code = models.CharField(max_length=10, blank=False, unique=True)
@@ -34,8 +35,8 @@ class LoanApplication(models.Model):
     time_approved = models.DateTimeField(null=True)
     is_disbursed = models.BooleanField(default=False)
     time_disbursed = models.DateTimeField(null=True)
-    disbursement_channel = models.CharField(max_length=20, choices=DISBURSEMENT_CHANNELS) # Preferred mode of disbursement
-    other_info = models.TextField(max_length=10000, blank=True)
+    disbursement_channel = models.CharField(max_length=20, choices=DISBURSEMENT_CHANNELS)
+    other_info = models.TextField(max_length=10000, blank=True)                                                                                         
     is_fully_repaid = models.BooleanField(default=False)
     time_of_last_payment = models.DateTimeField(null=True)
 
@@ -43,23 +44,28 @@ class LoanApplication(models.Model):
         db_table = 'LoanApplication'
 
 
-class LoanAmortizationSchedule(models.Model):
+class GuarantorRequest(models.Model):
+    GUARANTOR_CHOICES = (
+        (None, "Pending approval"),
+        (True, "Accepted to guarantee applicant"),
+        (False, "Denied to guarantee applicant")
+    )
     loan_application = models.ForeignKey(LoanApplication, null=False)
-    repayment_date = models.DateField(null=False)
-    min_amount_payable = models.FloatField(null=False)
+    circle_member = models.ForeignKey(CircleMember, null=False)
+    num_of_shares = models.FloatField(blank=False, null=False, default=0.00)
+    time_requested = models.DateTimeField(auto_now=True)
+    has_accepted = models.NullBooleanField(choices=GUARANTOR_CHOICES, default=None)
+    time_accepted = models.DateTimeField(null=True)
 
     class Meta:
-        db_table = 'LoanAmortizationSchedule'
+        db_table = 'GuarantorRequest'
 
 
 class LoanGuarantor(models.Model):
     loan_application = models.ForeignKey(LoanApplication, null=False)
     circle_member = models.ForeignKey(CircleMember, null=False)
-    num_of_shares = models.FloatField(blank=False, null=False, default=0.00)
+    locked_shares = models.ForeignKey(LockedShares, null=False)
     time_requested = models.DateTimeField(auto_now=True)
-    guaranteed = models.BooleanField(null=True, default=None)
-    locked_shares = models.ForeignKey(LockedShares, null=True)
-    time_processed = models.DateTimeField(null=True)
 
     class Meta:
         db_table = 'LoanGuarantor'
@@ -74,6 +80,15 @@ class LoanRepayment(models.Model):
 
     class Meta:
         db_table = 'LoanRepayment'
+
+
+class LoanAmortizationSchedule(models.Model):
+    loan_application = models.ForeignKey(LoanApplication, null=False)
+    repayment_date = models.DateField(null=False)
+    min_amount_payable = models.FloatField(null=False)
+
+    class Meta:
+        db_table = 'LoanAmortizationSchedule'
 
 
 

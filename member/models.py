@@ -1,4 +1,5 @@
 from django.db import models
+from django.contrib.auth.models import User
 
 # Create your models here.
 
@@ -28,12 +29,9 @@ class Member(models.Model):
     """
         A class that stores the Investor
     """
+    user = models.OneToOneField(User,on_delete=models.CASCADE)
     national_id = models.CharField(max_length=20, blank=False, unique=True)
     phone_number = models.CharField(max_length=20, blank=False, unique=True)
-    email_address = models.EmailField(max_length=100, blank=False, unique=True)
-    first_name = models.CharField(max_length=20, blank=False)
-    last_name = models.CharField(max_length=20, blank=False)
-    other_name = models.CharField(max_length=20, blank=True)
     gender = models.CharField(max_length=1, choices=GENDER_CHOICES)
     nationality = models.CharField(max_length=20, blank=True)
     date_of_birth = models.DateField(null=True)
@@ -41,7 +39,6 @@ class Member(models.Model):
     registered_device = models.TextField(max_length=1000, blank=True)
     occupation = models.CharField(max_length=100, blank=True)
     time_registered = models.DateTimeField(auto_now=True)
-    is_active = models.BooleanField(default=False)
 
     class Meta:
         db_table = 'Member'
@@ -109,9 +106,3 @@ class MemberActiveSession(models.Model):
 
     class Meta:
         db_table = 'MemberActiveSession'
-
-
-
-
-
-

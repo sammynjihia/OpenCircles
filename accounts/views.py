@@ -11,9 +11,10 @@ from rest_framework.response import Response
 from rest_framework.reverse import reverse
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
-from app_utility import sms_utils
+# from rest_framework.parsers import JSONParser
+from app_utility import sms_utils,iprs_utils
 from django.http import Http404
-import random
+import random,datetime
 
 # Create your views here.
 @api_view(['GET'])
@@ -24,20 +25,40 @@ def api_root(request,format=None):
                          'change_password':reverse('change-password',request=request,format=format),
                          'login':reverse('login',request=request,format=format),
                          'logout':reverse('logout',request=request)
-
-                    }
-                   )
+                    })
 
 class MemberRegistration(APIView):
     """
         Registers new member
     """
+    # parser_classes = (JSONParser,)
+    def get_object(self,request):
+        user_id = request.user.id
+        obj = Member.objects.get(user_id=user_id)
+        return obj
+
     def post(self,request,*args,**kwargs):
         serializer = MemberSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
-            user = authenticate(username=serializer.data.get('email'),password=serializer.data.get('password'))
+            iprs = iprs_utils.Iprs()
+            person_data = iprs.get_person_details(serializer.data.get('national_id'))
+            print person_data
+            member_info = { new_key : person_data.pop(key) for new_key,key in {'nationality':'citizenship','gender':'gender','date_of_birth':'dateOfBirth','passport_image_url':'photoPath'}.items()}
+            user = authenticate(username=serializer.data.get('email'),password=request.data.get('pin'))
             login(request,user)
+            self.object = self.get_object(request)
+            for key,value in member_info.items():
+                if key == "date_of_birth":
+                    value = datetime.datetime.strptime(value,'%m/%d/%Y %I:%M:%S %p').date()
+                elif key == "gender":
+                    value = value.lower()
+                    if value == "male":
+                        value = "M"
+                    else:
+                        value = "F"
+                setattr(self.object, key, value)
+            self.object.save()
             data = { 'status':201,'member_object':serializer.data}
             return Response(data,status = status.HTTP_201_CREATED)
         else:

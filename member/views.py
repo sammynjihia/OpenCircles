@@ -28,9 +28,27 @@ class MemberList(APIView):
     """
     def get(self,request,*args,**kwargs):
         members = Member.objects.all()
-        serializer = MemberSerializer(members,many=True)
+        serializer = MemberSerializer(members,many=True,context={'request': request})
         data = {'status':200,'members':serializer.data}
         return Response(data,status=status.HTTP_200_OK)
+
+class MemberDetail(APIView):
+    """
+    retrives specific member details
+    """
+    def get_object(self,pk):
+        try:
+            return Member.objects.get(pk=pk)
+        except Member.DoesNotExist:
+            raise Http404
+
+    def get(self,request,pk,format=None):
+        member = self.get_object(pk)
+        serializer = MemberSerializer(member,context={'request':request})
+        data = {'status':200,'member':serializer.data}
+        return Response(data)
+
+
 # class MemberViewSet(viewsets.ModelViewSet):
 #     queryset = Member.objects.all()
 #     serializer_class = MemberSerializer

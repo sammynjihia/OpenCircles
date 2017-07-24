@@ -8,5 +8,6 @@ from . import views
 urlpatterns = [
     # url(r'^',include(router.urls)),
     url(r'^$',views.api_root),
-    url(r'^member_list/$',views.MemberList.as_view(),name='member-list')
+    url(r'^member_list/$',views.MemberList.as_view(),name='member-list'),
+    url(r'^member_list/(?P<pk>[0-9]+)/$',views.MemberDetail.as_view(),name='member-detail')
 ]

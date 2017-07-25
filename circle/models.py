@@ -10,8 +10,9 @@ CIRCLE_TYPE = (
 
 class Circle(models.Model):
     circle_type = models.CharField(max_length=10, blank=False, choices=CIRCLE_TYPE)
+    circle_name = models.CharField(max_length=20, blank=False, null=False,default='unknown')
     circle_acc_number = models.CharField(max_length=5, blank=False, unique=True)
-    initiated_by = models.ForeignKey(Member, null=False, blank=False)
+    initiated_by = models.ForeignKey(Member, related_name = 'owner', null=False, blank=False)
     time_initiated = models.DateTimeField(auto_now=True)
     is_active = models.BooleanField(default=True)
     annual_interest_rate = models.DecimalField(max_digits=5, decimal_places=3, default=0.000)

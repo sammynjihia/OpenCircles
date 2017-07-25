@@ -24,6 +24,6 @@ class Sms:
                 return True
             else:
                 return False
-        except Exception,e:
+        except Exception as e:
             print str(e)
             return False

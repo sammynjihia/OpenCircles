@@ -24,6 +24,7 @@ urlpatterns = [
     url(r'^api-auth/', include('rest_framework.urls',
                                namespace='rest_framework')),
     url(r'^accounts/',include('accounts.urls')),
+    url(r'^circle/', include('circle.urls')),
 ]
 
 if settings.DEBUG:

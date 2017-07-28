@@ -15,6 +15,10 @@ from rest_framework.permissions import IsAuthenticated
 from app_utility import sms_utils,iprs_utils
 from django.http import Http404
 import random,datetime
+import jwt
+from datetime import datetime
+from django.conf import settings
+
 
 # Create your views here.
 @api_view(['GET'])
@@ -43,7 +47,7 @@ class MemberRegistration(APIView):
             serializer.save()
             iprs = iprs_utils.Iprs()
             person_data = iprs.get_person_details(serializer.data.get('national_id'))
-            print person_data
+            print (person_data)
             member_info = { new_key : person_data.pop(key) for new_key,key in {'nationality':'citizenship','gender':'gender','date_of_birth':'dateOfBirth','passport_image_url':'photoPath'}.items()}
             user = authenticate(username=serializer.data.get('email'),password=request.data.get('pin'))
             login(request,user)
@@ -73,13 +77,19 @@ class LoginIn(APIView):
         serializer = AuthenticateUserSerializer(data=request.data)
         if serializer.is_valid():
             user = authenticate(username=serializer.data.get('username'),password=serializer.data.get('password'))
-            if user is not None:
-                login(request,user)
-                print request.auth
-                data = {'status':202}
-                return Response(data,status=status.HTTP_202_ACCEPTED)
-            data = {'status':400}
-            return Response(data,status=status.HTTP_400_BAD_REQUEST)
+
+            if user:
+                payload = {
+                    'id': user.id,
+                    'username':user.username,
+                    'exp':datetime.now() + settings.EXPIRY_TIME
+                }
+                token = {'token':jwt.encode(payload, settings.SECRET_KEY)}
+                login(request, user)
+                return Response(token, status=status.HTTP_202_ACCEPTED)
+            else:
+                return Response(status=status.HTTP_400_BAD_REQUEST)
+
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])

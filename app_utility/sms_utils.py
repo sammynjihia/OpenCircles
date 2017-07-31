@@ -25,5 +25,4 @@ class Sms:
             else:
                 return False
         except Exception as e:
-            print str(e)
             return False

@@ -74,6 +74,8 @@ class Beneficiary(models.Model):
     last_name = models.CharField(max_length=20, blank=False)
     gender = models.CharField(max_length=1, choices=GENDER_CHOICES)
     relationship = models.CharField(max_length=10, choices=RELATIONSHIP_CHOICES)
+    phone_number = models.CharField(max_length=20, blank=True)
+    email = models.CharField(max_length=20, blank=True)
     date_of_birth = models.DateField(null=True)
     passport_image = models.FileField(storage='BENEFICIARY_PASSPORT_IMAGE', null=True, blank=True)
     time_created = models.DateTimeField(auto_now=True)
@@ -120,3 +122,5 @@ class MemberActiveSession(models.Model):
 
     class Meta:
         db_table = 'MemberActiveSession'
+
+

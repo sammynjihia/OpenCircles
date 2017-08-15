@@ -17,7 +17,6 @@ class MemberSerializer(serializers.ModelSerializer):
         fields = ['first_name','last_name','email','pin','national_id','phone_number']
 
     def create(self,validated_data):
-        print validated_data
         user_data = validated_data.pop('user')
         username = user_data.get('email')
         user = User.objects.create_user(username = username,**user_data)
@@ -44,4 +43,4 @@ class AuthenticateUserSerializer(serializers.Serializer):
     Serializer for  user login endpoint
     """
     username = serializers.CharField()
-    password = serializers.CharField()
+    pin = serializers.IntegerField()

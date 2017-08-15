@@ -44,6 +44,7 @@ class Member(models.Model):
     registered_device = models.TextField(max_length=1000, blank=True)
     occupation = models.CharField(max_length=100, blank=True)
     time_registered = models.DateTimeField(auto_now=True)
+    is_validated = models.BooleanField(default = False)
 
     class Meta:
         db_table = 'Member'

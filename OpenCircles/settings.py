@@ -25,7 +25,7 @@ SECRET_KEY = 'i)+!o9o+acs+ih!tm#sp_n89xze*-ux4izujow6)y&(aqqd&vr'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['192.168.0.12']
 
 
 # Application definition
@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'member.apps.MemberConfig',
     'shares.apps.SharesConfig',
     'tool.apps.ToolConfig',
+    'rest_framework.authtoken',
 ]
 
 MIDDLEWARE = [

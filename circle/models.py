@@ -7,23 +7,32 @@ CIRCLE_TYPE = (
     ('OPEN', 'Open circle')
 )
 
+INVITE_STATUS = (
+    ('A','Accepted'),
+    ('P','Pending'),
+    ('D','Declined')
+)
+
 
 class Circle(models.Model):
+    circle_name = models.CharField(max_length=100,blank=False,default="unknown",unique=True)
     circle_type = models.CharField(max_length=10, blank=False, choices=CIRCLE_TYPE)
-    circle_acc_number = models.CharField(max_length=5, blank=False, unique=True)
-    initiated_by = models.ForeignKey(Member, null=False, blank=False)
+    circle_acc_number = models.CharField(max_length=10, blank=False, unique=True)
+    initiated_by = models.ForeignKey(Member,null=False, blank=False)
     time_initiated = models.DateTimeField(auto_now=True)
-    is_active = models.BooleanField(default=True)
+    is_active = models.BooleanField(default=False)
     annual_interest_rate = models.DecimalField(max_digits=5, decimal_places=3, default=0.000)
+    minimum_share = models.IntegerField(default=200)
 
     class Meta:
         db_table = 'Circle'
+
+    
 
 
 class CircleMember(models.Model):
     circle = models.ForeignKey(Circle, null=False, blank=False)
     member = models.ForeignKey(Member, null=False, blank=False)
-    member_acc_number = models.CharField(max_length=15, null=False, blank=False)  # saccco account number - id number
     allow_public_guarantees_request = models.BooleanField(default=True)
     time_joined = models.DateTimeField(null=False, auto_now=True)
     is_active = models.BooleanField(default=True)
@@ -33,13 +42,20 @@ class CircleMember(models.Model):
 
 
 class CircleInvitation(models.Model):
-    circle_member = models.ForeignKey(CircleMember, null=False, blank=False)
-    invited_member = models.ForeignKey(Member, null=False, blank=False)
+    invited_by = models.ForeignKey(CircleMember, null=False, blank=False)
+    is_member = models.BooleanField(default=False, blank=False)
     phone_number = models.CharField(max_length=20, blank=True)
     time_invited = models.DateTimeField(auto_now=True)
+    status = models.CharField(max_length=1,default='P',choices=INVITE_STATUS)
 
     class Meta:
         db_table = 'CircleInvitation'
+
+    def save(self,*args,**kwargs):
+        if Member.objects.filter(phone_number=self.phone_number).exists():
+            self.is_member = True
+        super(CircleInvitation,self).save()
+
 
 
 class CircleDirector(models.Model):
@@ -59,8 +75,3 @@ class AllowedGuarantorRequest(models.Model):
 
     class Meta:
         db_table = 'AllowedGuarantorRequest'
-
-
-
-
-

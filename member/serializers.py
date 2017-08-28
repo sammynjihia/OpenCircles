@@ -1,23 +1,29 @@
 from .models import Member
+from django.contrib.auth.models import User
+from django.utils.timezone import utc
+
 from rest_framework import serializers
+from rest_framework.validators import UniqueValidator
+
+import datetime
 
 class MemberSerializer(serializers.ModelSerializer):
     """
     Serializer for member listing endpoint
     """
     first_name = serializers.CharField(source='user.first_name')
-    last_name = serializers.CharField(source='user.last_name')
-    email = serializers.CharField(source='user.email')
-    passport_url = serializers.SerializerMethodField()
+    surname = serializers.CharField(source='user.last_name')
+    email = serializers.EmailField(source='user.email')
+    # passport_url = serializers.ImageField(source='iprs_image')
+    # date_of_birth = serializers.SerializerMethodField()
+    time_registered = serializers.SerializerMethodField()
 
     class Meta:
         model = Member
-        fields = ['first_name','last_name','email','passport_url','gender','nationality','phone_number']
+        fields = ['first_name','surname','other_name','email','gender','country','phone_number','national_id','currency','date_of_birth','time_registered']
 
-    def get_passport_url(self, members):
-        request = self.context.get('request')
-        passport_url = members.passport_image.url
-        domain = request.META['HTTP_HOST']
-        protocol = 'http'
-        url = '{}://{}/{}'.format(protocol,domain,passport_url)
-        return url
+
+
+    def get_time_registered(self,member):
+         date = member.time_registered
+         return date.strftime("%d/%m/%Y %H:%M")

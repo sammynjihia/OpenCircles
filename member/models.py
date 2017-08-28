@@ -5,9 +5,8 @@ from urlparse import urlparse
 
 # Create your models here.
 
-GENDER_CHOICES = (('M', 'Male'), ('F', 'Female'))
+GENDER_CHOICES = (('Male', 'Male'), ('Female', 'Female'))
 upload_path ='MEDIA/MEMBER_PASSPORT_PICS'
-
 
 class PendingRegistration(models.Model):
     national_id = models.CharField(max_length=20, blank=False, unique=True)
@@ -36,27 +35,31 @@ class Member(models.Model):
     user = models.OneToOneField(User,on_delete=models.CASCADE)
     national_id = models.CharField(max_length=20, blank=False, unique=True)
     phone_number = models.CharField(max_length=20, blank=False, unique=True)
-    gender = models.CharField(max_length=1, choices=GENDER_CHOICES)
+    other_name = models.CharField(max_length=20,default="")
+    gender = models.CharField(max_length=6, choices=GENDER_CHOICES)
     nationality = models.CharField(max_length=20, blank=True)
+    country = models.CharField(max_length=20)
     date_of_birth = models.DateField(null=True)
-    passport_image_url = models.URLField(null=True, blank=True)
-    passport_image = models.ImageField(upload_to=upload_path, null=True, blank=True)
+    iprs_image_url = models.URLField(null=True, blank=True)
+    iprs_image = models.ImageField(upload_to=upload_path, null=True, blank=True)
+    image = models.ImageField(upload_to="MEMBER_PROFILE_PICS",null=True,blank=True)
     registered_device = models.TextField(max_length=1000, blank=True)
+    currency = models.CharField(max_length=10,default="KES")
     occupation = models.CharField(max_length=100, blank=True)
-    time_registered = models.DateTimeField(auto_now=True)
+    time_registered = models.DateTimeField(auto_now_add=True)
     is_validated = models.BooleanField(default = False)
 
     class Meta:
         db_table = 'Member'
 
     def save(self, *args, **kwargs):
-        if self.passport_image_url:
+        if self.iprs_image_url:
             file_save_dir = upload_path
             file_path = 'MEMBER_PASSPORT_PICS'
-            filename = urlparse(self.passport_image_url).path.split('/')[-1]
-            urllib.urlretrieve(self.passport_image_url, os.path.join(file_save_dir, filename))
-            self.passport_image = os.path.join(file_path, filename)
-            self.passport_image_url = ''
+            filename = urlparse(self.iprs_image_url).path.split('/')[-1]
+            urllib.urlretrieve(self.iprs_image_url, os.path.join(file_save_dir, filename))
+            self.iprs_image = os.path.join(file_path, filename)
+            self.iprs_image_url = ''
         super(Member, self).save()
 
 class Beneficiary(models.Model):
@@ -121,3 +124,12 @@ class MemberActiveSession(models.Model):
 
     class Meta:
         db_table = 'MemberActiveSession'
+
+class Contacts(models.Model):
+    member = models.ForeignKey(Member,on_delete = models.CASCADE)
+    name = models.CharField(max_length=50)
+    phone_number = models.CharField(max_length=20)
+    is_member = models.BooleanField(default=False)
+
+    class Meta():
+        db_table = 'Contacts'

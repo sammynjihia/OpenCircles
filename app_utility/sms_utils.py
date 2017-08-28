@@ -5,7 +5,7 @@ class Sms:
         self.api_key = "9898e481449e39a6051b3d87e07f4de171bedc93a046dd166c0dad2d0d9b6bdc"
     def format_phone_number(self,phone_number):
         to = ''
-        phone_number = str(phone_number)
+        phone_number = str(phone_number).replace(" ","")
         if phone_number[0: 4] == '+254':
             to = phone_number
         elif phone_number[0: 4] == '2547':

@@ -15,7 +15,7 @@ INVITE_STATUS = (
 
 
 class Circle(models.Model):
-    circle_name = models.CharField(max_length=100,blank=False,default="unknown",unique=True)
+    circle_name = models.CharField(max_length=100,blank=False,unique=True)
     circle_type = models.CharField(max_length=10, blank=False, choices=CIRCLE_TYPE)
     circle_acc_number = models.CharField(max_length=10, blank=False, unique=True)
     initiated_by = models.ForeignKey(Member,null=False, blank=False)
@@ -27,7 +27,7 @@ class Circle(models.Model):
     class Meta:
         db_table = 'Circle'
 
-    
+
 
 
 class CircleMember(models.Model):

@@ -10,6 +10,7 @@ from rest_framework.reverse import reverse
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import viewsets
+from rest_framework.parsers import FileUploadParser,FormParser
 
 from .serializers import MemberSerializer
 from member.models import Member
@@ -30,6 +31,7 @@ class MemberViewSet(viewsets.ReadOnlyModelViewSet):
     """
     queryset = Member.objects.all()
     serializer_class = MemberSerializer
+
 
 # class MemberList(APIView):
 #     """

@@ -7,16 +7,20 @@ from django.views.decorators.csrf import csrf_exempt
 
 from rest_framework import viewsets
 from rest_framework.views import APIView
-from rest_framework.decorators import api_view,permission_classes
+from rest_framework.decorators import api_view,permission_classes,authentication_classes
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.authentication import TokenAuthentication
 from rest_framework.authtoken.models import Token
 
-from app_utility import sms_utils,iprs_utils
+from app_utility import sms_utils,iprs_utils,accounts_utils
 from .serializers import MemberSerializer,PhoneNumberSerializer,ChangePasswordSerializer,AuthenticateUserSerializer
+from member import serializers
+
 from member.models import Member
+from wallet.models import Wallet
 
 import random,datetime,json
 
@@ -35,42 +39,58 @@ class MemberRegistration(APIView):
     """
         Registers new member,requires first_name,last_name,email,pin,phone_number and national_id to be provided
     """
-
+    @csrf_exempt
     def post(self,request,*args,**kwargs):
+        if 'contact_list' in request.data:
+            mutable = request.data._mutable
+            request.data._mutable = True
+            request.data['contact_list'] = json.loads(request.data['contact_list'])
+            contacts = request.data['contact_list'] if 'contact_list' in request.data else []
+            request.data._mutable = mutable
         serializer = MemberSerializer(data=request.data)
         if serializer.is_valid():
-            iprs = iprs_utils.Iprs()
-            person_data = iprs.get_person_details(serializer.data.get('national_id'))
-            if type(person_data) is dict:
-                app_data = { key : serializer.data.get(key) for key in ['first_name','last_name']}
-                valid,response = iprs.validate_info(person_data,app_data)
-                if valid:
+            instance = accounts_utils.Account()
+            if serializer.validated_data['country'].lower() == 'kenya':
+                iprs = iprs_utils.Iprs()
+                person_data = iprs.get_person_details(serializer.validated_data.get('national_id'))
+                serializer.validated_data['phone_number'] = sms_utils.Sms().format_phone_number(serializer.validated_data['phone_number'])
+                if type(person_data) is dict:
+                    app_data = { key : serializer.validated_data['user'].get(key) for key in ['first_name','last_name']}
+                    valid,response = iprs.validate_info(person_data,app_data)
+                    if valid:
+                        new_member = serializer.save()
+                        iprs.save_extracted_iprs_info(new_member,person_data)
+                    else:
+                        data = { 'status':0,'message':response}
+                        return Response(data,status = status.HTTP_400_BAD_REQUEST)
+                else:
                     new_member = serializer.save()
                     token = Token.objects.create(user=new_member.user)
-                    iprs.save_extracted_iprs_info(new_member,person_data)
-                    new_member.is_validated = True
-                    new_member.save()
-                    login(request,new_member.user)
-                    data = { 'status':201,'token':token.key }
-                    status = status.HTTP_201_CREATED
-                else:
-                    data = { 'status':404,'errors':response}
-                    status = status.HTTP_400_BAD_REQUEST
+                    Wallet.objects.create(member=new_member,acc_no=new_member.national_id)
+                    instance.save_contacts(new_member,contacts)
+                    error = {"IPRS_SERVER":["Currently unavailable"]}
+                    data = {'status':0,'message': error}
+                    return Response(data,status = status.HTTP_503_SERVICE_UNAVAILABLE)
+
             else:
                 new_member = serializer.save()
-                token = Token.objects.create(user=new_member.user)
-                error = {"IPRS_SERVER":["Currently unavailable"]}
-                data = {'status':503,'errors': error}
-                status = status.HTTP_503_SERVICE_UNAVAILABLE
+            token = Token.objects.create(user=new_member.user)
+            new_member.is_validated = True
+            new_member.save()
+            login(request,new_member.user)
+            Wallet.objects.create(member=new_member,acc_no=new_member.national_id)
+            instance.save_contacts(new_member,contacts)
 
-            return Response(data,status = status)
+            data = { 'status':1,'token':token.key }
+            return Response(data,status = status.HTTP_201_CREATED)
         else:
-            data = {'status':400,'error':serializer.errors}
+            print serializer.errors
+            data = {'status':0,'message':'asdf'}
+            print data
             return Response(data,status = status.HTTP_400_BAD_REQUEST)
 
 @csrf_exempt
 def test_data(request):
-    print(request.POST)
     return_data = {
         'status': 1,
         'token': "klhft8734tgekgfspdj02q34324",
@@ -80,40 +100,49 @@ def test_data(request):
 
 class LoginIn(APIView):
     """
-    Authenticates user,requires username and password to be provided
+    Authenticates user,requires username and pin to be provided
     """
     def post(self,request,*args,**kwargs):
-        print request.data
         serializer = AuthenticateUserSerializer(data=request.data)
         if serializer.is_valid():
-            user = authenticate(username=serializer.data.get('username'),password=serializer.data.get('pin'))
+            username = serializer.validated_data.get('username')
+            if User.objects.filter(email=username).exists():
+                username=User.objects.get(email=username).username
+            else:
+                username = sms_utils.Sms().format_phone_number(username)
+            user = authenticate(username=username,password=serializer.data.get('pin'))
             if user is not None:
                 if user.member.is_validated:
                     login(request,user)
-                    token = Token.objects.filter(user=user)
-                    if not token:
+                    try:
+                        token = Token.objects.get(user=user)
+                    except Token.DoesNotExist:
                         token = Token.objects.create(user=user)
-                    data = {'status':1,'token':token.key }
-
+                    serializer = serializers.MemberSerializer(request.user.member)
+                    data = {'status':1,'token':token.key,'member':serializer.data }
                     return Response(data,status=status.HTTP_200_OK)
             data={"status":0,"message":"Invalid credentials"}
+            print data
             return Response(data,status=status.HTTP_400_BAD_REQUEST)
         data={"status":0,"message":serializer.errors}
+        print data
         return Response(data,status=status.HTTP_400_BAD_REQUEST)
 
-@api_view(['GET'])
+@api_view(['POST'])
+@authentication_classes([TokenAuthentication])
 @permission_classes([IsAuthenticated])
 def logout(request):
     token = Token.objects.get(user=request.user)
     request.session.flush()
     token.delete()
-    data = {'status':200}
+    data = {'status':1}
     return Response(data,status=status.HTTP_200_OK)
 
 class ChangePassword(APIView):
     """
         Sets new password for member,requires old_password and new_password to be provided
     """
+    authentication_classes = (TokenAuthentication,)
     permission_classes = (IsAuthenticated,)
 
     def get_object(self):
@@ -146,22 +175,22 @@ class PhoneNumberConfirmation(APIView):
         serializer = PhoneNumberSerializer(data = request.data)
         if serializer.is_valid():
             sms = sms_utils.Sms()
-            phone_number = serializer.data.get('phone_number')
+            phone_number = serializer.data.get('phone')
             code = random.randint(1111,9999)
-            message = 'Your confirmation code is {}.'.format(code)
+            message = 'Your confirmation code is {}'.format(code)
             response = sms.sendsms(phone_number,message)
             if response:
-                data = {'status':200,
+                data = {'status':1,
                         'confirmation_code':code
                 }
                 return Response(data,status = status.HTTP_200_OK)
             else:
-                data = {'status':400,
+                data = {'status':0,
                          'message':'Unable to send confirmation code'
                 }
                 return Response(data,status=status.HTTP_400_BAD_REQUEST)
         else:
-            data = {'status': 400,
-                     'errors':serializer.errors
+            data = {'status': 0,
+                     'message':serializer.errors
             }
             return Response(data,status = status.HTTP_400_BAD_REQUEST)

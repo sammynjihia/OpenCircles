@@ -5,7 +5,6 @@ from django.utils.timezone import utc
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 
-import datetime
 
 class MemberSerializer(serializers.ModelSerializer):
     """
@@ -26,4 +25,4 @@ class MemberSerializer(serializers.ModelSerializer):
 
     def get_time_registered(self,member):
          date = member.time_registered
-         return date.strftime("%d/%m/%Y %H:%M")
+         return date.strftime("%Y-%m-%d %H:%M:%S")

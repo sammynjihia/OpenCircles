@@ -53,7 +53,6 @@ class MemberRegistration(APIView):
             if serializer.validated_data['country'].lower() == 'kenya':
                 iprs = iprs_utils.Iprs()
                 person_data = iprs.get_person_details(serializer.validated_data.get('national_id'))
-                serializer.validated_data['phone_number'] = sms_utils.Sms().format_phone_number(serializer.validated_data['phone_number'])
                 if type(person_data) is dict:
                     app_data = { key : serializer.validated_data['user'].get(key) for key in ['first_name','last_name']}
                     valid,response = iprs.validate_info(person_data,app_data)

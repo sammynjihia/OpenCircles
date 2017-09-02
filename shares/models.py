@@ -15,12 +15,11 @@ class IntraCircleShareTransaction(models.Model):
     TRANSACTION_TYPE = [('deposit','DEPOSIT'),('transfer','TRANSFER')]
     shares = models.ForeignKey(Shares)
     transaction_type = models.CharField(choices=TRANSACTION_TYPE,max_length=8)
-    recipient = models.ForeignKey(CircleMember, null=False,related_name='recipient')
-    sender = models.ForeignKey(CircleMember, null=False,related_name='sender')
+    recipient = models.ForeignKey(CircleMember, null=True,related_name='recipient')
+    sender = models.ForeignKey(CircleMember, null=True,related_name='sender')
     num_of_shares = models.FloatField(blank=False, null=False, default=0.00)
-    transaction_description = models.TextField(max_length=10000, blank=False)
-    time_of_transaction = models.DateTimeField(null=False, auto_now=True)
-
+    transaction_desc = models.TextField(max_length=10000, blank=False)
+    transaction_time = models.DateTimeField(null=False, auto_now=True)
 
     class Meta:
         db_table = 'IntraCircleShareTransaction'

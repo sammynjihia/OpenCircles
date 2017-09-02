@@ -1,5 +1,6 @@
 from django.db import models
 from member.models import Member
+from app_utility import sms_utils
 
 
 CIRCLE_TYPE = (
@@ -43,7 +44,7 @@ class CircleMember(models.Model):
 
 class CircleInvitation(models.Model):
     invited_by = models.ForeignKey(CircleMember, null=False, blank=False)
-    is_member = models.BooleanField(default=False, blank=False)
+    is_member = models.BooleanField(default=False)
     phone_number = models.CharField(max_length=20, blank=True)
     time_invited = models.DateTimeField(auto_now=True)
     status = models.CharField(max_length=1,default='P',choices=INVITE_STATUS)
@@ -52,9 +53,10 @@ class CircleInvitation(models.Model):
         db_table = 'CircleInvitation'
 
     def save(self,*args,**kwargs):
-        if Member.objects.filter(phone_number=self.phone_number).exists():
-            self.is_member = True
-        super(CircleInvitation,self).save()
+        # if Member.objects.filter(phone_number=self.phone_number).exists():
+        #     self.is_member = True
+        self.is_member = True
+        super(CircleInvitation,self).save(*args,**kwargs)
 
 
 

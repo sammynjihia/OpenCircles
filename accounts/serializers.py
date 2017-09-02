@@ -4,6 +4,8 @@ from rest_framework.validators import UniqueValidator
 from member.models import Member
 from django.contrib.auth.models import User
 
+from app_utility import sms_utils
+
 
 
 class MemberSerializer(serializers.ModelSerializer):
@@ -27,7 +29,7 @@ class MemberSerializer(serializers.ModelSerializer):
         if 'image' in validated_data:
             validated_data.pop('image')
         user_data = validated_data.pop('user')
-        username = validated_data.get('phone_number')
+        username = sms_utils.Sms().format_phone_number(validated_data.get('phone_number'))
         user = User.objects.create_user(username = username,**user_data)
         member = Member.objects.create(user=user,**validated_data)
         return member

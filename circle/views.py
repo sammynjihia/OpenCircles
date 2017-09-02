@@ -5,6 +5,7 @@ from django.contrib.auth import login
 
 from .models import Circle,CircleMember,CircleInvitation,AllowedGuarantorRequest
 from member.models import Contacts,Member
+from shares.models import Shares,IntraCircleShareTransaction
 from .serializers import *
 
 from rest_framework.views import APIView
@@ -15,9 +16,10 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.authentication import TokenAuthentication,BasicAuthentication
 from rest_framework.authtoken.models import Token
-from django.utils.six import text_type
 
-from app_utility import circle_utils
+from app_utility import circle_utils,wallet_utils
+
+import datetime,json
 
 # Create your views here.
 @api_view(['GET'])
@@ -35,7 +37,15 @@ class CircleCreation(APIView):
     authentication_classes = (TokenAuthentication,)
     permission_classes = (IsAuthenticated,)
     def post(self,request,*args,**kwargs):
-        request.data['circle_name'] = request.data.get('circle_name').lower()
+        # request.data['circle_name'] = request.data.get('circle_name').lower()
+        print request.data
+        if 'contact_list' in request.data:
+            mutable = request.data._mutable
+            request.data._mutable = True
+            print request.data['contact_list']
+            request.data['contact_list'] = json.loads(request.data['contact_list'])
+            contacts = request.data['contact_list'] if 'contact_list' in request.data else []
+            request.data._mutable = mutable
         serializer = CircleCreationSerializer(data=request.data)
         if serializer.is_valid():
             try:
@@ -45,22 +55,24 @@ class CircleCreation(APIView):
                     acc_number = last_acc_number + 1
                 else:
                     acc_number = 100000
-                acc_number = str(acc_number)
-                circle = serializer.save(initiated_by=request.user.member,circle_acc_number=acc_number)
                 member = request.user.member
+                circle = serializer.save(initiated_by=member,circle_acc_number=acc_number)
                 circle_member = CircleMember.objects.create(member=member,circle=circle)
-                contact_list = request.data.get('contact_list')
-                if len(contact_list):
-                    circle_invites = [CircleInvitation(invited_by=circle_member,phone_number=phone) for phone in phone_number]
+                if len(contacts):
+                    instance = sms_utils.Sms()
+                    print contacts
+                    circle_invites = [CircleInvitation(invited_by=circle_member,phone_number=phone) for phone in contacts]
                     CircleInvitation.objects.bulk_create(circle_invites)
-                data = {"status":1}
-                return Response(data,status = status.HTTP_201_CREATED)
+                serializer = CircleSerializer(circle,context={'request':request})
+                data={"status":1,"circle":serializer.data}
+                return Response(data,status=status.HTTP_201_CREATED)
             except Exception,e:
                 print str(e)
-                data = {"status":0}
-                return Response(data,status = status.HTTP_400_BAD_REQUEST)
+                error = {"circle":["Unable to create circle"]}
+                data = {"status":0,"message":error}
+                return Response(data,status = status.HTTP_200_OK)
         data = {"status":0,"message":serializer.errors}
-        return Response(data,status = status.HTTP_400_BAD_REQUEST)
+        return Response(data,status = status.HTTP_200_OK)
 
 class CircleList(APIView):
     """
@@ -95,17 +107,18 @@ class MemberCircle(APIView):
         if serializer.is_valid():
             instance = circle_utils.Circle()
             circles_ids = list(CircleMember.objects.filter(member=request.user.member).values_list('circle',flat=True))
-            unjoined_cirles = Circle.objects.filter(~Q(id__in=circles_ids),circle_type="OPEN")
+            unjoined_circles = Circle.objects.filter(~Q(id__in=circles_ids))
             contacts = Contacts.objects.filter(member=request.user.member,is_member=True).values_list('phone_number',flat=True)
-            suggested_circles = instance.get_suggested_circles(unjoined_cirles,contacts)
-            suggested_circles_ids = [key.id for key,value in suggested_circles] + circles_ids
+            suggested_circles = instance.get_suggested_circles(unjoined_circles,contacts)
+            invited_circles = instance.get_invited_circles(request,unjoined_circles)
+            invited_circles_ids  = [circle.id for circle in invited_circles]
+            suggested_circles_ids = list(set([key.id for key,value in suggested_circles] + circles_ids + invited_circles))
             circles = Circle.objects.filter(id__in=suggested_circles_ids)
             serializer = CircleSerializer(circles,many=True,context={'request':request})
             data={"status":1,"circles":serializer.data}
             return Response(data,status = status.HTTP_200_OK)
         data = {"status":0,"message":serializer.errors}
-        return Response(data,status=status.HTTP_400_BAD_REQUEST)
-
+        return Response(data,status=status.HTTP_200_OK)
 
 
 class CircleInvitationResponse(APIView):
@@ -133,7 +146,7 @@ class CircleInvitationResponse(APIView):
                 serializer = CircleSerializer(circle,context={"request":request})
                 return Response(serializer.data,status=status.HTTP_200_OK)
         else:
-            return Response(serializer.errors)
+            return Response(serializer.errors,status=status.HTTP_200_OK)
 
 class AllowedGuarantorRequestSetting(APIView):
     """
@@ -178,19 +191,34 @@ class JoinCircle(APIView):
     def post(self,request,*args,**kwargs):
         serializer = JoinCircleSerializer(data=request.data)
         if serializer.is_valid():
-            acc_number,amount,pin = serializer.validated_data['circle_acc_number'],serializer.validated_data['amount'],serializer.validated_data['pin']
-            circle = Circle.objects.get(circle_acc_number=acc_number)
-            try:
-                instance = circle_utils.Circle()
-                circle_member = CircleMember.objects.create(circle=circle,member=request.user.member)
-                instance.check_update_circle_status(circle)
-                data,return_status = {"status":1},status.HTTP_200_OK
-            except Exception,e:
-                print str(e)
-                data,return_status = {"status":0,"message":"Unable to add member"},status.HTTP_400_BAD_REQUEST
-            return Response(data,status=return_status)
+            acc_number,amount,pin = serializer.validated_data['circle_acc_number'],float(serializer.validated_data['amount']),serializer.validated_data['pin']
+            instance = wallet_utils.Wallet()
+            valid,response = instance.validate_account(request,pin,amount)
+            if valid:
+                circle = Circle.objects.get(circle_acc_number=acc_number)
+                desc = "Purchased shares worth {} in circle {}".format(amount,circle.circle_name)
+                transaction = response
+                transaction.transaction_desc = desc
+                transaction.recipient = circle.circle_acc_number
+                transaction.save()
+                try:
+                    desc = "Bought shares worth {} from wallet".format(amount)
+                    instance = circle_utils.Circle()
+                    circle_member = CircleMember.objects.create(circle=circle,member=request.user.member)
+                    shares = Shares.objects.create(circle_member=circle_member,num_of_shares=amount)
+                    IntraCircleShareTransaction.objects.create(shares=shares,transaction_type="deposit",recipient=circle_member,transaction_time=datetime.datetime.now(),transaction_desc=desc,num_of_shares=amount)
+                    instance.check_update_circle_status(circle)
+                    CircleInvitation.objects.filter(phone_number=request.user.member.phone_number,invited_by__in=CircleMember.objects.filter(circle=circle).values_list('id',flat=True)).delete()
+                    data = {"status":1}
+                    return Response(data,status=status.HTTP_200_OK)
+                except Exception,e:
+                    print str(e)
+                    data = {"status":0,"message":"Unable to add member to circle"}
+                    return Response(data,status=status.HTTP_200_OK)
+            data = {"status":0,"message":response}
+            return Response(data,status=status.HTTP_200_OK)
         data = {"status":0,"message":serializer.errors}
-        return Response(data,status.HTTP_400_BAD_REQUEST)
+        return Response(data,status.HTTP_200_OK)
 
 
 @api_view(['DELETE'])

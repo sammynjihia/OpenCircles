@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 import urllib, os
 from urlparse import urlparse
+from app_utility import sms_utils
 
 # Create your models here.
 
@@ -60,6 +61,8 @@ class Member(models.Model):
             urllib.urlretrieve(self.iprs_image_url, os.path.join(file_save_dir, filename))
             self.iprs_image = os.path.join(file_path, filename)
             self.iprs_image_url = ''
+        instance = sms_utils.Sms()
+        self.phone_number = instance.format_phone_number(self.phone_number)
         super(Member, self).save()
 
 class Beneficiary(models.Model):
@@ -133,3 +136,8 @@ class Contacts(models.Model):
 
     class Meta():
         db_table = 'Contacts'
+
+    def save(self,*args,**kwargs):
+        instance = sms_utils.Sms()
+        self.phone_number = instance.format_phone_number(self.phone_number)
+        super(Contacts,self).save()

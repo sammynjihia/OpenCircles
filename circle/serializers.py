@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Circle,CircleMember,AllowedGuarantorRequest
+from .models import Circle,CircleMember,AllowedGuarantorRequest,CircleInvitation
 
 from member.serializers import MemberSerializer
 from member.models import Member,Contacts
@@ -11,13 +11,14 @@ class CircleCreationSerializer(serializers.ModelSerializer):
     """
     Serializer for circle registration endpoint
     """
-    contact_list = serializers.ListField(child=serializers.CharField(),min_length=0,write_only=True)
+    contact_list = serializers.ListField()
     class Meta:
         model = Circle
-        fields = ['circle_name','circle_type','contact_list']
+        fields = ['circle_name','circle_type','contact_list','minimum_share']
 
     def create(self,validated_data):
         validated_data.pop('contact_list')
+        # validated_data['circle_name'] = validated_data['circle_name'].lower()
         return Circle.objects.create(**validated_data)
 
 class CircleSerializer(serializers.HyperlinkedModelSerializer):
@@ -31,9 +32,10 @@ class CircleSerializer(serializers.HyperlinkedModelSerializer):
     phonebook_member_count = serializers.SerializerMethodField()
     is_member = serializers.SerializerMethodField()
     is_active = serializers.SerializerMethodField()
+    is_invited = serializers.SerializerMethodField()
     class Meta:
         model = Circle
-        fields = ['circle_name','circle_type','circle_acc_number','is_active','is_member','members','initiated_by','date_created','minimum_share','annual_interest_rate','member_count','phonebook_member_count']
+        fields = ['circle_name','circle_type','circle_acc_number','is_active','is_member','is_invited','members','initiated_by','date_created','minimum_share','annual_interest_rate','member_count','phonebook_member_count']
 
     def get_member_count(self,circle):
         return CircleMember.objects.filter(circle_id=circle.id).count()
@@ -67,6 +69,13 @@ class CircleSerializer(serializers.HyperlinkedModelSerializer):
             CircleMember.objects.get(circle=circle,member=self.context.get('request').user.member)
             return 1
         except CircleMember.DoesNotExist:
+            return 0
+
+    def get_is_invited(self,circle):
+        ids = CircleMember.objects.filter(circle=circle).values_list('id',flat=True)
+        if CircleInvitation.objects.filter(phone_number=self.context.get('request').user.member.phone_number,invited_by__in=ids).exists():
+            return 1
+        else:
             return 0
 
 class CircleInvitationSerializer(serializers.Serializer):

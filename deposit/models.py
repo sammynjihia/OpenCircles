@@ -4,7 +4,6 @@ from django.db import models
 from circle.models import CircleMember
 # Create your models here.
 
-
 class Deposit(models.Model):
     DEPOSIT_CHANNELS = (
         ('MPESA', 'M-pesa'),
@@ -31,8 +30,3 @@ class Deposit(models.Model):
 
     class Meta:
         db_table = 'Deposit'
-
-
-
-
-

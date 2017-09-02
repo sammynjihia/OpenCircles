@@ -39,13 +39,13 @@ class PurchaseShares(APIView):
             circlemember = CircleMember.objects.get(circle=circle,member=member)
             if request.user.check_password(pin):
                 if wallet_utils.Wallet().check_balance(amount,request.user):
-                    wallet,wallet_balance = member.wallet,wallet.balance-amount
+                    wallet,wallet_balance = member.wallet,member.wallet.balance-amount
                     desc = "Bought shares worth {}{} in circle {}".format(member.currency,amount,circle.circle_name)
                     Transactions.objects.create(wallet=wallet,transaction_type="DEBIT",transaction_time=datetime.datetime.now(),transaction_desc=desc,amount=amount,recipient=circle_acc_number)
                     wallet.update(balance=wallet_balance)
                     shares = Shares.objects.get_or_create(CircleMember=circlemember)
                     desc = "Purchased shares worth {} from your wallet".format(amount)
-                    IntraCircleShareTransfer.objects.create(shares=shares,transaction_type="DEPOSIT",sender=circlemember,recipient= circlemember,num_of_shares=amount,transaction_description=desc)
+                    IntraCircleShareTransaction.objects.create(shares=shares,transaction_type="DEPOSIT",sender=circlemember,recipient= circlemember,num_of_shares=amount,transaction_description=desc)
                     shares.update(num_of_shares=shares.num_of_shares+amount)
                     serializer = SharesSerializer(shares)
                     data = {'status':1,'shares':serializer.data}
@@ -64,13 +64,11 @@ class MemberShares(APIView):
     authentication_classes = (TokenAuthentication,)
     permission_classes = (IsAuthenticated,)
     def post(self,request,*args,**kwargs):
-        print request.user
+
         serializer = MemberSharesSerializer(data=request.data)
         if serializer.is_valid():
             circle_acc = serializer.validated_data['circle_acc_number']
-            print circle_acc
             circle = Circle.objects.get(circle_acc_number = circle_acc)
-            print circle
             shares = Shares.objects.get(circle_member=CircleMember.objects.get(circle=circle,member=request.user.member))
             serializer = SharesSerializer(shares)
             data = {'status':1,'shares':serializer.data}

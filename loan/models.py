@@ -11,7 +11,6 @@ from deposit.models import Deposit
 
 
 class LoanApplication(models.Model):
-
     circle_member = models.ForeignKey(CircleMember, null=False)
     amount = models.FloatField(null=False, blank=False, default=0.00)
     interest_rate = models.FloatField(null=False, blank=False, default=0.00)
@@ -75,7 +74,3 @@ class LoanAmortizationSchedule(models.Model):
 
     class Meta:
         db_table = 'LoanAmortizationSchedule'
-
-
-
-

@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from loan.models import LoanApplication,GuarantorRequest
+from loan.models import LoanApplication as loanapplication,GuarantorRequest
 from loan.serializers import LoanApplicationSerializer
 
 from rest_framework.views import APIView
@@ -37,6 +37,7 @@ class LoanApplication(APIView):
     permission_classes = (IsAuthenticated, )
 
     def post(self, request, *args, **kwargs):
+        print request.data
         if 'guarantors' in request.data:
             mutable = request.data._mutable
             request.data._mutable = True
@@ -52,7 +53,8 @@ class LoanApplication(APIView):
 
             if request.user.check_password(pin):
                 circle_member = CircleMember.objects.get(circle=circle,member=request.user.member)
-                loan = LoanApplication.objects.create(circle_member=circle_member,amount=loan_amount,interest_rate=circle.annual_interest_rate)
+                loan = loanapplication.objects.create(circle_member=circle_member,amount=loan_amount,interest_rate=circle.annual_interest_rate)
+                guarantors = guarantors[0]
                 if len(guarantors):
                     try:
                         guarantor_objs = [ GuarantorRequest(loan_application=loan,
@@ -77,9 +79,3 @@ class LoanApplication(APIView):
 
                 data = {"status":1}
                 return Response(data, status=status.HTTP_200_OK)
-
-
-
-
-
-

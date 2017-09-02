@@ -83,9 +83,7 @@ class MemberRegistration(APIView):
             data = { 'status':1,'token':token.key }
             return Response(data,status = status.HTTP_201_CREATED)
         else:
-            print serializer.errors
             data = {'status':0,'message':'asdf'}
-            print data
             return Response(data,status = status.HTTP_400_BAD_REQUEST)
 
 @csrf_exempt
@@ -121,10 +119,8 @@ class LoginIn(APIView):
                     data = {'status':1,'token':token.key,'member':serializer.data }
                     return Response(data,status=status.HTTP_200_OK)
             data={"status":0,"message":"Invalid credentials"}
-            print data
             return Response(data,status=status.HTTP_400_BAD_REQUEST)
         data={"status":0,"message":serializer.errors}
-        print data
         return Response(data,status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['POST'])

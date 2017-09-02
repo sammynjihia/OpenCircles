@@ -16,5 +16,5 @@ class Account():
             try:
                 contacts_objs = [Contacts(name=contact['name'],phone_number=contact['phone'],member=user,is_member =self.check_membership_status(contact['phone'])) for contact in contacts]
                 Contacts.objects.bulk_create(contacts_objs)
-            except Exception,e:
-                print str(e)
+            except Exception as e:
+                print (str(e))

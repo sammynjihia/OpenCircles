@@ -11,23 +11,10 @@ from deposit.models import Deposit
 
 
 class LoanApplication(models.Model):
-    REPAYMENT_CYCLE = (
-        ('WEEK', 'Week'),
-        ('MONTH', 'Month'),
-        ('YEAR', 'Year')
-    )
 
-    DISBURSEMENT_CHANNELS = (
-        ('MPESA', 'M-pesa'),
-        ('BANK_ACCOUNT', 'Bank Account'),
-        ('PAYPAL', 'Paypal')
-    )
-
-    loan_code = models.CharField(max_length=10, blank=False, unique=True)
     circle_member = models.ForeignKey(CircleMember, null=False)
     amount = models.FloatField(null=False, blank=False, default=0.00)
     interest_rate = models.FloatField(null=False, blank=False, default=0.00)
-    repayment_cycle = models.CharField(max_length=5, null=False, choices=REPAYMENT_CYCLE)
     num_of_repayment_cycles = models.IntegerField(default=1)
     require_guarantors = models.BooleanField(default=False)
     time_of_application = models.DateTimeField(null=False, auto_now=True)
@@ -35,8 +22,7 @@ class LoanApplication(models.Model):
     time_approved = models.DateTimeField(null=True)
     is_disbursed = models.BooleanField(default=False)
     time_disbursed = models.DateTimeField(null=True)
-    disbursement_channel = models.CharField(max_length=20, choices=DISBURSEMENT_CHANNELS)
-    other_info = models.TextField(max_length=10000, blank=True)                                                                                         
+    other_info = models.TextField(max_length=10000, blank=True)
     is_fully_repaid = models.BooleanField(default=False)
     time_of_last_payment = models.DateTimeField(null=True)
 

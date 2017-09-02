@@ -5,7 +5,7 @@ from deposit.models import Deposit
 
 
 class Shares(models.Model):
-    circle_member = models.ForeignKey(CircleMember, null=False)
+    circle_member = models.ForeignKey(CircleMember,related_name='shares',  null=False)
     num_of_shares = models.FloatField(blank=False, null=False, default=0.00)
 
     class Meta:

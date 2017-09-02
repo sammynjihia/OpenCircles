@@ -10,8 +10,6 @@ class Wallet():
 
     def validate_account_info(self,request,amount,pin,recipient_account):
         sender_wallet = request.user.member.wallet
-        print type(sender_wallet.balance)
-        print type(amount)
         if request.user.check_password(pin):
             if sender_wallet.acc_no != recipient_account:
                 if sender_wallet.balance >= amount:
@@ -24,8 +22,6 @@ class Wallet():
     def validate_account(self,request,pin,amount):
         if request.user.check_password(pin):
             wallet = request.user.member.wallet
-            print type(wallet.balance)
-            print type(amount)
             if wallet.balance >= amount:
                 transaction = self.deduct_wallet_funds(wallet,amount)
                 return True,transaction

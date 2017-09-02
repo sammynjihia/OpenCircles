@@ -27,6 +27,7 @@ urlpatterns = [
     url(r'^circles/',include('circle.urls')),
     url(r'^wallet/',include('wallet.urls')),
     url(r'^shares/',include('shares.urls')),
+    url(r'^loans/', include('loan.urls')),
 ]
 
 if settings.DEBUG:

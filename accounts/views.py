@@ -16,8 +16,8 @@ from rest_framework.authentication import TokenAuthentication
 from rest_framework.authtoken.models import Token
 
 from app_utility import sms_utils,iprs_utils,accounts_utils
-from .serializers import MemberSerializer,PhoneNumberSerializer,ChangePasswordSerializer,AuthenticateUserSerializer
-from member import serializers
+from .serializers import MemberRegistrationSerializer,PhoneNumberSerializer,ChangePasswordSerializer,AuthenticateUserSerializer
+from member.serializers import MemberSerializer
 
 from member.models import Member
 from wallet.models import Wallet
@@ -47,7 +47,7 @@ class MemberRegistration(APIView):
             request.data['contact_list'] = json.loads(request.data['contact_list'])
             contacts = request.data['contact_list'] if 'contact_list' in request.data else []
             request.data._mutable = mutable
-        serializer = MemberSerializer(data=request.data)
+        serializer = MemberRegistrationSerializer(data=request.data)
         if serializer.is_valid():
             instance = accounts_utils.Account()
             if serializer.validated_data['country'].lower() == 'kenya':
@@ -115,13 +115,13 @@ class LoginIn(APIView):
                         token = Token.objects.get(user=user)
                     except Token.DoesNotExist:
                         token = Token.objects.create(user=user)
-                    serializer = serializers.MemberSerializer(request.user.member)
+                    serializer = MemberSerializer(request.user.member)
                     data = {'status':1,'token':token.key,'member':serializer.data }
                     return Response(data,status=status.HTTP_200_OK)
             data={"status":0,"message":"Invalid credentials"}
-            return Response(data,status=status.HTTP_400_BAD_REQUEST)
+            return Response(data,status=status.HTTP_200_BAD_REQUEST)
         data={"status":0,"message":serializer.errors}
-        return Response(data,status=status.HTTP_400_BAD_REQUEST)
+        return Response(data,status=status.HTTP_200_BAD_REQUEST)
 
 @api_view(['POST'])
 @authentication_classes([TokenAuthentication])

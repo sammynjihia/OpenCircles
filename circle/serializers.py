@@ -5,6 +5,8 @@ from .models import Circle,CircleMember,AllowedGuarantorRequest,CircleInvitation
 from member.serializers import MemberSerializer
 from member.models import Member,Contacts
 
+from shares.models import LockedShares
+
 from django.db.models import Q
 
 class CircleCreationSerializer(serializers.ModelSerializer):
@@ -53,7 +55,7 @@ class CircleSerializer(serializers.HyperlinkedModelSerializer):
     def get_members(self,circle):
         members_ids = CircleMember.objects.filter(circle_id=circle.id).values_list('member',flat=True)
         members = Member.objects.filter(id__in=members_ids).select_related('user')
-        serializer = MemberSerializer(members,many=True,context={"request":self.context.get('request')})
+        serializer = CircleMemberSerializer(members,many=True,context={"request":self.context.get('request'),"circle":circle})
         return serializer.data
 
     def get_phonebook_member_count(self,circle):
@@ -141,3 +143,57 @@ class JoinCircleSerializer(serializers.Serializer):
 
     class Meta:
         field = ['amount','pin','circle_acc_number']
+
+class CircleMemberSerializer(serializers.ModelSerializer):
+    first_name = serializers.CharField(source='user.first_name')
+    surname = serializers.CharField(source='user.last_name')
+    email = serializers.EmailField(source='user.email')
+    # passport_url = serializers.ImageField(source='iprs_image')
+    # date_of_birth = serializers.SerializerMethodField()
+    time_registered = serializers.SerializerMethodField()
+    is_self = serializers.SerializerMethodField()
+    available_shares = serializers.SerializerMethodField()
+    allow_guarantor_request = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Member
+        fields = ['first_name','surname','other_name','email','gender','country','phone_number','national_id','currency','date_of_birth','time_registered','is_self','available_shares','allow_guarantor_request']
+
+
+    def get_time_registered(self,member):
+         date = member.time_registered
+         return date.strftime("%Y-%m-%d %H:%M:%S")
+
+    def get_is_self(self,member):
+        request = self.context.get('request')
+        is_self = True if request.user.member.national_id == member.national_id else False
+        return is_self
+
+    def get_available_shares(self,member):
+        circle = self.context.get('circle')
+        circle_member = CircleMember.objects.get(member=member,circle=circle)
+        total_shares = circle_member.shares.get().num_of_shares
+        locked_shares = self.calculate_locked_shares(circle_member.shares.get())
+        return total_shares-locked_shares
+
+    def calculate_locked_shares(self,share):
+        locked_shares = LockedShares.objects.filter(shares=share)
+        if locked_shares.exists():
+            locked_shares = locked_shares.aggregate(total=Sum('num_of_shares'))
+            return float(locked_shares['total'])
+        return 0.0
+
+    def get_allow_guarantor_request(self,member):
+        request,circle = self.context.get('request'),self.context.get('circle')
+        try:
+            user = CircleMember.objects.get(member=request.user.member,circle=circle)
+        except CircleMember.DoesNotExist:
+            return False
+        circle_member = CircleMember.objects.get(member=member,circle=circle)
+        if AllowedGuarantorRequest.objects.filter(circle_member=circle_member).exists():
+            try:
+                AllowedGuarantorRequest.objects.get(circle_member=circle_member,allows_request_from=user)
+                return True
+            except AllowedGuarantorRequest.DoesNotExist():
+                return False
+        return True

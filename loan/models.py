@@ -59,7 +59,6 @@ class LoanGuarantor(models.Model):
 class LoanRepayment(models.Model):
     loan_application = models.ForeignKey(LoanApplication, null=False)
     amount = models.FloatField(null=False, blank=False, default=0.00)
-    deposit = models.ForeignKey(Deposit, null=False)
     time_of_repayment = models.DateTimeField(null=False)
     time_created = models.DateTimeField(auto_now=True)
 

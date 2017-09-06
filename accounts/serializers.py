@@ -8,7 +8,7 @@ from app_utility import sms_utils
 
 
 
-class MemberSerializer(serializers.ModelSerializer):
+class MemberRegistrationSerializer(serializers.ModelSerializer):
     """
     Serializer for member registration endpoint
     """
@@ -16,7 +16,6 @@ class MemberSerializer(serializers.ModelSerializer):
     surname = serializers.CharField(source='user.last_name')
     email = serializers.EmailField(source='user.email')
     pin = serializers.CharField(source='user.password',style ={'input_type':'password'},write_only=True)
-    # contact_list = serializers.ListField(child= serializers.DictField(child=serializers.CharField()),min_length=0,required=False)
     contact_list = serializers.ListField(child = serializers.ListField(serializers.DictField(child=serializers.CharField())),min_length=0,required=False)
     phone = serializers.CharField(source='phone_number')
     country_name = serializers.CharField(source='country')

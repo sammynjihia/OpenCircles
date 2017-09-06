@@ -8,7 +8,6 @@ from member.models import Member
 
 class Wallet(models.Model):
     member = models.OneToOneField(Member,null=False,unique=True,blank=False,on_delete=models.CASCADE)
-    balance = models.IntegerField(default=0)
     acc_no = models.IntegerField(unique=True)
 
     class Meta():

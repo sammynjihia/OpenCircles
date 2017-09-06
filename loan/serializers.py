@@ -8,3 +8,11 @@ class LoanApplicationSerializer(serializers.Serializer):
 
     class Meta:
         fields = ["loan_amount", "pin", "guarantors", "circle_acc_number"]
+
+class LoanRepaymentSerializer(serializers.Serializer):
+    amount = serializers.IntegerField()
+    pin = serializers.CharField()
+    circle_acc_number = serializers.CharField()
+
+    class Meta:
+        fields = ['amount','pin','circle_acc_number']

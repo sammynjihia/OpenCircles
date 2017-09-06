@@ -116,11 +116,9 @@ class MemberCircle(APIView):
             circles = Circle.objects.filter(id__in=suggested_circles_ids)
             serializer = CircleSerializer(circles,many=True,context={'request':request})
             data={"status":1,"circles":serializer.data}
-            print serializer.data
             return Response(data,status = status.HTTP_200_OK)
         data = {"status":0,"message":serializer.errors}
         return Response(data,status=status.HTTP_200_OK)
-
 
 class CircleInvitationResponse(APIView):
     """

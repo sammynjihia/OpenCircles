@@ -48,30 +48,21 @@ class WallettoWalletTranfer(APIView):
             valid,message = wallet_utils.Wallet().validate_account_info(request,amount,pin,account)
             if valid:
                 sender_wallet,recipient_wallet = request.user.member.wallet,recipient.wallet
-                try:
-                    sender_wallet.balance = sender_wallet.balance-amount
-                    recipient_wallet.balance = recipient_wallet.balance+amount
-                    sender_wallet.save()
-                    recipient_wallet.save()
-                except Exception,e:
-                    print (str(e))
-                    error = "Error occurred in transaction"
-                    data={"status":0,"message":error}
-                    return Response(data,status=status.HTTP_400_BAD_REQUEST)
                 sender_desc = "kes {} sent to {} {}".format(amount,recipient.user.first_name,recipient.user.last_name)
                 recipient_desc = "Received kes {} from {} {}".format(amount,request.user.first_name,request.user.last_name)
-                Transactions.objects.bulk_create([
-                    Transactions(wallet= sender_wallet,transaction_type="DEBIT",transaction_desc=sender_desc,transaction_amount=amount,transaction_time=datetime.datetime.now(),recipient=account),
-                    Transactions(wallet = recipient_wallet,transaction_type="CREDIT",transaction_desc=recipient_desc,transacted_by=sender_wallet.acc_no,transaction_amount=amount,transaction_time=datetime.datetime.now())
-                ])
+                try:
+                    Transactions.objects.bulk_create([
+                        Transactions(wallet= sender_wallet,transaction_type="DEBIT",transaction_desc=sender_desc,transaction_amount=amount,transaction_time=datetime.datetime.now(),recipient=account),
+                        Transactions(wallet = recipient_wallet,transaction_type="CREDIT",transaction_desc=recipient_desc,transacted_by=sender_wallet.acc_no,transaction_amount=amount,transaction_time=datetime.datetime.now())
+                    ])
+                except Exception as e:
+                    data = {"status":0,"message":"Unable to process transaction"}
+                    return Response(data,status=status.HTTP_200_OK)
                 data = {"status":1}
                 return Response(data,status=status.HTTP_200_OK)
             data = { "status":0,"message":message}
-            print message
             return Response(data,status=status.HTTP_200_OK)
-
         data = { "status":0,"message":serializer.errors}
-        print serializer.errors
         return Response(data,status=status.HTTP_200_OK)
 
 

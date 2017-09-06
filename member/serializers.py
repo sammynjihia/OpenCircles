@@ -33,7 +33,7 @@ class BeneficiarySerializer(serializers.ModelSerializer):
 
     other_name = serializers.CharField(source='last_name')
     pin = serializers.CharField(write_only=True)
-    member = serializers.ReadOnlyField(source='member')
+    owner = serializers.ReadOnlyField(source='member')
 
     def create(self,validated_data):
         validated_data = validated_data.pop('pin')
@@ -42,4 +42,4 @@ class BeneficiarySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Beneficiary
-        fields = ['first_name','other_name','pin','date_of_birth','gender','relationship','phone_number','email','benefit']
+        fields = ['first_name','other_name','pin','date_of_birth','gender','relationship','phone_number','email','benefit','owner']

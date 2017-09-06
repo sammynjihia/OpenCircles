@@ -61,9 +61,10 @@ class BeneficiaryRegistration(APIView):
 
     def post(self,request,*args,**kwargs):
         serializer = BeneficiarySerializer(data=request.data)
+        print request.data
         if serializer.is_valid():
             if request.user.check_password(serializer.validated_data['pin']):
-                serializer.save(member=request.user.member)
+                # serializer.save(owner=request.user.member)
                 data = {"status":1}
                 return Response(data,status=status.HTTP_200_OK)
             data = {"status":1,"message":"Incorrect pin"}

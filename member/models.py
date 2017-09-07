@@ -61,8 +61,6 @@ class Member(models.Model):
             urllib.urlretrieve(self.iprs_image_url, os.path.join(file_save_dir, filename))
             self.iprs_image = os.path.join(file_path, filename)
             self.iprs_image_url = ''
-        instance = sms_utils.Sms()
-        self.phone_number = instance.format_phone_number(self.phone_number)
         super(Member, self).save()
 
 class Beneficiary(models.Model):
@@ -76,10 +74,10 @@ class Beneficiary(models.Model):
         ('OTHER', 'Other')
     )
 
-    member = models.ForeignKey(Member, null=False, blank=False, on_delete=models.CASCADE)
+    member = models.ForeignKey(Member, null=False, blank=False, on_delete=models.CASCADE,related_name='owner')
     first_name = models.CharField(max_length=20, blank=False)
     last_name = models.CharField(max_length=20, blank=False)
-    gender = models.CharField(max_length=1, choices=GENDER_CHOICES)
+    gender = models.CharField(max_length=7, choices=GENDER_CHOICES)
     relationship = models.CharField(max_length=10, choices=RELATIONSHIP_CHOICES)
     phone_number = models.CharField(max_length=20, blank=True)
     email = models.CharField(max_length=20, blank=True)
@@ -92,6 +90,8 @@ class Beneficiary(models.Model):
         db_table = 'Beneficiary'
 
     def save(self,*args,**kwargs):
+        instance = sms_utils.Sms()
+        self.phone_number = instance.format_phone_number(self.phone_number)
         self.benefit = self.benefit/100
         return super(Beneficiary,self).save()
 
@@ -144,8 +144,3 @@ class Contacts(models.Model):
 
     class Meta():
         db_table = 'Contacts'
-
-    def save(self,*args,**kwargs):
-        instance = sms_utils.Sms()
-        self.phone_number = instance.format_phone_number(self.phone_number)
-        super(Contacts,self).save()

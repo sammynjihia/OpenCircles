@@ -80,6 +80,7 @@ class MemberShares(APIView):
             shares = Shares.objects.get(circle_member=CircleMember.objects.get(circle=circle,member=request.user.member))
             serializer = SharesSerializer(shares)
             data = {'status':1,'shares':serializer.data}
+            print serializer.data
             return Response(data,status=status.HTTP_200_OK)
         data = {'status':0,'message':serializer.errors}
         return Response(data,status=status.HTTP_200_OK)
@@ -101,6 +102,7 @@ class MemberSharesTransactions(APIView):
             transactions = shares.shares_transaction.all()
             serializer = SharesTransactionSerializer(transactions,context={'request':request})
             data = {"status":1,"transactions":serializer.data}
+            print serializer.data
             return Response(data,status=status.HTTP_200_OK)
         data = {"status":0,"message":serializer.errors}
         return Response(data,status=status.HTTP_200_OK)

@@ -2,6 +2,7 @@ from django.shortcuts import render
 from django.http import Http404
 from django.db.models import Q
 from django.contrib.auth import login
+from django.core.exceptions import ObjectDoesNotExist
 
 from .models import Circle,CircleMember,CircleInvitation,AllowedGuarantorRequest
 from member.models import Contacts,Member
@@ -10,14 +11,14 @@ from .serializers import *
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.decorators import api_view,permission_classes
+from rest_framework.decorators import api_view,permission_classes,authentication_classes
 from rest_framework.reverse import reverse
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.authentication import TokenAuthentication,BasicAuthentication
 from rest_framework.authtoken.models import Token
 
-from app_utility import circle_utils,wallet_utils
+from app_utility import circle_utils,wallet_utils,sms_utils
 
 import datetime,json
 
@@ -38,11 +39,9 @@ class CircleCreation(APIView):
     permission_classes = (IsAuthenticated,)
     def post(self,request,*args,**kwargs):
         # request.data['circle_name'] = request.data.get('circle_name').lower()
-        print request.data
         if 'contact_list' in request.data:
             mutable = request.data._mutable
             request.data._mutable = True
-            print request.data['contact_list']
             request.data['contact_list'] = json.loads(request.data['contact_list'])
             contacts = request.data['contact_list'] if 'contact_list' in request.data else []
             request.data._mutable = mutable
@@ -60,40 +59,18 @@ class CircleCreation(APIView):
                 circle_member = CircleMember.objects.create(member=member,circle=circle)
                 if len(contacts):
                     instance = sms_utils.Sms()
-                    print contacts
                     circle_invites = [CircleInvitation(invited_by=circle_member,phone_number=phone) for phone in contacts]
                     CircleInvitation.objects.bulk_create(circle_invites)
                 serializer = CircleSerializer(circle,context={'request':request})
                 data={"status":1,"circle":serializer.data}
                 return Response(data,status=status.HTTP_201_CREATED)
             except Exception,e:
-                print str(e)
+                print(str(e))
                 error = {"circle":["Unable to create circle"]}
                 data = {"status":0,"message":error}
                 return Response(data,status = status.HTTP_200_OK)
         data = {"status":0,"message":serializer.errors}
         return Response(data,status = status.HTTP_200_OK)
-
-class CircleList(APIView):
-    """
-    Lists all circles/retrieves specific circle by appending circle id to the url
-    """
-    permission_classes = (IsAuthenticated,)
-    def get_object(self,pk):
-        try:
-            return Circle.objects.get(pk=pk)
-        except Circle.DoesNotExist:
-            raise Http404
-
-    def get(self,request,*args,**kwargs):
-        if len(kwargs):
-            circle = self.get_object(kwargs.get('pk'))
-            serializer = CircleSerializer(circle,context={'request':request})
-        else:
-            circle = Circle.objects.all()
-            print request.user
-            serializer = CircleSerializer(circle,many=True,context={'request':request})
-        return Response(serializer.data,status = status.HTTP_200_OK)
 
 class MemberCircle(APIView):
     """
@@ -147,39 +124,83 @@ class CircleInvitationResponse(APIView):
         else:
             return Response(serializer.errors,status=status.HTTP_200_OK)
 
-class AllowedGuarantorRequestSetting(APIView):
+class AllowedGuaranteeRegistration(APIView):
     """
-    Serializer for setting and retrieving list of guarantors member can receive request,on post provide guarantor_list
+    Adds guarantees
     """
     authentication_classes = (TokenAuthentication,)
     permission_classes = (IsAuthenticated,)
-    def get_object(self,request,*args):
-        try:
-            return AllowedGuarantorRequest.object.get(allows_request_from=allowed_request,circle_member=user)
-        except AllowedGuarantorRequest.DoesNotExist:
-            raise Http404
-
     def post(self,request,*args,**kwargs):
-        serializer = AllowedGuarantorRequestSerializer(data=request.data)
-        circle_name = kwargs['circlename']
+        serializer = AllowedGuaranteeSerializer(data=request.data)
+        print(serializer.data)
         if serializer.is_valid():
-            circle,guarantor_list = Circle.objects.get(circle_name=circle_name),serializer.validated_data['guarantor_list']
-            circle_member = CircleMember.objects.get(circle=circle,member=request.user.member)
-            member_ids = Member.objects.filter(Q(national_id__in=guarantor_list)|Q(phone_number__in=guarantor_list)).values_list('id',flat=True)
-            acceptable_guarantor_requests = CircleMember.objects.filter(circle=circle,member_id__in = member_ids)
-            allowed_guarantor_objs = [AllowedGuarantorRequest(circle_member=circle_member,allows_request_from=member) for member in acceptable_guarantor_requests ]
-            AllowedGuarantorRequest.objects.bulk_create(allowed_guarantor_objs)
-            data = {"status":1}
+            instance = sms_utils.Sms()
+            circle,guarantee_phone = Circle.objects.get(circle_acc_number=serializer.validated_data['circle_acc_number']),instance.format_phone_number(serializer.validated_data['guarantee'])
+            user_circle_member = CircleMember.objects.get(circle=circle,member=request.user.member)
+            guarantee_member = Member.objects.get(phone_number=guarantee_phone)
+            allowed_guarantee = CircleMember.objects.get(circle=circle,member = guarantee_member)
+            try:
+                AllowedGuarantorRequest.objects.create(circle_member=user_circle_member,allows_request_from=allowed_guarantee)
+            except Exception as e:
+                print (str(e))
+                ms = "Unable to add {} {} to guarantee request list".format(guarantee_member.user.first_name,guarantee_member.user.last_name)
+                data = {"status":0,"message":ms}
+                return Response(data,status=status.HTTP_200_OK)
+            guaranteeserializer = CircleMemberSerializer(member,context={'request':request,'circle':circle})
+            data = {"status":1,'guarantee':guaranteeserializer.data}
             return Response(data,status=status.HTTP_201_CREATED)
         data = {"status":0,"errors":serializer.errors}
-        return Response(data,status=status.HTTP_400_BAD_REQUEST)
-
-    def get(self,request,*args,**kwargs):
-        circle_name = kwargs['circlename']
-        circle_member = CircleMember.objects.get(circle=Circle.objects.get(circle_name=circle_name),member=request.user.member)
-        serializer = AllowedGurantorSerializer(circle_member,context={"request":request})
-        data = {"status":1,"message":serializer.data}
         return Response(data,status=status.HTTP_200_OK)
+
+class AllowedGuaranteeRequestsSetting(APIView):
+    """
+    Sets allowed public guarantor bool
+    """
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = (IsAuthenticated,)
+
+    def post(self,request,*args,**kwargs):
+        serializer = AllowedGuaranteeRequestSerializer(data=request.data)
+        if serializer.is_valid():
+            if serializer.validated_data('allow_public_guarantees'):
+                circle = serializer.validated_data('circle_acc_number')
+                try:
+                    CircleMember.objects.filter(circle=circle,member=request.user.member).update(allow_public_guarantees_request=True)
+                except Exception as e:
+                    data = {"status":0,"message":"Unable to change allowed guarantees setting"}
+                    return Response(data,status=status.HTTP_200_OK)
+                data = {"status":1}
+                return Response(data,status=status.HTTP_200_OK)
+            CircleMember.objects.filter(circle=circle,member=request.user.member).update(allow_public_guarantees_request=False)
+            data = {"status":1}
+            return Response(data,status=status.HTTP_200_OK)
+        data = {"status":0,"message":serializer.errors}
+        return Response(data,status=status.HTTP_200_OK)
+
+@api_view(['POST'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
+def remove_allowed_guarantee_request(request,*args,**kwargs):
+    serializer = AllowedGuaranteeSerializer(data=request.data)
+    if serializer.is_valid():
+        instance = sms_utils.Sms()
+        circle = Circle.objects.get(circle_acc_number=serializer.validated_data['circle_acc_number'])
+        phone = instance.format_phone_number(serializer.validated_data['guarantee'])
+        user_circle_member = CircleMember.objects.get(circle=circle,member=request.user.member)
+        guarantee_circle_member = CircleMember.objects.get(circle=circle,member=Member.objects.get(phone_number=phone))
+        try:
+            AllowedGuarantorRequest.objects.filter(circle_member=user_circle_member,allows_request_from=guarantee_circle_member).delete()
+            ms = " {} {} removed from guarantee request list".format(guarantee_circle_member.member.user.first_name,guarantee_circle_member.member.user.last_name)
+            data = {"status":1,"message":ms}
+            return Response(data,status=status.HTTP_200_OK)
+        except Exception as e:
+            print(str(e))
+            ms = " Unable to remove {} {} from guarantee request list".format(guarantee_circle_member.member.user.first_name,guarantee_circle_member.member.user.last_name)
+            data = {"status":0,"message":ms}
+            return Response(data,status=status.HTTP_200_OK)
+    data = {"status":1,"message":serializer.errors}
+    return Response(data,status=status.HTTP_200_OK)
+
 
 class JoinCircle(APIView):
     """
@@ -211,7 +232,7 @@ class JoinCircle(APIView):
                     data = {"status":1}
                     return Response(data,status=status.HTTP_200_OK)
                 except Exception,e:
-                    print str(e)
+                    print(str(e))
                     data = {"status":0,"message":"Unable to add member to circle"}
                     return Response(data,status=status.HTTP_200_OK)
             data = {"status":0,"message":response}
@@ -232,3 +253,29 @@ def delete_objs(request,*args,**kwargs):
     agrs = AllowedGuarantorRequestSetting()
     obj = agrs.get_object(allowed_request,user)
     return Response(status=status.HTTP_200_OK)
+
+class CircleInvite(APIView):
+    """
+    Sends Invites to contacts provided
+    """
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = (IsAuthenticated,)
+
+    def post(self,request,*args,**kwargs):
+        serializer = CircleInviteSerializer(data=request.data)
+        if serializer.is_valid():
+            circle = Circle.objects.get(circle_acc_number=serializer.validated_data['circle_acc_number'])
+            instance = sms_utils.Sms()
+            phone = instance.format_phone_number(serializer.validated_data['phone_number'])
+            circle_member = CircleMember.objects.get(member=request.user.member,circle=circle)
+            try:
+                CircleMember.objects.get(circle=circle,member=Member.objects.get(phone_number=phone))
+            except ObjectDoesNotExist:
+                CircleInvitation.objects.create(phone_number=phone,invited_by=circle_member)
+                ms ="Invitation to {} has been sent".format(phone)
+                data = {"status":1,"message":ms}
+                return Response(data,status=status.HTTP_200_OK)
+            data = {"status":0,"message":"Already exists as a circle member"}
+            return Response(data,status=status.HTTP_200_OK)
+        data = {"status":0,"message":""}
+        return Response(data,status=status.HTTP_200_OK)

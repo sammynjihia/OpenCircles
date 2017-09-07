@@ -33,13 +33,28 @@ class BeneficiarySerializer(serializers.ModelSerializer):
 
     other_name = serializers.CharField(source='last_name')
     pin = serializers.CharField(write_only=True)
-    owner = serializers.ReadOnlyField(source='member')
 
     def create(self,validated_data):
-        validated_data = validated_data.pop('pin')
+        validated_data.pop('pin')
         beneficiary = Beneficiary.objects.create(**validated_data)
         return beneficiary
 
     class Meta:
         model = Beneficiary
-        fields = ['first_name','other_name','pin','date_of_birth','gender','relationship','phone_number','email','benefit','owner']
+        fields = ['first_name','other_name','pin','gender','relationship','phone_number','email','benefit','date_of_birth']
+
+
+class MemberBeneficiarySerializer(serializers.ModelSerializer):
+    """
+    Serializer for registering Beneficiary
+    """
+
+    other_name = serializers.CharField(source='last_name')
+    benefit = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Beneficiary
+        fields = ['first_name','other_name','gender','relationship','phone_number','email','benefit','date_of_birth']
+
+    def get_benefit(self,beneficiary):
+        return beneficiary.benefit*100

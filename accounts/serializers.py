@@ -29,6 +29,7 @@ class MemberRegistrationSerializer(serializers.ModelSerializer):
             validated_data.pop('image')
         user_data = validated_data.pop('user')
         username = sms_utils.Sms().format_phone_number(validated_data.get('phone_number'))
+        validated_data['phone_number'] = username
         user = User.objects.create_user(username = username,**user_data)
         member = Member.objects.create(user=user,**validated_data)
         return member
@@ -46,8 +47,8 @@ class ChangePasswordSerializer(serializers.Serializer):
     """
     Serializer for change password endpoint
     """
-    old_password = serializers.CharField()
-    new_password = serializers.CharField()
+    old_pin = serializers.CharField()
+    new_pin = serializers.CharField()
 
 class AuthenticateUserSerializer(serializers.Serializer):
     """

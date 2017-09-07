@@ -87,42 +87,21 @@ class CircleInvitationSerializer(serializers.Serializer):
     invite_id = serializers.CharField()
     invite_response = serializers.ChoiceField(choices=['A','D'])
 
-class AllowedGuarantorRequestSerializer(serializers.Serializer):
+class AllowedGuaranteeSerializer(serializers.Serializer):
     """
     Serializer for allowed guarantor request setting endpoint
     """
-    guarantor_list = serializers.ListField(child=serializers.CharField(),min_length=0)
+    guarantee = serializers.CharField()
+    circle_acc_number = serializers.CharField()
 
-    class Meta():
-        fields=['guarantor_list']
 
-class AllowedGurantorSerializer(serializers.Serializer):
+class AllowedGuaranteeRequestSerializer(serializers.Serializer):
 
     """
-    Serializer for allowed guarantor display endpoint
+    Serializer for allowed guarantor setting
     """
-    allowed_guarantor_requests = serializers.SerializerMethodField()
-    disallowed_guarantor_requests = serializers.SerializerMethodField()
-
-    class Meta():
-        fields = ['allowed_guarantor_requests','disallowed_guarantor_requests']
-
-    def get_allowed_guarantor_requests(self,circle_member):
-        try:
-            members_ids = CircleMember.objects.filter(id__in=AllowedGuarantorRequest.objects.filter(circle_member=circle_member).values_list('allows_request_from',flat=True)).values_list('member',flat=True)
-            members = Member.objects.filter(id__in=members_ids).select_related('user')
-            serializer = MemberSerializer(members,many=True,context={"request":self.context.get('request')})
-            return serializer.data
-        except Exception,e:
-            print(str(e))
-    def get_disallowed_guarantor_requests(self,circle_member):
-        try:
-            members_ids = CircleMember.objects.filter(Q(circle=circle_member.circle), ~Q(id=circle_member.id)).exclude(id__in=AllowedGuarantorRequest.objects.filter(circle_member=circle_member).values_list('allows_request_from',flat=True)).values_list('member',flat=True)
-            members = Member.objects.filter(id__in=members_ids).select_related('user')
-            serializer = MemberSerializer(members,many=True,context={"request":self.context.get('request')})
-            return serializer.data
-        except Exception,e:
-            print str(e)
+    allow_public_guarantees = serializers.BooleanField()
+    circle_acc_number = serializers.CharField()
 
 class TokenSerializer(serializers.Serializer):
     """
@@ -197,3 +176,10 @@ class CircleMemberSerializer(serializers.ModelSerializer):
             except AllowedGuarantorRequest.DoesNotExist():
                 return False
         return True
+
+class CircleInviteSerializer(serializers.Serializer):
+    """
+    Serializer for circle invites endpoint
+    """
+    phone_number = serializers.CharField()
+    circle_acc_number = serializers.CharField()

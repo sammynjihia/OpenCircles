@@ -9,9 +9,9 @@ CIRCLE_TYPE = (
 )
 
 INVITE_STATUS = (
-    ('A','Accepted'),
-    ('P','Pending'),
-    ('D','Declined')
+    ('Accepted','Accepted'),
+    ('Pending','Pending'),
+    ('Declined','Declined')
 )
 
 
@@ -47,16 +47,15 @@ class CircleInvitation(models.Model):
     is_member = models.BooleanField(default=False)
     phone_number = models.CharField(max_length=20, blank=True)
     time_invited = models.DateTimeField(auto_now=True)
-    status = models.CharField(max_length=1,default='P',choices=INVITE_STATUS)
+    status = models.CharField(max_length=10,default='Pending',choices=INVITE_STATUS)
 
     class Meta:
         db_table = 'CircleInvitation'
 
     def save(self,*args,**kwargs):
-        # if Member.objects.filter(phone_number=self.phone_number).exists():
-        #     self.is_member = True
-        self.is_member = True
-        super(CircleInvitation,self).save(*args,**kwargs)
+        if Member.objects.filter(phone_number=self.phone_number).exists():
+            self.is_member = True
+        super(CircleInvitation,self).save()
 
 
 

@@ -13,7 +13,7 @@ from rest_framework.authentication import TokenAuthentication
 from rest_framework import viewsets
 from rest_framework.parsers import FileUploadParser,FormParser
 
-from .serializers import MemberSerializer,BeneficiarySerializer
+from .serializers import MemberSerializer,BeneficiarySerializer,MemberBeneficiarySerializer
 from member.models import Member,Beneficiary
 from app_utility import sms_utils
 from accounts.serializers import PhoneNumberSerializer
@@ -61,13 +61,13 @@ class BeneficiaryRegistration(APIView):
 
     def post(self,request,*args,**kwargs):
         serializer = BeneficiarySerializer(data=request.data)
-        print request.data
         if serializer.is_valid():
             if request.user.check_password(serializer.validated_data['pin']):
-                # serializer.save(owner=request.user.member)
-                data = {"status":1}
+                s = serializer.save(member=request.user.member)
+                message = "{} {} was added as your beneficiary with {}%  benefit".format(s.first_name,s.last_name,s.benefit*100)
+                data = {"status":1,"message":message}
                 return Response(data,status=status.HTTP_200_OK)
-            data = {"status":1,"message":"Incorrect pin"}
+            data = {"status":0,"message":"Incorrect pin"}
             return Response(data,status=status.HTTP_200_OK)
         data = {"status":0,"message":serializer.errors}
         return Response(data,status=status.HTTP_200_OK)
@@ -81,6 +81,7 @@ class MemberBeneficiary(APIView):
 
     def post(self,request,*args,**kwargs):
         beneficiaries = Beneficiary.objects.filter(member=request.user.member)
-        serializer = MemberSerializer(beneficiaries,many=True)
+        serializer = MemberBeneficiarySerializer(beneficiaries,many=True)
+        print serializer.data
         data = {"status":1,"beneficiaries":serializer.data}
         return Response(data,status=status.HTTP_200_OK)

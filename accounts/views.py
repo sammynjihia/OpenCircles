@@ -61,7 +61,7 @@ class MemberRegistration(APIView):
                         iprs.save_extracted_iprs_info(new_member,person_data)
                     else:
                         data = { 'status':0,'message':response}
-                        return Response(data,status = status.HTTP_400_BAD_REQUEST)
+                        return Response(data,status = status.HTTP_200_OK)
                 else:
                     new_member = serializer.save()
                     token = Token.objects.create(user=new_member.user)
@@ -69,7 +69,7 @@ class MemberRegistration(APIView):
                     instance.save_contacts(new_member,contacts)
                     error = {"IPRS_SERVER":["Currently unavailable"]}
                     data = {'status':0,'message': error}
-                    return Response(data,status = status.HTTP_503_SERVICE_UNAVAILABLE)
+                    return Response(data,status = status.HTTP_200_OK)
 
             else:
                 new_member = serializer.save()
@@ -83,8 +83,8 @@ class MemberRegistration(APIView):
             data = { 'status':1,'token':token.key }
             return Response(data,status = status.HTTP_201_CREATED)
         else:
-            data = {'status':0,'message':'asdf'}
-            return Response(data,status = status.HTTP_400_BAD_REQUEST)
+            data = {'status':0,'message':serializer.errors}
+            return Response(data,status = status.HTTP_200_OK)
 
 @csrf_exempt
 def test_data(request):
@@ -119,9 +119,9 @@ class LoginIn(APIView):
                     data = {'status':1,'token':token.key,'member':serializer.data }
                     return Response(data,status=status.HTTP_200_OK)
             data={"status":0,"message":"Invalid credentials"}
-            return Response(data,status=status.HTTP_200_BAD_REQUEST)
+            return Response(data,status=status.HTTP_200_OK)
         data={"status":0,"message":serializer.errors}
-        return Response(data,status=status.HTTP_200_BAD_REQUEST)
+        return Response(data,status=status.HTTP_200_OK)
 
 @api_view(['POST'])
 @authentication_classes([TokenAuthentication])
@@ -144,23 +144,23 @@ class ChangePassword(APIView):
         obj = self.request.user
         return obj
 
-    def put(self,request,*args,**kwargs):
+    def post(self,request,*args,**kwargs):
         self.object = self.get_object()
         serializer = ChangePasswordSerializer(data = request.data)
         if serializer.is_valid():
-            old_password = serializer.data.get("old_password")
+            old_password = serializer.data.get("old_pin")
             #check old_password
             if not self.object.check_password(old_password):
-                error = {'old_password':["Wrong password."]}
-                data = {'status' : 400,'errors':error}
-                return Response(data,status=status.HTTP_400_BAD_REQUEST)
-            self.object.set_password(serializer.data.get("new_password"))
+                error = "Incorrect pin provided"
+                data = {'status' :0,'message':error}
+                return Response(data,status=status.HTTP_200_OK)
+            self.object.set_password(serializer.data.get("new_pin"))
             self.object.save()
-            data = { 'status' : 200}
+            data = { 'status' : 1,'message':'You have successfully changed your pin'}
             return Response(data,status = status.HTTP_200_OK)
         else:
-            data = {'status' : 400, 'errors':serializer.errors}
-            return Response(data,status = status.HTTP_400_BAD_REQUEST)
+            data = {'status' : 0, 'message':serializer.errors}
+            return Response(data,status = status.HTTP_200_OK)
 
 class PhoneNumberConfirmation(APIView):
     """
@@ -183,7 +183,7 @@ class PhoneNumberConfirmation(APIView):
                 data = {'status':0,
                          'message':'Unable to send confirmation code'
                 }
-                return Response(data,status=status.HTTP_400_BAD_REQUEST)
+                return Response(data,status=status.HTTP_200_OK)
         else:
             data = {'status': 0,
                      'message':serializer.errors

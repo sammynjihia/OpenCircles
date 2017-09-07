@@ -1,4 +1,5 @@
 from member.models import Contacts,Member
+from app_utility import sms_utils
 
 class Account():
     def check_membership_status(self,param):
@@ -14,7 +15,8 @@ class Account():
             user_contact.update(is_member=True)
         if len(contacts):
             try:
-                contacts_objs = [Contacts(name=contact['name'],phone_number=contact['phone'],member=user,is_member =self.check_membership_status(contact['phone'])) for contact in contacts]
+                instance = sms_utils.Sms()
+                contacts_objs = [Contacts(name=contact['name'],phone_number=instance.format_phone_number(contact['phone']),member=user,is_member =self.check_membership_status(contact['phone'])) for contact in contacts]
                 Contacts.objects.bulk_create(contacts_objs)
             except Exception as e:
                 print (str(e))

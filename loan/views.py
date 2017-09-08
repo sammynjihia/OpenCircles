@@ -48,7 +48,17 @@ class LoanApplication(APIView):
 
             if request.user.check_password(pin):
                 circle_member = CircleMember.objects.get(circle=circle,member=request.user.member)
-                loan = loanapplication.objects.create(circle_member=circle_member,amount=loan_amount,interest_rate=circle.annual_interest_rate)
+                circle_loan_code = "LN{}".format(circle.circle_acc_number)
+                loans = LoanApplication.objects.filter(loan_code__startswith = circle_loan_code)
+                if loans.exists():
+                    latest_loan = loans.latest('id')
+                    value = latest_loan.loan_code[len(circle_loan_code):]
+                    new_value = int(value) + 1
+                    value = str(new_value) if len(new_value)>1 else str(new_value).zfill(2)
+                    loan_code = circle_loan_code+value
+                else:
+                    loan_code = circle_loan_code+"01"
+                loan = loanapplication.objects.create(loan_code=loan_code,circle_member=circle_member,amount=loan_amount,interest_rate=circle.annual_interest_rate)
                 guarantors = guarantors[0]
                 if len(guarantors):
                     try:

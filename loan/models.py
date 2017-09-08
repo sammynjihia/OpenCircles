@@ -11,6 +11,7 @@ from deposit.models import Deposit
 
 
 class LoanApplication(models.Model):
+    loan_code = models.CharField(unique=True,max_length=20,default='LN0001')
     circle_member = models.ForeignKey(CircleMember, null=False)
     amount = models.FloatField(null=False, blank=False, default=0.00)
     interest_rate = models.FloatField(null=False, blank=False, default=0.00)

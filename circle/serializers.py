@@ -1,5 +1,7 @@
 from rest_framework import serializers
 
+from django.core.exceptions import ObjectDoesNotExist
+
 from .models import Circle,CircleMember,AllowedGuarantorRequest,CircleInvitation
 
 from member.serializers import MemberSerializer
@@ -176,7 +178,7 @@ class CircleMemberSerializer(serializers.ModelSerializer):
             try:
                 AllowedGuarantorRequest.objects.get(circle_member=circle_member,allows_request_from=user)
                 return True
-            except AllowedGuarantorRequest.DoesNotExist():
+            except ObjectDoesNotExist:
                 return False
         return True
 

@@ -57,6 +57,7 @@ class CircleCreation(APIView):
                 member = request.user.member
                 circle = serializer.save(initiated_by=member,circle_acc_number=acc_number)
                 circle_member = CircleMember.objects.create(member=member,circle=circle)
+                shares = Shares.objects.create(circle_member=circle_member)
                 if len(contacts):
                     instance = sms_utils.Sms()
                     circle_invites = [CircleInvitation(invited_by=circle_member,phone_number=phone) for phone in contacts]
@@ -131,11 +132,14 @@ class AllowedGuaranteeRegistration(APIView):
     authentication_classes = (TokenAuthentication,)
     permission_classes = (IsAuthenticated,)
     def post(self,request,*args,**kwargs):
+        print request.data
         serializer = AllowedGuaranteeSerializer(data=request.data)
-        print(serializer.data)
         if serializer.is_valid():
             instance = sms_utils.Sms()
             circle,guarantee_phone = Circle.objects.get(circle_acc_number=serializer.validated_data['circle_acc_number']),instance.format_phone_number(serializer.validated_data['guarantee'])
+            if guarantee_phone == request.user.member.phone_number:
+                data = {"status":0,"message":"Unable to add yourself to guarantee reuest list"}
+                return Response(data,status=status.HTTP_200_OK)
             user_circle_member = CircleMember.objects.get(circle=circle,member=request.user.member)
             guarantee_member = Member.objects.get(phone_number=guarantee_phone)
             allowed_guarantee = CircleMember.objects.get(circle=circle,member = guarantee_member)
@@ -146,8 +150,9 @@ class AllowedGuaranteeRegistration(APIView):
                 ms = "Unable to add {} {} to guarantee request list".format(guarantee_member.user.first_name,guarantee_member.user.last_name)
                 data = {"status":0,"message":ms}
                 return Response(data,status=status.HTTP_200_OK)
-            guaranteeserializer = CircleMemberSerializer(member,context={'request':request,'circle':circle})
-            data = {"status":1,'guarantee':guaranteeserializer.data}
+            guaranteeserializer = CircleMemberSerializer(guarantee_member,context={'request':request,'circle':circle})
+            ms = "{} {} added to guarantee request list".format(guarantee_member.user.first_name,guarantee_member.user.last_name)
+            data = {"status":1,'guarantee':guaranteeserializer.data,'message':ms}
             return Response(data,status=status.HTTP_201_CREATED)
         data = {"status":0,"errors":serializer.errors}
         return Response(data,status=status.HTTP_200_OK)
@@ -160,7 +165,7 @@ class AllowedGuaranteeRequestsSetting(APIView):
     permission_classes = (IsAuthenticated,)
 
     def post(self,request,*args,**kwargs):
-        print request.data
+        print(request.data)
         serializer = AllowedGuaranteeRequestSerializer(data=request.data)
         if serializer.is_valid():
             allowed = serializer.validated_data['allow_public_guarantees']
@@ -200,7 +205,7 @@ def remove_allowed_guarantee_request(request,*args,**kwargs):
             ms = " Unable to remove {} {} from guarantee request list".format(guarantee_circle_member.member.user.first_name,guarantee_circle_member.member.user.last_name)
             data = {"status":0,"message":ms}
             return Response(data,status=status.HTTP_200_OK)
-    data = {"status":1,"message":serializer.errors}
+    data = {"status":0,"message":serializer.errors}
     return Response(data,status=status.HTTP_200_OK)
 
 

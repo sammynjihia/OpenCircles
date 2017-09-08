@@ -45,7 +45,7 @@ class PurchaseShares(APIView):
                     wallet = member.wallet
                     desc = "Bought shares worth {}{} in circle {}".format(member.currency,amount,circle.circle_name)
                     wallet_transaction = Transactions.objects.create(wallet=wallet,transaction_type="DEBIT",transaction_time=datetime.datetime.now(),transaction_desc=desc,transaction_amount=amount,recipient=circle_acc_number)
-                    shares = Shares.objects.get(circle_member=circlemember)
+                    shares,created = Shares.objects.get_or_create(circle_member=circlemember)
                     desc = "Purchased shares worth {} from your wallet".format(amount)
                     shares_transaction = IntraCircleShareTransaction.objects.create(shares=shares,transaction_type="DEPOSIT",sender=circlemember,recipient= circlemember,num_of_shares=amount,transaction_desc=desc)
                     shares.num_of_shares = shares.num_of_shares+amount

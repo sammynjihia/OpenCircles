@@ -160,10 +160,12 @@ class AllowedGuaranteeRequestsSetting(APIView):
     permission_classes = (IsAuthenticated,)
 
     def post(self,request,*args,**kwargs):
+        print request.data
         serializer = AllowedGuaranteeRequestSerializer(data=request.data)
         if serializer.is_valid():
-            if serializer.validated_data('allow_public_guarantees'):
-                circle = serializer.validated_data('circle_acc_number')
+            allowed = serializer.validated_data['allow_public_guarantees']
+            circle = serializer.validated_data['circle_acc_number']
+            if allowed == 'true':
                 try:
                     CircleMember.objects.filter(circle=circle,member=request.user.member).update(allow_public_guarantees_request=True)
                 except Exception as e:

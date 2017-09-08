@@ -100,8 +100,11 @@ class AllowedGuaranteeRequestSerializer(serializers.Serializer):
     """
     Serializer for allowed guarantor setting
     """
-    allow_public_guarantees = serializers.BooleanField()
+    allow_public_guarantees = serializers.CharField()
     circle_acc_number = serializers.CharField()
+
+    class Meta:
+        fields = ['allow_public_guarantees','circle_acc_number']
 
 class TokenSerializer(serializers.Serializer):
     """

@@ -22,7 +22,7 @@ import datetime,json
 def api_root(request,format=None):
     return Response({
                         "loan_application":reverse('loan_application',request=request,format=format),
-                        "loan list":reverse('loans', request=request, format=format)
+                        "loan list":reverse('my_loans', request=request, format=format)
 
     })
 

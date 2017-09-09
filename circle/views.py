@@ -66,7 +66,7 @@ class CircleCreation(APIView):
                     instance = sms_utils.Sms()
                     circle_invites = [CircleInvitation(invited_by=circle_member,phone_number=phone) for phone in contacts]
                     invites = CircleInvitation.objects.bulk_create(circle_invites)
-                    created_objects.append(shares)
+                    created_objects.append(invites)
                 serializer = CircleSerializer(circle,context={'request':request})
                 data={"status":1,"circle":serializer.data}
                 return Response(data,status=status.HTTP_201_CREATED)

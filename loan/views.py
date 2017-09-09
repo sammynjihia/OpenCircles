@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from loan.models import LoanApplication as loanapplication,GuarantorRequest
-from loan.serializers import LoanApplicationSerializer,LoanRepaymentSerializer
+from loan.serializers import LoanApplicationSerializer,LoanRepaymentSerializer, LoansSerializer, CircleAccNoSerializer
 
 from rest_framework.views import APIView
 from rest_framework.authentication import TokenAuthentication
@@ -21,7 +21,8 @@ import datetime,json
 @api_view(['GET'])
 def api_root(request,format=None):
     return Response({
-                        "loan_application":reverse('loan_application',request=request,format=format)
+                        "loan_application":reverse('loan_application',request=request,format=format),
+                        "loan list":reverse('my_loans', request=request, format=format)
 
     })
 
@@ -98,3 +99,44 @@ class LoanRepayment(APIView):
             pass
         data = {"status":0,"message":serializer.errors}
         return Response(data,status=status.HTTP_200_OK)
+
+
+
+class Loans(APIView):
+    """
+    lists all loans
+    """
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = (IsAuthenticated,)
+
+    def post(self, request, *args, **kwargs):
+        serializers = CircleAccNoSerializer(data=request.data)
+
+        if serializers.is_valid():
+            circle_acc_number = serializers.validated_data['circle_acc_number']
+            circle = Circle.objects.get(circle_acc_number=circle_acc_number)
+            circle_member = CircleMember.objects.get(circle=circle, member=request.user.member)
+            try:
+                loans = LoanApplication.objects.filter(circle_member=circle_member)
+
+                if loans.exists():
+                    loans = LoansSerializer(loans, many=True)
+                    data = {"status": 1, "loans":loans.data}
+                    return Response(data, status=status.HTTP_200_OK)
+                message = "This user has no loans in this circle"
+                data = {"status": 0, "message": message}
+                return Response(data,status=status.HTTP_200_OK)
+
+
+            except Exception as (e):
+                print(e)
+
+        data = {"status": 0, "message": serializers.errors}
+        return Response(data, status=status.HTTP_200_OK)
+
+
+
+
+
+
+

@@ -47,6 +47,7 @@ class CircleCreation(APIView):
             request.data._mutable = mutable
         serializer = CircleCreationSerializer(data=request.data)
         if serializer.is_valid():
+            created_objects=[]
             try:
                 last_circle_created = Circle.objects.last()
                 if last_circle_created:
@@ -56,18 +57,28 @@ class CircleCreation(APIView):
                     acc_number = 100000
                 member = request.user.member
                 circle = serializer.save(initiated_by=member,circle_acc_number=acc_number)
+                created_objects.append(circle)
                 circle_member = CircleMember.objects.create(member=member,circle=circle)
+                created_objects.append(circle_member)
                 shares = Shares.objects.create(circle_member=circle_member)
+                created_objects.append(shares)
                 if len(contacts):
                     instance = sms_utils.Sms()
                     circle_invites = [CircleInvitation(invited_by=circle_member,phone_number=phone) for phone in contacts]
-                    CircleInvitation.objects.bulk_create(circle_invites)
+                    invites = CircleInvitation.objects.bulk_create(circle_invites)
+                    created_objects.append(shares)
                 serializer = CircleSerializer(circle,context={'request':request})
                 data={"status":1,"circle":serializer.data}
                 return Response(data,status=status.HTTP_201_CREATED)
             except Exception,e:
                 print(str(e))
-                error = {"circle":["Unable to create circle"]}
+                for obj in created_objects:
+                    if type(obj) is list:
+                        for ob in obj:
+                            ob.delete()
+                    else:
+                        obj.delete()
+                error = "Unable to create circle"
                 data = {"status":0,"message":error}
                 return Response(data,status = status.HTTP_200_OK)
         data = {"status":0,"message":serializer.errors}

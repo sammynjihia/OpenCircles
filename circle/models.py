@@ -40,7 +40,7 @@ class CircleMember(models.Model):
 
     class Meta:
         db_table = 'CircleMember'
-
+        unique_together = ("circle", "member")
 
 class CircleInvitation(models.Model):
     invited_by = models.ForeignKey(CircleMember, null=False, blank=False)

@@ -80,7 +80,7 @@ class Beneficiary(models.Model):
     gender = models.CharField(max_length=7, choices=GENDER_CHOICES)
     relationship = models.CharField(max_length=10, choices=RELATIONSHIP_CHOICES)
     phone_number = models.CharField(max_length=20, blank=True)
-    email = models.CharField(max_length=20, blank=True)
+    email = models.CharField(max_length=100, blank=True)
     date_of_birth = models.DateField(null=True)
     benefit = models.FloatField(default=0.00)
     passport_image = models.FileField(storage='MEDIA/BENEFICIARY_PASSPORT_IMAGE', null=True, blank=True)

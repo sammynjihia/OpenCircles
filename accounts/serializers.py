@@ -15,7 +15,7 @@ class MemberRegistrationSerializer(serializers.ModelSerializer):
     first_name = serializers.CharField(source='user.first_name')
     surname = serializers.CharField(source='user.last_name')
     email = serializers.EmailField(source='user.email')
-    pin = serializers.CharField(source='user.password',style ={'input_type':'password'},write_only=True)
+    pin = serializers.CharField(source='user.password',write_only=True)
     contact_list = serializers.ListField(child = serializers.ListField(serializers.DictField(child=serializers.CharField())),min_length=0,required=False)
     phone = serializers.CharField(source='phone_number')
     country_name = serializers.CharField(source='country')

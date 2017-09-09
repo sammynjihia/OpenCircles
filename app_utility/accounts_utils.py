@@ -14,9 +14,6 @@ class Account():
         if user_contact.exists():
             user_contact.update(is_member=True)
         if len(contacts):
-            try:
-                instance = sms_utils.Sms()
-                contacts_objs = [Contacts(name=contact['name'],phone_number=instance.format_phone_number(contact['phone']),member=user,is_member =self.check_membership_status(contact['phone'])) for contact in contacts]
-                Contacts.objects.bulk_create(contacts_objs)
-            except Exception as e:
-                print (str(e))
+            instance = sms_utils.Sms()
+            contacts_objs = [Contacts(name=contact['name'],phone_number=instance.format_phone_number(contact['phone']),member=user,is_member =self.check_membership_status(contact['phone'])) for contact in contacts]
+            Contacts.objects.bulk_create(contacts_objs)

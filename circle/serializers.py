@@ -16,12 +16,15 @@ class CircleCreationSerializer(serializers.ModelSerializer):
     Serializer for circle registration endpoint
     """
     contact_list = serializers.ListField()
+    pin = serializers.CharField()
+
     class Meta:
         model = Circle
-        fields = ['circle_name','circle_type','contact_list','minimum_share']
+        fields = ['circle_name','circle_type','contact_list','minimum_share','pin']
 
     def create(self,validated_data):
         validated_data.pop('contact_list')
+        validated_data.pop('pin')
         # validated_data['circle_name'] = validated_data['circle_name'].lower()
         return Circle.objects.create(**validated_data)
 
@@ -108,14 +111,6 @@ class AllowedGuaranteeRequestSerializer(serializers.Serializer):
     class Meta:
         fields = ['allow_public_guarantees','circle_acc_number']
 
-class TokenSerializer(serializers.Serializer):
-    """
-    Serializer for token endpoint
-    """
-    token = serializers.CharField()
-
-    class Meta:
-        fields = ['token']
 
 class JoinCircleSerializer(serializers.Serializer):
     """

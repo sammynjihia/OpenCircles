@@ -35,6 +35,7 @@ class PurchaseShares(APIView):
     authentication_classes = (TokenAuthentication,)
     permission_classes = (IsAuthenticated,)
     def post(self,request,*args,**kwargs):
+        print(request.data)
         serializer = PurchaseSharesSerializer(data=request.data)
         if serializer.is_valid():
             pin,amount,circle_acc_number = serializer.validated_data['pin'],serializer.validated_data['amount'],serializer.validated_data['circle_acc_number']
@@ -51,9 +52,7 @@ class PurchaseShares(APIView):
                     shares.num_of_shares = shares.num_of_shares+amount
                     shares.save()
                     walletserializer = WalletTransactionsSerializer(wallet_transaction)
-                    print walletserializer.data
                     sharesserializer = SharesTransactionSerializer(shares_transaction)
-                    print sharesserializer.data
                     data = {'status':1,'wallet_transaction':walletserializer.data,'shares_transaction':sharesserializer.data}
                     return Response(data,status=status.HTTP_200_OK)
                 except Exception as e:
@@ -62,7 +61,7 @@ class PurchaseShares(APIView):
                     return Response(data,status=status.HTTP_200_OK)
             data = {'status':0,'message':'Invalid pin'}
             return Response(data,status=status.HTTP_200_OK)
-        data = {'status':0,'message':serializer.data}
+        data = {'status':0,'message':serializer.errors}
         return Response(data,status=status.HTTP_200_OK)
 
 class MemberShares(APIView):

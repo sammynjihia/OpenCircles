@@ -71,11 +71,10 @@ class LoanApplication(APIView):
                     try:
                         guarantor_objs = [ GuarantorRequest(loan_application=loan,
                                                             circle_member=CircleMember.objects.get(
-                                                                            member=Member.objects.get(phone_number=guarantor['phone_number']),circle=circle),
+                                                                            member=Member.objects.get(phone_number=guarantor["phone_number"]),circle=circle),
                                                             num_of_shares=guarantor["amount"], time_requested=datetime.datetime.today()
                                                             ) for guarantor in guarantors]
                         GuarantorRequest.objects.bulk_create(guarantor_objs)
-    #                   /*disperse message to guarantors*/
                         data = {"status":1}
                         return Response(data, status=status.HTTP_200_OK)
                     except Exception as e:
@@ -91,16 +90,22 @@ class LoanApplication(APIView):
                     wallet_desc = "Credited wallet with loan worth {} {}".format(member.currency,loan_amount)
                     wallet_transaction = Transactions.objects.create(wallet= member.wallet, transaction_type='CREDIT', transaction_time = datetime.datetime.now(),transaction_desc=wallet_desc, transaction_amount= loan_amount, transacted_by = circle.circle_name)
                     created_objects.append(wallet_transaction)
-                    loan.update(is_approved=True, is_disbursed=True, time_disbursed=datetime.datetime.now(), time_approved=datetime.datetime.now())
+                    loan.is_approved=True
+                    loan.is_disbursed=True
+                    loan.time_disbursed=datetime.datetime.now()
+                    loan.time_approved=datetime.datetime.now()
+                    loan.save
                 except Exception as e:
                     print(str(e))
                     instance = general_utils.General()
                     instance.delete_created_objects(created_objects)
                     data = {"status": 0, "message":"unable to process loan"}
                     return Response(data, status=status.HTTP_200_OK)
-
-                data = {"status":1}
+                loan_serializer = LoansSerializer(loan)
+                data = {"status":1,"loan":loan_serializer.data}
                 return Response(data, status=status.HTTP_200_OK)
+        data = {"status":0,"message":serializers.errors}
+        return Response(data,status=status.HTTP_200_OK)
 
 class LoanRepayment(APIView):
     """

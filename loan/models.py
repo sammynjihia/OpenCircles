@@ -5,7 +5,6 @@ from django.db import models
 from circle.models import Circle, CircleMember
 from member.models import Member
 from shares.models import Shares, LockedShares, UnlockedShares
-from deposit.models import Deposit
 
 # Create your models here.
 

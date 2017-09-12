@@ -1,7 +1,6 @@
 from __future__ import unicode_literals
 from django.db import models
 from circle.models import Circle, CircleMember
-from deposit.models import Deposit
 
 
 class Shares(models.Model):

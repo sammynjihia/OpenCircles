@@ -43,7 +43,6 @@ INSTALLED_APPS = [
     'accounts.apps.AccountsConfig',
     'app_settings.apps.AppSettingsConfig',
     'circle.apps.CircleConfig',
-    'deposit.apps.DepositConfig',
     'wallet.apps.WalletConfig',
     'loan.apps.LoanConfig',
     'member.apps.MemberConfig',

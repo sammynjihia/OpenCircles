@@ -12,22 +12,23 @@ https://docs.djangoproject.com/en/1.11/ref/settings/
 
 import os
 from datetime import datetime, timedelta
+from decouple import config,Csv
 
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
+# i\)+!o9o+acs+ih!tm#sp_n89xze*-ux4izujow6\)y&\(aqqd&vr
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.11/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'i)+!o9o+acs+ih!tm#sp_n89xze*-ux4izujow6)y&(aqqd&vr'
+SECRET_KEY = config('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = config('DEBUG',cast=bool)
 
-ALLOWED_HOSTS = ["45.63.98.158","192.168.0.12","192.168.0.17"]
+ALLOWED_HOSTS = config('ALLOWED_HOSTS',cast=Csv())
 
 
 # Application definition
@@ -89,10 +90,10 @@ WSGI_APPLICATION = 'OpenCircles.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': 'open_circles',
-        'USER': 'open_circles',
-        'PASSWORD': 'open_circles',
-        'HOST': 'localhost',
+        'NAME': config('DB_NAME'),
+        'USER': config('DB_USER'),
+        'PASSWORD': config('DB_PASSWORD'),
+        'HOST': config('DB_HOST'),
         'PORT': '',
     }
 }

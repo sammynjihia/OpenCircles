@@ -57,7 +57,7 @@ class AuthenticateUserSerializer(serializers.Serializer):
     """
     username = serializers.CharField()
     pin = serializers.IntegerField()
-    # app_token = serializers.CharField()
+    app_token = serializers.CharField()
 
 class RegistrationTokenSerializer(serializers.Serializer):
     """

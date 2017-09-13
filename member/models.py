@@ -49,6 +49,7 @@ class Member(models.Model):
     occupation = models.CharField(max_length=100, blank=True)
     time_registered = models.DateTimeField(auto_now_add=True)
     is_validated = models.BooleanField(default = False)
+    device_token = models.CharField(max_length=300,default='')
 
     class Meta:
         db_table = 'Member'

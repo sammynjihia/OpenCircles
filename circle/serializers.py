@@ -133,10 +133,12 @@ class CircleMemberSerializer(serializers.ModelSerializer):
     is_self = serializers.SerializerMethodField()
     available_shares = serializers.SerializerMethodField()
     allow_guarantor_request = serializers.SerializerMethodField()
+    allow_public_guarantees_request = serializers.SerializerMethodField()
+    guarantees = serializers.SerializerMethodField()
 
     class Meta:
         model = Member
-        fields = ['first_name','surname','other_name','email','gender','country','phone_number','national_id','currency','date_of_birth','time_registered','is_self','available_shares','allow_guarantor_request']
+        fields = ['first_name','surname','other_name','email','gender','country','phone_number','national_id','currency','date_of_birth','time_registered','is_self','available_shares','allow_guarantor_request','allow_public_guarantees_request','guarantees']
 
 
     def get_time_registered(self,member):
@@ -176,6 +178,22 @@ class CircleMemberSerializer(serializers.ModelSerializer):
             except ObjectDoesNotExist:
                 return False
         return True
+
+    def get_allow_public_guarantees_request(self,member):
+        circle = self.context.get('circle')
+        circle_member = CircleMember.objects.get(circle=circle,member=member)
+        return circle_member.allow_public_guarantees_request
+
+    def get_guarantees(self,member):
+        value = self.get_allow_public_guarantees_request(member)
+        circle = self.context.get('request')
+        members = {}
+        if not value:
+            guarantees_ids = AllowedGuarantorRequest(circle_member=CircleMember.objects.get(circle=circle,member=member)).values_list('circle_member',flat=True)
+            guarantees = Member.objects.filter(id__in=CircleMember.objects.filter(id__in=guarantees).values_list('member',flat=True))
+            member_serializer = MemberSerializer(guarantees,many=True)
+            return member_serializer.data
+        return members
 
 class CircleInviteSerializer(serializers.Serializer):
     """

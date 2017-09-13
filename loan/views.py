@@ -11,7 +11,7 @@ from rest_framework.reverse import reverse
 
 from circle.models import Circle,CircleMember
 from member.models import Member
-from shares.models import LockedShares
+from shares.models import LockedShares,IntraCircleShareTransaction
 from wallet.models import Transactions
 from loan.models import LoanApplication as loanapplication,GuarantorRequest
 
@@ -85,8 +85,11 @@ class LoanApplication(APIView):
                         return Response(data, status=status.HTTP_200_OK)
                 try:
                     shares_desc = "Shares worth {} {} locked to guarantee loan".format(member.currency,loan_amount)
-                    locked_shares = LockedShares.objects.create(shares = circle_member.shares.get(),num_of_shares=loan_amount, transaction_description=shares_desc)
+                    shares = circle_member.shares.get()
+                    locked_shares = LockedShares.objects.create(shares = shares,num_of_shares=loan_amount, transaction_description=shares_desc)
                     created_objects.append(locked_shares)
+                    shares_transaction = IntraCircleShareTransaction.objects.create(shares=shares,transaction_type="LOCKED",num_of_shares=loan_amount,transaction_desc=shares_desc)
+                    created_objects.append(shares_transaction)
                     wallet_desc = "Credited wallet with loan worth {} {}".format(member.currency,loan_amount)
                     wallet_transaction = Transactions.objects.create(wallet= member.wallet, transaction_type='CREDIT', transaction_time = datetime.datetime.now(),transaction_desc=wallet_desc, transaction_amount= loan_amount, transacted_by = circle.circle_name)
                     created_objects.append(wallet_transaction)
@@ -94,7 +97,7 @@ class LoanApplication(APIView):
                     loan.is_disbursed=True
                     loan.time_disbursed=datetime.datetime.now()
                     loan.time_approved=datetime.datetime.now()
-                    loan.save
+                    loan.save()
                 except Exception as e:
                     print(str(e))
                     instance = general_utils.General()

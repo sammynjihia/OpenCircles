@@ -19,10 +19,11 @@ class MemberRegistrationSerializer(serializers.ModelSerializer):
     contact_list = serializers.ListField(child = serializers.ListField(serializers.DictField(child=serializers.CharField())),min_length=0,required=False)
     phone = serializers.CharField(source='phone_number')
     country_name = serializers.CharField(source='country')
+    app_token = serializers.CharField(source='device_token')
 
     class Meta:
         model = Member
-        fields = ['first_name','surname','other_name','gender','date_of_birth','image','email','pin','national_id','phone','country_name','contact_list']
+        fields = ['first_name','surname','other_name','gender','date_of_birth','image','email','pin','national_id','phone','country_name','contact_list','app_token']
 
     def create(self,validated_data):
         if 'image' in validated_data:
@@ -56,3 +57,10 @@ class AuthenticateUserSerializer(serializers.Serializer):
     """
     username = serializers.CharField()
     pin = serializers.IntegerField()
+    # app_token = serializers.CharField()
+
+class RegistrationTokenSerializer(serializers.Serializer):
+    """
+    Serializer for device registration token
+    """
+    app_token = serializers.CharField()

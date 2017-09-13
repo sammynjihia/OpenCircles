@@ -10,7 +10,7 @@ class PurchaseSharesSerializer(serializers.Serializer):
     """
     circle_acc_number = serializers.CharField()
     amount = serializers.FloatField()
-    pin = serializers.IntegerField()
+    pin = serializers.Field()
 
     class Meta:
         fields = ['circle_acc_number','amount','pin']

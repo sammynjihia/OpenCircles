@@ -27,7 +27,7 @@ SECRET_KEY = 'i)+!o9o+acs+ih!tm#sp_n89xze*-ux4izujow6)y&(aqqd&vr'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["45.63.98.158","192.168.0.12"]
+ALLOWED_HOSTS = ["45.63.98.158","192.168.0.12","192.168.0.17"]
 
 
 # Application definition
@@ -139,3 +139,4 @@ MEDIA_URL = '/MEDIA/'
 
 
 MEDIA_ROOT = os.path.join(BASE_DIR,'MEDIA/')
+MININIMUM_CIRCLE_SHARES = 100

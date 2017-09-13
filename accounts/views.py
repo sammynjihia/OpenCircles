@@ -69,7 +69,6 @@ class MemberRegistration(APIView):
                         return Response(data,status = status.HTTP_200_OK)
                     data = {"status":0,"message": "Server is currently unavailable"}
                     return Response(data,status = status.HTTP_200_OK)
-
             else:
                 new_member = serializer.save()
             created_objects.append(new_member.user)
@@ -108,6 +107,8 @@ class LoginIn(APIView):
             if user is not None:
                 if user.member.is_validated:
                     login(request,user)
+                    # user.member.device_token = serializer.validated_data('app_token')
+                    # user.member.save()
                     token,created = Token.objects.get_or_create(user=user)
                     serializer = MemberSerializer(request.user.member)
                     data = {"status":1,"token":token.key,"member":serializer.data }
@@ -170,3 +171,20 @@ class PhoneNumberConfirmation(APIView):
             return Response(data,status=status.HTTP_200_OK)
         data = {"status": 0,"message":serializer.errors}
         return Response(data,status = status.HTTP_400_BAD_REQUEST)
+
+class UpdateDeviceToken(APIView):
+    """
+    Updates device registration token
+    """
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = (IsAuthenticated,)
+    def post(self,request,*args,**kwargs):
+        serializer = RegistrationToken(data=request.data)
+        if serializer.is_valid():
+            member,token = request.user.member,serializer.validated_data('app_token')
+            member.device_token(token)
+            member.save()
+            data = {"status":1}
+            return Response(data,status=status.HTTP_200_OK)
+        data = {"status":0,"message":serializer.errors}
+        return Response(data,status=status.HTTP_200_OK)

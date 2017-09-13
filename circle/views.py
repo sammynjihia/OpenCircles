@@ -3,6 +3,7 @@ from django.http import Http404
 from django.db.models import Q
 from django.contrib.auth import login
 from django.core.exceptions import ObjectDoesNotExist
+from django.conf import settings
 
 from .models import Circle,CircleMember,CircleInvitation,AllowedGuarantorRequest
 from member.models import Contacts,Member
@@ -45,6 +46,9 @@ class CircleCreation(APIView):
         if serializer.is_valid():
             instance = wallet_utils.Wallet()
             minimum_share = serializer.validated_data['minimum_share']
+            if minimum_share < settings.MININIMUM_CIRCLE_SHARES:
+                data = {"status":0,"message":"The allowed minimum circle shares is {}".format(settings.MININIMUM_CIRCLE_SHARES)}
+                return Response(data,status=status.HTTP_200_OK)
             valid,response = instance.validate_account(request,serializer.validated_data['pin'],minimum_share)
             if valid:
                 created_objects=[]
@@ -228,10 +232,13 @@ class JoinCircle(APIView):
         serializer = JoinCircleSerializer(data=request.data)
         if serializer.is_valid():
             acc_number,amount,pin = serializer.validated_data['circle_acc_number'],float(serializer.validated_data['amount']),serializer.validated_data['pin']
+            circle = Circle.objects.get(circle_acc_number=acc_number)
+            if amount < circle.minimum_share:
+                data = {"status":0,"message":"The allowed minimum shares for {} circle is {}".format(circle.circle_name,settings.MININIMUM_CIRCLE_SHARES)}
+                return Response(data,status=status.HTTP_200_OK)
             instance = wallet_utils.Wallet()
             valid,response = instance.validate_account(request,pin,amount)
             if valid:
-                circle = Circle.objects.get(circle_acc_number=acc_number)
                 created_objects = []
                 try:
                     member=request.user.member

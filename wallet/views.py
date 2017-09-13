@@ -36,26 +36,32 @@ class WallettoWalletTranfer(APIView):
     permission_classes = (IsAuthenticated,)
     def post(self,request,*args,**kwargs):
         serializer = WallettoWalletTransferSerializer(data=request.data)
+        created_objects = []
         if serializer.is_valid():
             try:
                 recipient = Member.objects.get(phone_number=serializer.validated_data['phone_number'])
             except Member.DoesNotExist:
                 error = "Member with the phone number does not exist"
                 data = {"status":0,"message":error}
-                print error
-                return Response(data,status=status.HTTP_400_BAD_REQUEST)
+                return Response(data,status=status.HTTP_200_OK)
             amount,pin,account = serializer.validated_data['amount'],serializer.validated_data['pin'],recipient.wallet.acc_no
+            if amount < 0:
+                data = {"status":0,"message":"This transfer is not allowed"}
+                return Response(data,status=status.HTTP_200_OK)
             valid,message = wallet_utils.Wallet().validate_account_info(request,amount,pin,account)
             if valid:
                 sender_wallet,recipient_wallet = request.user.member.wallet,recipient.wallet
                 sender_desc = "kes {} sent to {} {}".format(amount,recipient.user.first_name,recipient.user.last_name)
                 recipient_desc = "Received kes {} from {} {}".format(amount,request.user.first_name,request.user.last_name)
                 try:
-                    Transactions.objects.bulk_create([
+                    transactions = Transactions.objects.bulk_create([
                         Transactions(wallet= sender_wallet,transaction_type="DEBIT",transaction_desc=sender_desc,transaction_amount=amount,transaction_time=datetime.datetime.now(),recipient=account),
                         Transactions(wallet = recipient_wallet,transaction_type="CREDIT",transaction_desc=recipient_desc,transacted_by=sender_wallet.acc_no,transaction_amount=amount,transaction_time=datetime.datetime.now())
                     ])
+                    created_objects.append(transactions)
                 except Exception as e:
+                    instance = general_utils.General()
+                    instance.delete_created_objects(created_objects)
                     data = {"status":0,"message":"Unable to process transaction"}
                     return Response(data,status=status.HTTP_200_OK)
                 data = {"status":1}
@@ -64,7 +70,6 @@ class WallettoWalletTranfer(APIView):
             return Response(data,status=status.HTTP_200_OK)
         data = { "status":0,"message":serializer.errors}
         return Response(data,status=status.HTTP_200_OK)
-
 
 class TransactionDetails(APIView):
     """

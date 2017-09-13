@@ -11,7 +11,7 @@ class Shares(models.Model):
         db_table = 'Shares'
 
 class IntraCircleShareTransaction(models.Model):
-    TRANSACTION_TYPE = [('deposit','DEPOSIT'),('transfer','TRANSFER')]
+    TRANSACTION_TYPE = [('deposit','DEPOSIT'),('transfer','TRANSFER'),('locked','LOCKED'),('unlocked','UNLOCKED')]
     shares = models.ForeignKey(Shares,related_name='shares_transaction')
     transaction_type = models.CharField(choices=TRANSACTION_TYPE,max_length=8)
     recipient = models.ForeignKey(CircleMember, null=True,related_name='recipient')

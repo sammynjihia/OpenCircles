@@ -60,7 +60,7 @@ class LoanApplication(APIView):
                     latest_loan = loans.latest('id')
                     value = latest_loan.loan_code[len(circle_loan_code):]
                     new_value = int(value) + 1
-                    value = str(new_value) if len(new_value)>1 else str(new_value).zfill(2)
+                    value = str(new_value) if len(str(new_value))>1 else str(new_value).zfill(2)
                     loan_code = circle_loan_code+value
                 else:
                     loan_code = circle_loan_code+"01"

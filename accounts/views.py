@@ -107,7 +107,7 @@ class LoginIn(APIView):
             if user is not None:
                 if user.member.is_validated:
                     login(request,user)
-                    user.member.device_token = serializer.validated_data('app_token')
+                    user.member.device_token = serializer.validated_data['app_token']
                     user.member.save()
                     token,created = Token.objects.get_or_create(user=user)
                     serializer = MemberSerializer(request.user.member)

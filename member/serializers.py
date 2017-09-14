@@ -54,7 +54,7 @@ class MemberBeneficiarySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Beneficiary
-        fields = ['first_name','other_name','pin''gender','relationship','phone_number','email','benefit','date_of_birth']
+        fields = ['first_name','other_name','gender','relationship','phone_number','email','benefit','date_of_birth']
 
     def get_benefit(self,beneficiary):
         return beneficiary.benefit*100

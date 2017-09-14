@@ -55,7 +55,7 @@ class LoanApplication(APIView):
                 member=request.user.member
                 circle_member = CircleMember.objects.get(circle=circle,member=member)
                 circle_loan_code = "LN{}".format(circle.circle_acc_number)
-                loans = LoanApplication.objects.filter(loan_code__startswith = circle_loan_code)
+                loans = loanapplication.objects.filter(loan_code__startswith = circle_loan_code)
                 if loans.exists():
                     latest_loan = loans.latest('id')
                     value = latest_loan.loan_code[len(circle_loan_code):]

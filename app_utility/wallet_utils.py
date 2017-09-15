@@ -8,7 +8,7 @@ class Wallet():
         if request.user.check_password(pin):
             if sender_wallet.acc_no == recipient_account:
                 return False,"Unacceptable transaction.The account number provided is your own"
-            balance = self.calculate_wallet_balance(wallet)
+            balance = self.calculate_wallet_balance(sender_wallet)
             if balance >= amount:
                 return True,""
             return False,"Insufficient funds in your wallet"

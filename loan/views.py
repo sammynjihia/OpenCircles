@@ -55,12 +55,12 @@ class LoanApplication(APIView):
                 member=request.user.member
                 circle_member = CircleMember.objects.get(circle=circle,member=member)
                 circle_loan_code = "LN{}".format(circle.circle_acc_number)
-                loans = LoanApplication.objects.filter(loan_code__startswith = circle_loan_code)
+                loans = loanapplication.objects.filter(loan_code__startswith = circle_loan_code)
                 if loans.exists():
                     latest_loan = loans.latest('id')
                     value = latest_loan.loan_code[len(circle_loan_code):]
                     new_value = int(value) + 1
-                    value = str(new_value) if len(new_value)>1 else str(new_value).zfill(2)
+                    value = str(new_value) if len(str(new_value))>1 else str(new_value).zfill(2)
                     loan_code = circle_loan_code+value
                 else:
                     loan_code = circle_loan_code+"01"

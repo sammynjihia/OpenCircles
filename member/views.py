@@ -82,5 +82,5 @@ class MemberBeneficiary(APIView):
     def post(self,request,*args,**kwargs):
         beneficiaries = Beneficiary.objects.filter(member=request.user.member)
         member_serializer = MemberBeneficiarySerializer(beneficiaries,many=True)
-        data = {"status":1,"beneficiaries":serializer.data}
+        data = {"status":1,"beneficiaries":member_serializer.data}
         return Response(data,status=status.HTTP_200_OK)

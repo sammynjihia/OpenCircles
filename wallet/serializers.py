@@ -27,3 +27,15 @@ class WalletTransactionsSerializer(serializers.ModelSerializer):
 
     def get_transaction_time(self,transaction):
         return transaction.transaction_time.strftime("%Y-%m-%d %H:%M:%S")
+
+
+class MpesaToWalletSerializer(serializers.Serializer):
+    """
+    Serializer for M-pesa to wallet transaction endpoint
+    """
+    amount = serializers.IntegerField()
+
+    class Meta():
+        fields = ["amount"]
+
+

@@ -16,7 +16,7 @@ from rest_framework.authentication import TokenAuthentication
 from rest_framework.authtoken.models import Token
 
 from app_utility import sms_utils,iprs_utils,accounts_utils,general_utils
-from .serializers import MemberRegistrationSerializer,PhoneNumberSerializer,ChangePasswordSerializer,AuthenticateUserSerializer
+from .serializers import MemberRegistrationSerializer,PhoneNumberSerializer,ChangePasswordSerializer,AuthenticateUserSerializer, RegistrationTokenSerializer
 from member.serializers import MemberSerializer
 
 from member.models import Member
@@ -182,7 +182,7 @@ class UpdateDeviceToken(APIView):
     authentication_classes = (TokenAuthentication,)
     permission_classes = (IsAuthenticated,)
     def post(self,request,*args,**kwargs):
-        serializer = RegistrationToken(data=request.data)
+        serializer = RegistrationTokenSerializer(data=request.data)
         if serializer.is_valid():
             member,token = request.user.member,serializer.validated_data('app_token')
             member.device_token(token)

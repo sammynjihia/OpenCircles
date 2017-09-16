@@ -2,7 +2,7 @@
 from __future__ import unicode_literals
 
 from django.shortcuts import render
-
+from wallet import disable_csrf
 from rest_framework.views import APIView
 from rest_framework import status
 from rest_framework.response import Response
@@ -14,8 +14,8 @@ from rest_framework.reverse import reverse
 from .serializers import *
 from .models import Transactions,Wallet
 from member.models import Member
-
-from app_utility import wallet_utils,general_utils
+import json
+from app_utility import wallet_utils,general_utils, mpesa_api_utils
 
 
 import datetime
@@ -25,7 +25,8 @@ import datetime
 def api_root(request,format=None):
     return Response({
              "wallet_to_wallet_tranfer":reverse("wallet-tranfer",request=request,format=format),
-             "wallet_transactions":reverse("wallet-transactions",request=request,format=format)
+             "wallet_transactions":reverse("wallet-transactions",request=request,format=format),
+             "mpesa_lipa_online_initiate":reverse("mpesa_lipa_online_initiate", request=request, format=format)
     })
 
 class WallettoWalletTranfer(APIView):
@@ -86,3 +87,47 @@ class TransactionDetails(APIView):
         serializer = WalletTransactionsSerializer(transactions,many=True)
         data = {"status":1,"message":serializer.data}
         return Response(data,status=status.HTTP_200_OK)
+
+class MpesaToWallet(APIView):
+    """
+    Credits wallet from M-pesa, amount to be provided
+    """
+    #authentication_classes = (TokenAuthentication,)
+    permissions_class = (IsAuthenticated,)
+    def post(self, request, *args):
+        serializers = MpesaToWalletSerializer(data=request.data)
+
+        if serializers.is_valid():
+            amount = serializers.validated_data["amount"]
+            phone_number = request.user.member.phone_number
+            mpesaAPI = mpesa_api_utils.MpesaUtils()
+
+
+            mpesaAPI.mpesa_online_checkout(amount, phone_number)
+
+        data = {"status": 0, "message": serializers.errors}
+        return Response(data, status=status.HTTP_200_OK)
+
+
+class MpesaCallbackURL(APIView):
+    """
+    callbackURL for mpesa transactions
+    """
+
+    authentication_classes = (disable_csrf.CsrfExemptSessionAuthentication())
+    def mpesaCallbackURL(self, request):
+        data = request.body
+        result = json.loads(data)
+        CheckoutRequestID = result["Body"]["stkCallback"]["CheckoutRequestID"]
+        MerchantRequestID = result["Body"]["stkCallback"]["MerchantRequestID"]
+        ResultCode = result["Body"]["stkCallback"]["ResultCode"]
+
+        if ResultCode == 0:
+            CallbackMetadata= result["Body"]["stkCallback"]["CallbackMetadata"]
+            print ("Transaction Successful")
+            print (CallbackMetadata)
+
+        else:
+            print("Transaction unsuccessful")
+
+

@@ -113,21 +113,48 @@ class MpesaCallbackURL(APIView):
     """
     callbackURL for mpesa transactions
     """
-
-    authentication_classes = (disable_csrf.CsrfExemptSessionAuthentication())
-    def mpesaCallbackURL(self, request):
+    #mpesaCallbackURL
+    def post(self, request):
         data = request.body
         result = json.loads(data)
         CheckoutRequestID = result["Body"]["stkCallback"]["CheckoutRequestID"]
         MerchantRequestID = result["Body"]["stkCallback"]["MerchantRequestID"]
         ResultCode = result["Body"]["stkCallback"]["ResultCode"]
 
+
         if ResultCode == 0:
             CallbackMetadata= result["Body"]["stkCallback"]["CallbackMetadata"]
             print ("Transaction Successful")
             print (CallbackMetadata)
+            mpesa_Callbackdata = CallbackMetadata
+            mpesa_data ={n['Name']:n['Value'] for n in mpesa_Callbackdata["Item"] for key,value in n.iteritems() if value in ["Amount","PhoneNumber", "MpesaReceiptNumber", "TransactionDate"]}
+
+
+            transaction_code = mpesa_data["MpesaReceiptNumber"]
+            amount = mpesa_data["Amount"]
+            phone_number = mpesa_data["PhoneNumber"]
+            transaction_date = mpesa_data["TransactionDate"]
+            mpesa_transaction_date = datetime.datetime.fromtimestamp(transaction_date / 1e3)
+            member = Member.objects.get(phone_number=phone_number)
+            wallet = member.wallet
+            transaction_desc = "{} confirmed, kes {} has been credited to your wallet by {} at {} ".format(transaction_code, amount, phone_number, mpesa_transaction_date )
+
+            try:
+                transactions = Transactions.objects.create(wallet=wallet, transaction_type="CREDIT", transaction_desc=transaction_desc,
+                                 transacted_by=wallet.acc_no, transaction_amount=amount,
+                                 transaction_time=mpesa_transaction_date
+                )
+                transactions.save()
+            except Exception as e:
+                data = {"status": 0, "message": "Unable to process transaction"}
+                return Response(data, status=status.HTTP_200_OK)
+            serializer = WalletTransactionsSerializer(transactions)
+            data = {"status": 1, "wallet_transaction":serializer.data}
+            return Response(data, status=status.HTTP_200_OK)
 
         else:
             print("Transaction unsuccessful")
+            data = {"status": 0, "message": "Transaction unsuccessful, something went wrong"}
+            return Response(data, status=status.HTTP_200_OK)
 
 

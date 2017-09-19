@@ -121,10 +121,9 @@ class MpesaToWallet(APIView):
 
         if serializers.is_valid():
             amount = serializers.validated_data["amount"]
-            phone_number = request.user.member.phone_number
+            phone_number_raw = request.user.member.phone_number
             mpesaAPI = mpesa_api_utils.MpesaUtils()
-
-
+            phone_number = phone_number_raw.strip('+')
             mpesaAPI.mpesa_online_checkout(amount, phone_number)
 
         data = {"status": 0, "message": serializers.errors}

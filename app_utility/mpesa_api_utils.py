@@ -7,7 +7,7 @@ import base64
 consumer_key = "tAEyfavNAtEi68QLD7j534XgVCYQkY1v"
 consumer_secret = "S7IQHLdo2epsV35O"
 api_URL = "https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials"
-main_url = "https://dzyieunfjr.localtunnel.me/"
+main_url = "https://fgehbulqxm.localtunnel.me/"
 lipaonline_callbackURL = main_url + "wallet/mpesaCallbackURL/"
 shortcode = "174379"
 timestamp_raw = datetime.datetime.now()
@@ -44,5 +44,5 @@ class MpesaUtils():
         }
 
         response = requests.post(api_url, json = request, headers=headers)
-        print(response.json(self))
+        print(response.text)
 

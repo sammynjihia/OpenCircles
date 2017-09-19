@@ -15,11 +15,11 @@ class Sms:
         elif phone_number[0: 1] == '7':
             to = '+254' + phone_number
         return to
-    def sendsms(self,phone_number,message):
-        phone_number = self.format_phone_number(phone_number)
+    def sendsms(self,to,message):
+        to = self.format_phone_number(to)
         gateway = AfricasTalkingGateway(self.username,self.api_key)
         try:
-            response = gateway.sendMessage(phone_number,message)
+            response = gateway.sendMessage(to,message)
             if response[0]['status'] == 'Success':
                 return True
             else:

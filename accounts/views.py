@@ -16,7 +16,7 @@ from rest_framework.authentication import TokenAuthentication
 from rest_framework.authtoken.models import Token
 
 from app_utility import sms_utils,iprs_utils,accounts_utils,general_utils
-from .serializers import MemberRegistrationSerializer,PhoneNumberSerializer,ChangePasswordSerializer,AuthenticateUserSerializer, RegistrationTokenSerializer
+from .serializers import *
 from member.serializers import MemberSerializer
 
 from member.models import Member
@@ -163,7 +163,7 @@ class PhoneNumberConfirmation(APIView):
         serializer = PhoneNumberSerializer(data = request.data)
         if serializer.is_valid():
             sms = sms_utils.Sms()
-            phone_number = serializer.validated_data.get("phone")
+            phone_number = serializer.validated_data.get("phone_number")
             code = random.randint(1111,9999)
             message = "Your confirmation code is {}".format(code)
             response = sms.sendsms(phone_number,message)

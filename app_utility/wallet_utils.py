@@ -18,7 +18,6 @@ class Wallet():
         if request.user.check_password(pin):
             wallet = request.user.member.wallet
             balance = self.calculate_wallet_balance(wallet)
-            print balance
             if balance >= amount:
                 return True,""
             return False,"Insufficient funds in your wallet"
@@ -31,5 +30,7 @@ class Wallet():
     def calculate_wallet_balance(self,wallet):
         credit = Transactions.objects.filter(wallet=wallet,transaction_type="CREDIT").aggregate(total=Sum("transaction_amount"))
         debit = Transactions.objects.filter(wallet=wallet,transaction_type="DEBIT").aggregate(total=Sum("transaction_amount"))
-        balance = credit['total']-debit['total']
+        credit = credit['total'] if credit['total'] is not None else 0
+        debit = debit['total'] if debit['total'] is not None else 0
+        balance = credit-debit
         return balance

@@ -1,5 +1,8 @@
 from django.shortcuts import render
-from loan.serializers import LoanApplicationSerializer,LoanRepaymentSerializer, LoansSerializer, CircleAccNoSerializer
+
+from .serializers import *
+from wallet.serializers import WalletTransactionsSerializer
+from shares.serializers import SharesTransactionSerializer
 
 from rest_framework.views import APIView
 from rest_framework.authentication import TokenAuthentication
@@ -15,7 +18,7 @@ from shares.models import LockedShares,IntraCircleShareTransaction
 from wallet.models import Transactions
 from loan.models import LoanApplication as loanapplication,GuarantorRequest
 
-from app_utility import general_utils
+from app_utility import general_utils,fcm_utils,circle_utils
 
 import datetime,json
 
@@ -43,14 +46,13 @@ class LoanApplication(APIView):
             request.data._mutable = True
             request.data['guarantors'] = json.loads(request.data['guarantors'])
             request.data._mutable = mutable
-        serializers = LoanApplicationSerializer(data=request.data)
-        if serializers.is_valid():
+        serializer = LoanApplicationSerializer(data=request.data)
+        if serializer.is_valid():
             created_objects = []
-            pin = serializers.validated_data['pin']
-            loan_amount = serializers.validated_data['loan_amount']
-            guarantors = serializers.validated_data['guarantors']
-            circle = Circle.objects.get(circle_acc_number=serializers.validated_data['circle_acc_number'])
-
+            pin = serializer.validated_data['pin']
+            loan_amount = serializer.validated_data['loan_amount']
+            guarantors = serializer.validated_data['guarantors']
+            circle = Circle.objects.get(circle_acc_number=serializer.validated_data['circle_acc_number'])
             if request.user.check_password(pin):
                 member=request.user.member
                 circle_member = CircleMember.objects.get(circle=circle,member=member)
@@ -60,7 +62,8 @@ class LoanApplication(APIView):
                     latest_loan = loans.latest('id')
                     value = latest_loan.loan_code[len(circle_loan_code):]
                     new_value = int(value) + 1
-                    value = str(new_value) if len(str(new_value))>1 else str(new_value).zfill(2)
+                    new_value = str(new_value)
+                    value = new_value if len(new_value)>1 else new_value.zfill(2)
                     loan_code = circle_loan_code+value
                 else:
                     loan_code = circle_loan_code+"01"
@@ -81,7 +84,7 @@ class LoanApplication(APIView):
                         print(str(e))
                         instance = general_utils.General()
                         instance.delete_created_objects(created_objects)
-                        data = {"status": 0, "message":"unable to process loan"}
+                        data = {"status": 0, "message":"Unable to process loan"}
                         return Response(data, status=status.HTTP_200_OK)
                 try:
                     shares_desc = "Shares worth {} {} locked to guarantee loan".format(member.currency,loan_amount)
@@ -98,16 +101,29 @@ class LoanApplication(APIView):
                     loan.time_disbursed=datetime.datetime.now()
                     loan.time_approved=datetime.datetime.now()
                     loan.save()
+                    wallet_transaction_serializer = WalletTransactionsSerializer(wallet_transaction)
+                    shares_transaction_serializer = SharesTransactionSerializer(shares_transaction)
+                    loan_serializer = LoansSerializer(loan)
+                    shares_instance = circle_utils.Circle()
+                    loan_limit = shares_instance.get_available_circle_member_shares(circle,member)
+                    available_shares = shares_instance.get_available_circle_member_shares(circle,member)
+                    message = "Your loan of {} {} has been successfully processed".format(member.currency,loan_amount)
+                    data = {"status":1,"loan":loan_serializer.data,"wallet_transaction":wallet_transaction_serializer.data,"shares_transaction":shares_transaction_serializer.data,"loan_limit":loan_limit,"message":message}
+                    instance = fcm_utils.Fcm()
+                    param = {"phone":member.phone_number,"available_shares":available_shares}
+                    fcm_data = {"request_type":"UPDATE_AVAILABLE_SHARES","params":param}
+                    registration_id = instance.get_circle_members_token(circle,member)
+                    instance.data_push("multiple",registration_id,fcm_data)
+                    return Response(data, status=status.HTTP_200_OK)
                 except Exception as e:
                     print(str(e))
                     instance = general_utils.General()
                     instance.delete_created_objects(created_objects)
-                    data = {"status": 0, "message":"unable to process loan"}
+                    data = {"status": 0, "message":"Unable to process loan"}
                     return Response(data, status=status.HTTP_200_OK)
-                loan_serializer = LoansSerializer(loan)
-                data = {"status":1,"loan":loan_serializer.data}
-                return Response(data, status=status.HTTP_200_OK)
-        data = {"status":0,"message":serializers.errors}
+            data = {"status":0,"message":"Incorrect pin"}
+            return Response(data,status=status.HTTP_200_OK)
+        data = {"status":0,"message":serializer.errors}
         return Response(data,status=status.HTTP_200_OK)
 
 class LoanRepayment(APIView):
@@ -139,7 +155,7 @@ class Loans(APIView):
             circle_acc_number = serializers.validated_data['circle_acc_number']
             circle = Circle.objects.get(circle_acc_number=circle_acc_number)
             circle_member = CircleMember.objects.get(circle=circle, member=request.user.member)
-            loans = LoanApplication.objects.filter(circle_member=circle_member)
+            loans = loanapplication.objects.filter(circle_member=circle_member)
             if loans.exists():
                 loans = LoansSerializer(loans, many=True)
                 data = {"status": 1, "loans":loans.data}

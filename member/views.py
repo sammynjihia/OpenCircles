@@ -15,7 +15,7 @@ from rest_framework.parsers import FileUploadParser,FormParser
 
 from .serializers import MemberSerializer,BeneficiarySerializer,MemberBeneficiarySerializer
 from member.models import Member,Beneficiary
-from app_utility import sms_utils
+from app_utility import sms_utils,member_utils
 from accounts.serializers import PhoneNumberSerializer
 
 import random
@@ -63,9 +63,26 @@ class BeneficiaryRegistration(APIView):
         serializer = BeneficiarySerializer(data=request.data)
         if serializer.is_valid():
             if request.user.check_password(serializer.validated_data['pin']):
-                beneficiary = serializer.save(member=request.user.member)
-                message = "{} {} was added as your beneficiary with {}%  benefit".format(beneficiary.first_name,beneficiary.last_name,beneficiary.benefit*100)
-                data = {"status":1,"message":message}
+                instance = member_utils.OpenCircleMember()
+                assigned_benefit = serializer.validated_data['benefit']
+                if assigned_benefit > 100:
+                    message = "Unable to add the new beneficiary.Maximum allowed benefit is 100%"
+                    data = {"status":0,"message":message}
+                    return Response(data,status=status.HTTP_200_OK)
+                benefit = instance.calculate_member_benefit(request.user.member)
+                if benefit == 100:
+                    message = "Unable to add the new beneficiary.Your total benefits has reached the 100% limit."
+                    data = {"status":0,"message":message}
+                    return Response(data,status=status.HTTP_200_OK)
+                total_benefit = benefit + assigned_benefit
+                if total_benefit <= 100:
+                    beneficiary = serializer.save(member=request.user.member)
+                    message = "{} {} was added as your beneficiary with {}%  benefit".format(beneficiary.first_name,beneficiary.last_name,beneficiary.benefit*100)
+                    data = {"status":1,"message":message}
+                    return Response(data,status=status.HTTP_200_OK)
+                allowed_benefit = 100-benefit
+                message = "Unable to add the new beneficiary.Your maximum allowed benefit is {}%.".format(allowed_benefit)
+                data = {"status":0,"message":message}
                 return Response(data,status=status.HTTP_200_OK)
             data = {"status":0,"message":"Incorrect pin"}
             return Response(data,status=status.HTTP_200_OK)

@@ -27,3 +27,9 @@ class WalletTransactionsSerializer(serializers.ModelSerializer):
 
     def get_transaction_time(self,transaction):
         return transaction.transaction_time.strftime("%Y-%m-%d %H:%M:%S")
+
+class WalletTransactionSerializer(serializers.Serializer):
+    """
+    Serializer for specific wallet transaction endpoint
+    """
+    transaction_id = serializers.IntegerField()

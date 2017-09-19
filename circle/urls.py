@@ -12,5 +12,6 @@ urlpatterns = [
     ,AllowedGuaranteeRequestsSetting.as_view(),name='set-allowed-guarantor'),
     url(r'^remove_guarantee/$'
     ,remove_allowed_guarantee_request,name='remove-guarantee'),
-    url(r'^join_circle/$',JoinCircle.as_view(),name='join-circle')
+    url(r'^join_circle/$',JoinCircle.as_view(),name='join-circle'),
+    url(r'^get_circle_member_details/$',CircleMemberDetails.as_view(),name='circle-member-details')
 ]

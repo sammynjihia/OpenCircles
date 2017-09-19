@@ -1,7 +1,5 @@
 from rest_framework import serializers
-
 from .models import Shares,LockedShares,IntraCircleShareTransaction
-
 from django.db.models import Sum
 
 class PurchaseSharesSerializer(serializers.Serializer):
@@ -9,8 +7,8 @@ class PurchaseSharesSerializer(serializers.Serializer):
     Serializer for purchase shares endpoint
     """
     circle_acc_number = serializers.CharField()
-    amount = serializers.FloatField()
-    pin = serializers.IntegerField()
+    amount = serializers.IntegerField()
+    pin = serializers.CharField()
 
     class Meta:
         fields = ['circle_acc_number','amount','pin']
@@ -19,7 +17,7 @@ class SharesSerializer(serializers.ModelSerializer):
     """
     Serializer for shares endpoint
     """
-    total_shares = serializers.FloatField(source='num_of_shares')
+    total_shares = serializers.IntegerField(source='num_of_shares')
     locked_shares = serializers.SerializerMethodField()
 
     class Meta:
@@ -30,8 +28,8 @@ class SharesSerializer(serializers.ModelSerializer):
         locked_shares = LockedShares.objects.filter(shares=share)
         if locked_shares.exists():
             locked_shares = locked_shares.aggregate(total=Sum('num_of_shares'))
-            return float(locked_shares['total'])
-        return 0.0
+            return int(locked_shares['total'])
+        return 0
 
 class MemberSharesSerializer(serializers.Serializer):
     """
@@ -48,7 +46,7 @@ class SharesTransactionSerializer(serializers.ModelSerializer):
     """
     time_of_transaction = serializers.SerializerMethodField()
     type_of_transaction = serializers.CharField(source='transaction_type')
-    amount = serializers.FloatField(source='num_of_shares')
+    amount = serializers.IntegerField(source='num_of_shares')
     circle_acc_number = serializers.SerializerMethodField()
 
     class Meta:

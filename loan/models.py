@@ -12,7 +12,7 @@ from shares.models import Shares, LockedShares, UnlockedShares
 class LoanApplication(models.Model):
     loan_code = models.CharField(unique=True,max_length=20,default='LN0001')
     circle_member = models.ForeignKey(CircleMember, null=False)
-    amount = models.FloatField(null=False, blank=False, default=0.00)
+    amount = models.IntegerField(null=False, blank=False, default=0)
     interest_rate = models.FloatField(null=False, blank=False, default=0.00)
     num_of_repayment_cycles = models.IntegerField(default=1)
     require_guarantors = models.BooleanField(default=False)
@@ -37,7 +37,7 @@ class GuarantorRequest(models.Model):
     )
     loan_application = models.ForeignKey(LoanApplication, null=False)
     circle_member = models.ForeignKey(CircleMember, null=False)
-    num_of_shares = models.FloatField(blank=False, null=False, default=0.00)
+    num_of_shares = models.IntegerField(blank=False, null=False, default=0)
     time_requested = models.DateTimeField(auto_now=True)
     has_accepted = models.NullBooleanField(choices=GUARANTOR_CHOICES, default=None)
     time_accepted = models.DateTimeField(null=True)
@@ -58,7 +58,7 @@ class LoanGuarantor(models.Model):
 
 class LoanRepayment(models.Model):
     loan_application = models.ForeignKey(LoanApplication, null=False)
-    amount = models.FloatField(null=False, blank=False, default=0.00)
+    amount = models.IntegerField(null=False, blank=False, default=0)
     time_of_repayment = models.DateTimeField(null=False)
     time_created = models.DateTimeField(auto_now=True)
 
@@ -69,7 +69,7 @@ class LoanRepayment(models.Model):
 class LoanAmortizationSchedule(models.Model):
     loan_application = models.ForeignKey(LoanApplication, null=False)
     repayment_date = models.DateField(null=False)
-    min_amount_payable = models.FloatField(null=False)
+    min_amount_payable = models.IntegerField(null=False)
 
     class Meta:
         db_table = 'LoanAmortizationSchedule'

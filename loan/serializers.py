@@ -10,7 +10,7 @@ class LoanApplicationSerializer(serializers.Serializer):
     circle_acc_number = serializers.CharField()
 
     class Meta:
-        fields = ["loan_amount", "pin", "guarantors", "circle_acc_number"]
+        fields = ['loan_amount', 'pin', 'guarantors', 'circle_acc_number']
 
 class LoanRepaymentSerializer(serializers.Serializer):
     amount = serializers.IntegerField()
@@ -25,13 +25,9 @@ class LoansSerializer(serializers.ModelSerializer):
     """
     Serializer for loan listing endpoint
     """
-
     class Meta:
         model = LoanApplication
-        fields = ['amount', 'interest_rate', 'num_of_repayment_cycles', 'time_of_application', 'is_approved', 'time_approved','is_disbursed', 'time_disbursed', 'is_fully_repaid', 'time_of_last_repayment']
-
-
-
+        fields = ['amount','loan_code','interest_rate','num_of_repayment_cycles','time_of_application', 'is_approved', 'time_approved','is_disbursed','time_disbursed','is_fully_repaid', 'time_of_last_payment']
 
 
 class CircleAccNoSerializer(serializers.ModelSerializer):

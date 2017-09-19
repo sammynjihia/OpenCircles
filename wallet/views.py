@@ -15,7 +15,8 @@ from .serializers import *
 from .models import Transactions,Wallet
 from member.models import Member
 
-from app_utility import wallet_utils,general_utils
+from app_utility import wallet_utils,general_utils,fcm_utils
+
 
 
 import datetime
@@ -45,8 +46,8 @@ class WallettoWalletTranfer(APIView):
                 data = {"status":0,"message":error}
                 return Response(data,status=status.HTTP_200_OK)
             amount,pin,account = serializer.validated_data['amount'],serializer.validated_data['pin'],recipient.wallet.acc_no
-            if amount < 0:
-                data = {"status":0,"message":"This transfer is not allowed"}
+            if amount < 50:
+                data = {"status":0,"message":"Transfers below kes 50 are not allowed"}
                 return Response(data,status=status.HTTP_200_OK)
             valid,message = wallet_utils.Wallet().validate_account_info(request,amount,pin,account)
             if valid:
@@ -54,29 +55,36 @@ class WallettoWalletTranfer(APIView):
                 sender_desc = "kes {} sent to {} {}".format(amount,recipient.user.first_name,recipient.user.last_name)
                 recipient_desc = "Received kes {} from {} {}".format(amount,request.user.first_name,request.user.last_name)
                 try:
-                    transactions = Transactions.objects.bulk_create([
-                        Transactions(wallet= sender_wallet,transaction_type="DEBIT",transaction_desc=sender_desc,transaction_amount=amount,transaction_time=datetime.datetime.now(),recipient=account),
-                        Transactions(wallet = recipient_wallet,transaction_type="CREDIT",transaction_desc=recipient_desc,transacted_by=sender_wallet.acc_no,transaction_amount=amount,transaction_time=datetime.datetime.now())
-                    ])
-                    created_objects.append(transactions)
+                    sender_transaction = Transactions.objects.create(wallet= sender_wallet,transaction_type="DEBIT",transaction_desc=sender_desc,transaction_amount=amount,transaction_time=datetime.datetime.now(),recipient=account)
+                    created_objects.append(sender_transaction)
+                    recipient_transaction = Transactions.objects.create(wallet = recipient_wallet,transaction_type="CREDIT",transaction_desc=recipient_desc,transacted_by=sender_wallet.acc_no,transaction_amount=amount,transaction_time=datetime.datetime.now())
+                    created_objects.append(recipient_transaction)
+                    instance = fcm_utils.Fcm()
+                    registration_id,title,message = recipient.device_token,"Wallet","%s %s has credited your wallet with %s %s"%(request.user.first_name,request.user.last_name,request.user.member.currency,amount)
+                    instance.notification_push("single",registration_id,title,message)
+                    recipient_wallet_transaction = WalletTransactionsSerializer(recipient_transaction)
+                    fcm_data = {"request_type":"WALLET_TO_WALLET_TRANSACTION","transaction":recipient_wallet_transaction.data}
+                    instance.data_push("single",registration_id,fcm_data)
+                    sender_wallet_transaction = WalletTransactionsSerializer(sender_transaction)
+                    data = {"status":1,"wallet_transaction":sender_wallet_transaction.data}
+                    return Response(data,status=status.HTTP_200_OK)
                 except Exception as e:
+                    print str(e)
                     instance = general_utils.General()
                     instance.delete_created_objects(created_objects)
                     data = {"status":0,"message":"Unable to process transaction"}
                     return Response(data,status=status.HTTP_200_OK)
-                data = {"status":1}
-                return Response(data,status=status.HTTP_200_OK)
             data = { "status":0,"message":message}
             return Response(data,status=status.HTTP_200_OK)
         data = { "status":0,"message":serializer.errors}
         return Response(data,status=status.HTTP_200_OK)
 
-class TransactionDetails(APIView):
+class TransactionsDetails(APIView):
     """
     Fetches all transactions made by the member
     """
     authentication_classes = (TokenAuthentication,)
-    permissions_class = (IsAuthenticated,)
+    permissions_classes = (IsAuthenticated,)
     def get_objects(self,request):
         transactions = Transactions.objects.filter(wallet=request.user.member.wallet)
         return transactions
@@ -86,3 +94,18 @@ class TransactionDetails(APIView):
         serializer = WalletTransactionsSerializer(transactions,many=True)
         data = {"status":1,"message":serializer.data}
         return Response(data,status=status.HTTP_200_OK)
+
+class WalletTransactionDetails(APIView):
+    """
+    Retrieves the specific wallet transaction
+    """
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = (IsAuthenticated,)
+
+    def post(self,request,*args,**kwargs):
+        serializer = WalletTransactionSerializer(data=request.data)
+        if serializer.is_valid():
+            transaction = Transactions.objects.get(id=serializer.validated_data['transaction_id'])
+            wallet_transaction_serializer = WalletTransactionsSerializer(transaction)
+            data = {"status":1,"wallet_transaction":wallet_transaction_serializer.data}
+            return Response(data,status=status.HTTP_200_OK)

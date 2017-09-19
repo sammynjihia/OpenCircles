@@ -1,5 +1,7 @@
+from django.db.models import Sum
 from member.models import Member
 from circle.models import Circle as CircleModel,CircleMember,CircleInvitation
+from shares.models import Shares,IntraCircleShareTransaction
 
 import operator
 
@@ -25,3 +27,35 @@ class Circle():
         circles = CircleModel.objects.filter(id__in = circles_ids).order_by('id').distinct('id')
         invited_circles = [circle for circle in circles if circle in unjoined_circles]
         return invited_circles
+
+    def get_available_circle_shares(self,circle):
+        shares = Shares.objects.filter(circle_member__in=CircleMember.objects.filter(circle=circle))
+        transactions = IntraCircleShareTransaction.objects.filter(shares__in=shares)
+        deposits = transactions.filter(transaction_type="DEPOSIT").aggregate(total=Sum('num_of_shares'))
+        total_deposits = 0 if deposits['total'] is None else deposits['total']
+        transfers = transactions.filter(transaction_type="TRANSFER").aggregate(total=Sum('num_of_shares'))
+        total_transfers = 0 if transfers['total'] is None else transfers['total']
+        locked = transactions.filter(transaction_type="LOCKED").aggregate(total=Sum('num_of_shares'))
+        total_locked = 0 if locked['total'] is None else locked['total']
+        unlocked = transactions.filter(transaction_type="UNLOCKED").aggregate(total=Sum('num_of_shares'))
+        total_unlocked = 0 if unlocked['total'] is None else unlocked['total']
+        available_shares = (total_deposits-total_transfers)-(total_locked-total_unlocked)
+        return available_shares
+
+    def get_available_circle_member_shares(self,circle,member):
+        try:
+            circle_member = CircleMember.objects.get(circle=circle,member=member)
+        except CircleMember.DoesNotExist:
+            return 0
+        share = circle_member.shares.get()
+        transactions = IntraCircleShareTransaction.objects.filter(shares=share)
+        deposits = transactions.filter(transaction_type="DEPOSIT").aggregate(total=Sum('num_of_shares'))
+        total_deposits = 0 if deposits['total'] is None else deposits['total']
+        transfers = transactions.filter(transaction_type="TRANSFER").aggregate(total=Sum('num_of_shares'))
+        total_transfers = 0 if transfers['total'] is None else transfers['total']
+        locked = transactions.filter(transaction_type="LOCKED").aggregate(total=Sum('num_of_shares'))
+        total_locked = 0 if locked['total'] is None else locked['total']
+        unlocked = transactions.filter(transaction_type="UNLOCKED").aggregate(total=Sum('num_of_shares'))
+        total_unlocked = 0 if unlocked['total'] is None else unlocked['total']
+        available_shares = (total_deposits-total_transfers)-(total_locked-total_unlocked)
+        return available_shares

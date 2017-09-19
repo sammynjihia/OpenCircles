@@ -76,6 +76,16 @@ class CircleCreation(APIView):
                     wallet_serializer = WalletTransactionsSerializer(wallet_transaction)
                     shares_serializer = SharesTransactionSerializer(shares_transaction)
                     serializer = CircleSerializer(circle,context={'request':request})
+                    instance = fcm_utils.Fcm()
+                    registration_ids = instance.get_invited_circle_member_token(circle,member)
+                    if len(registration_ids):
+                        title = circle.circle_name
+                        message = "{} {} invited you to join circle {}.".format(member.user.first_name,member.user.last_name,title)
+                        device =  "multiple" if len(registration_ids)>1 else "single"
+                        inivited_serializer = InvitedCircleSerializer(circle)
+                        fcm_data = {"request_type":"INVITED_CIRCLE","circle":serializer.data}
+                        instance.notification_push(device,registration_ids,title,message)
+                        instance.data_push(device,registration_ids,fcm_data)
                     data={"status":1,"circle":serializer.data,"wallet_transaction":wallet_serializer.data,"shares_transaction":shares_serializer.data}
                     return Response(data,status=status.HTTP_201_CREATED)
                 except Exception as e:
@@ -90,6 +100,28 @@ class CircleCreation(APIView):
         data = {"status":0,"message":serializer.errors}
         return Response(data,status = status.HTTP_200_OK)
 
+class CircleMemberDetails(APIView):
+    """
+    Retrieves circle member details
+    """
+    authentication_classes = (TokenAuthentication,)
+    permission_classes =(IsAuthenticated,)
+
+    def post(self,request,*args,**kwargs):
+        serializer = CircleMemberDetailsSerializer(data=request.data)
+        if serializer.is_valid():
+            instance = sms_utils.Sms()
+            circle = Circle.objects.get(circle_acc_number=serializer.validated_data['circle_acc_number'])
+            member = Member.objects.get(phone_number=instance.format_phone_number(serializer.validated_data['phone_number']))
+            try:
+                circle_member = CircleMember.objects.get(circle=circle,member=member)
+            except CircleMember.DoesNotExist:
+                data = {"status":0,"message":"Circle member does not exist"}
+                return Response(data,status=status.HTTP_200_OK)
+            circle_member_serializer = CircleMemberSerializer(member,context={"request":request,"circle":circle})
+            data = {"status":1,"member":circle_member_serializer.data}
+            return Response(data,status=status.HTTP_200_OK)
+
 class MemberCircle(APIView):
     """
     Lists member's circles and suggested circles
@@ -98,16 +130,23 @@ class MemberCircle(APIView):
     permission_classes = (IsAuthenticated,)
 
     def post(self,request,*args,**kwargs):
-        instance = circle_utils.Circle()
-        circles_ids = list(CircleMember.objects.filter(member=request.user.member).values_list('circle',flat=True))
-        unjoined_circles = Circle.objects.filter(~Q(id__in=circles_ids))
-        contacts = Contacts.objects.filter(member=request.user.member,is_member=True).values_list('phone_number',flat=True)
-        suggested_circles = instance.get_suggested_circles(unjoined_circles,contacts)
-        invited_circles = instance.get_invited_circles(request,unjoined_circles)
-        invited_circles_ids  = [circle.id for circle in invited_circles]
-        suggested_circles_ids = list(set([key.id for key,value in suggested_circles] + circles_ids + invited_circles))
-        circles = Circle.objects.filter(id__in=suggested_circles_ids)
-        circle_serializer = CircleSerializer(circles,many=True,context={"request":request})
+        try:
+            instance = circle_utils.Circle()
+            circles_ids = list(CircleMember.objects.filter(member=request.user.member).values_list('circle',flat=True))
+            unjoined_circles = Circle.objects.filter(~Q(id__in=circles_ids))
+            contacts = Contacts.objects.filter(member=request.user.member,is_member=True).values_list('phone_number',flat=True)
+            suggested_circles = instance.get_suggested_circles(unjoined_circles,contacts)
+            suggested_ids = [key.id for key,value in suggested_circles]
+            invited_circles = instance.get_invited_circles(request,unjoined_circles)
+            invited_circles_ids  = [circle.id for circle in invited_circles]
+            unjoined_ids = list(set(invited_circles_ids+suggested_ids))
+            suggested_circles_ids = unjoined_ids + circles_ids
+            circles = Circle.objects.filter(id__in=suggested_circles_ids)
+            circle_serializer = CircleSerializer(circles,many=True,context={"request":request})
+        except Exception as e:
+            print(str(e))
+            data = {"status":0,"message":"Unable to fetch circle list"}
+            return Response(data,status = status.HTTP_200_OK)
         data={"status":1,"circles":circle_serializer.data}
         return Response(data,status = status.HTTP_200_OK)
 
@@ -178,7 +217,6 @@ class AllowedGuaranteeRequestsSetting(APIView):
     permission_classes = (IsAuthenticated,)
 
     def post(self,request,*args,**kwargs):
-        print(request.data)
         serializer = AllowedGuaranteeRequestSerializer(data=request.data)
         if serializer.is_valid():
             allowed = serializer.validated_data['allow_public_guarantees']
@@ -231,7 +269,7 @@ class JoinCircle(APIView):
     def post(self,request,*args,**kwargs):
         serializer = JoinCircleSerializer(data=request.data)
         if serializer.is_valid():
-            acc_number,amount,pin = serializer.validated_data['circle_acc_number'],float(serializer.validated_data['amount']),serializer.validated_data['pin']
+            acc_number,amount,pin = serializer.validated_data['circle_acc_number'],serializer.validated_data['amount'],serializer.validated_data['pin']
             circle = Circle.objects.get(circle_acc_number=acc_number)
             if amount < circle.minimum_share:
                 data = {"status":0,"message":"The allowed minimum shares for {} circle is {}".format(circle.circle_name,settings.MININIMUM_CIRCLE_SHARES)}
@@ -255,6 +293,11 @@ class JoinCircle(APIView):
                     CircleInvitation.objects.filter(phone_number=request.user.member.phone_number,invited_by__in=CircleMember.objects.filter(circle=circle).values_list('id',flat=True)).delete()
                     wallet_serializer = WalletTransactionsSerializer(wallet_transaction)
                     shares_serializer = SharesTransactionSerializer(shares_transaction)
+                    instance = fcm_utils.Fcm()
+                    registration_ids = instance.get_circle_members_token(circle,member)
+                    circle_member_serializer = UnloggedCircleMemberSerializer(member,context={"circle":circle})
+                    fcm_data = {"request_type":"NEW_CIRCLE_MEMBERSHIP","circle_acc_number":circle.circle_acc_number,"circle_member":circle_member_serializer.data}
+                    instance.data_push("mutiple",registration_ids,fcm_data)
                     data = {"status":1,"wallet_transaction":wallet_serializer.data,"shares_transaction":shares_serializer.data}
                     return Response(data,status=status.HTTP_200_OK)
                 except Exception,e:

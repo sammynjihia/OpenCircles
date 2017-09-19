@@ -33,6 +33,7 @@ class BeneficiarySerializer(serializers.ModelSerializer):
 
     other_name = serializers.CharField(source='last_name')
     pin = serializers.CharField(write_only=True)
+    email = serializers.EmailField(allow_blank=True)
 
     def create(self,validated_data):
         validated_data.pop('pin')

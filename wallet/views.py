@@ -126,6 +126,10 @@ class MpesaToWallet(APIView):
             phone_number = phone_number_raw.strip('+')
             mpesaAPI.mpesa_online_checkout(amount, phone_number)
 
+            data = {"status": 1, "message": "Transaction Sent successfully, wait for m-pesa prompt"}
+            return Response(data, status=status.HTTP_200_OK)
+
+
         data = {"status": 0, "message": serializers.errors}
         return Response(data, status=status.HTTP_200_OK)
 

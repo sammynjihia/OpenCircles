@@ -70,7 +70,6 @@ class WallettoWalletTranfer(APIView):
                     data = {"status":1,"wallet_transaction":sender_wallet_transaction.data}
                     return Response(data,status=status.HTTP_200_OK)
                 except Exception as e:
-                    print str(e)
                     instance = general_utils.General()
                     instance.delete_created_objects(created_objects)
                     data = {"status":0,"message":"Unable to process transaction"}
@@ -115,7 +114,7 @@ class MpesaToWallet(APIView):
     """
     Credits wallet from M-pesa, amount to be provided
     """
-    #authentication_classes = (TokenAuthentication,)
+    authentication_classes = (TokenAuthentication,)
     permissions_class = (IsAuthenticated,)
     def post(self, request, *args):
         serializers = MpesaToWalletSerializer(data=request.data)

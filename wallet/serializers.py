@@ -33,3 +33,12 @@ class WalletTransactionSerializer(serializers.Serializer):
     Serializer for specific wallet transaction endpoint
     """
     transaction_id = serializers.IntegerField()
+
+class MpesaToWalletSerializer(serializers.Serializer):
+    """
+    Serializer for M-pesa to wallet transaction endpoint
+    """
+    amount = serializers.IntegerField()
+
+    class Meta():
+        fields = ["amount"]

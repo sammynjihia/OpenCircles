@@ -173,10 +173,10 @@ class MpesaCallbackURL(APIView):
                 serializer = WalletTransactionsSerializer(transactions)
                 data = {"status": 1, "wallet_transaction": serializer.data}
                 print("Created the transaction")
-                instance = fcm_utils.Fcm()
-                registration_id, title, message = member.device_token, "Wallet", "%s confirmed, you have credited your wallet with %s %s from M-pesa online checkout at %s" % (
-                 transaction_code, member.currency, amount, mpesa_transaction_date)
-                instance.notification_push("single", registration_id, title, message)
+                # instance = fcm_utils.Fcm()
+                # registration_id, title, message = member.device_token, "Wallet", "%s confirmed, you have credited your wallet with %s %s from M-pesa online checkout at %s" % (
+                #  transaction_code, member.currency, amount, mpesa_transaction_date)
+                # instance.notification_push("single", registration_id, title, message)
                 return Response(data, status=status.HTTP_200_OK)
 
             except Exception as e:

@@ -114,7 +114,7 @@ class MpesaToWallet(APIView):
     """
     Credits wallet from M-pesa, amount to be provided
     """
-    #authentication_classes = (TokenAuthentication,)
+    authentication_classes = (TokenAuthentication,)
     permissions_class = (IsAuthenticated,)
     def post(self, request, *args):
         serializers = MpesaToWalletSerializer(data=request.data)

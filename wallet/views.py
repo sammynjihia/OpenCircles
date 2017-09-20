@@ -114,7 +114,7 @@ class MpesaToWallet(APIView):
     """
     Credits wallet from M-pesa, amount to be provided
     """
-    authentication_classes = (TokenAuthentication,)
+    #authentication_classes = (TokenAuthentication,)
     permissions_class = (IsAuthenticated,)
     def post(self, request, *args):
         serializers = MpesaToWalletSerializer(data=request.data)
@@ -145,7 +145,7 @@ class MpesaCallbackURL(APIView):
         CheckoutRequestID = result["Body"]["stkCallback"]["CheckoutRequestID"]
         MerchantRequestID = result["Body"]["stkCallback"]["MerchantRequestID"]
         ResultCode = result["Body"]["stkCallback"]["ResultCode"]
-
+        print(ResultCode)
 
         if ResultCode == 0:
             CallbackMetadata= result["Body"]["stkCallback"]["CallbackMetadata"]
@@ -165,17 +165,24 @@ class MpesaCallbackURL(APIView):
             transaction_desc = "{} confirmed, kes {} has been credited to your wallet by {} at {} ".format(transaction_code, amount, phone_number, mpesa_transaction_date )
 
             try:
-                transactions = Transactions.objects.create(wallet=wallet, transaction_type="CREDIT", transaction_desc=transaction_desc,
+                transactions = Transactions(wallet=wallet, transaction_type="CREDIT", transaction_desc=transaction_desc,
                                  transacted_by=wallet.acc_no, transaction_amount=amount,
                                  transaction_time=mpesa_transaction_date
                 )
+                transactions.save()
+                serializer = WalletTransactionsSerializer(transactions)
+                data = {"status": 1, "wallet_transaction": serializer.data}
+                print("Created the transaction")
+                instance = fcm_utils.Fcm()
+                registration_id, title, message = member.device_token, "Wallet", "%s confirmed, you have credited your wallet with %s %s from M-pesa online checkout at %s" % (
+                 transaction_code, member.currency, amount, mpesa_transaction_date)
+                instance.notification_push("single", registration_id, title, message)
+                return Response(data, status=status.HTTP_200_OK)
 
             except Exception as e:
                 data = {"status": 0, "message": "Unable to process transaction"}
                 return Response(data, status=status.HTTP_200_OK)
-            serializer = WalletTransactionsSerializer(transactions)
-            data = {"status": 1, "wallet_transaction":serializer.data}
-            return Response(data, status=status.HTTP_200_OK)
+
 
         else:
             print("Transaction unsuccessful")

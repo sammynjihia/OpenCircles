@@ -62,7 +62,7 @@ class Member(models.Model):
             urllib.urlretrieve(self.iprs_image_url, os.path.join(file_save_dir, filename))
             self.iprs_image = os.path.join(file_path, filename)
             self.iprs_image_url = ''
-        super(Member, self).save()
+        return super(Member, self).save()
 
 class Beneficiary(models.Model):
     """

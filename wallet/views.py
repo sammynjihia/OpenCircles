@@ -2,6 +2,7 @@
 from __future__ import unicode_literals
 
 from django.shortcuts import render
+
 from wallet import disable_csrf
 from rest_framework.views import APIView
 from rest_framework import status
@@ -12,14 +13,13 @@ from rest_framework.decorators import api_view
 from rest_framework.reverse import reverse
 
 from .serializers import *
+
 from .models import Transactions,Wallet
 from member.models import Member
+
 from app_utility import wallet_utils,general_utils,fcm_utils, mpesa_api_utils
-import json
 
-
-
-import datetime
+import datetime,json
 
 # Create your views here.
 @api_view(['GET'])
@@ -65,11 +65,12 @@ class WallettoWalletTranfer(APIView):
                     instance.notification_push("single",registration_id,title,message)
                     recipient_wallet_transaction = WalletTransactionsSerializer(recipient_transaction)
                     fcm_data = {"request_type":"WALLET_TO_WALLET_TRANSACTION","transaction":recipient_wallet_transaction.data}
-                    instance.data_push("single",registration_id,fcm_data)
                     sender_wallet_transaction = WalletTransactionsSerializer(sender_transaction)
                     data = {"status":1,"wallet_transaction":sender_wallet_transaction.data}
+                    instance.data_push("single",registration_id,fcm_data)
                     return Response(data,status=status.HTTP_200_OK)
                 except Exception as e:
+                    print(str(e))
                     instance = general_utils.General()
                     instance.delete_created_objects(created_objects)
                     data = {"status":0,"message":"Unable to process transaction"}
@@ -118,18 +119,14 @@ class MpesaToWallet(APIView):
     permissions_class = (IsAuthenticated,)
     def post(self, request, *args):
         serializers = MpesaToWalletSerializer(data=request.data)
-
         if serializers.is_valid():
             amount = serializers.validated_data["amount"]
             phone_number_raw = request.user.member.phone_number
             mpesaAPI = mpesa_api_utils.MpesaUtils()
             phone_number = phone_number_raw.strip('+')
             mpesaAPI.mpesa_online_checkout(amount, phone_number)
-
             data = {"status": 1, "message": "Transaction Sent successfully, wait for m-pesa prompt"}
             return Response(data, status=status.HTTP_200_OK)
-
-
         data = {"status": 0, "message": serializers.errors}
         return Response(data, status=status.HTTP_200_OK)
 
@@ -153,8 +150,6 @@ class MpesaCallbackURL(APIView):
             print (CallbackMetadata)
             mpesa_Callbackdata = CallbackMetadata
             mpesa_data ={n['Name']:n['Value'] for n in mpesa_Callbackdata["Item"] for key,value in n.iteritems() if value in ["Amount","PhoneNumber", "MpesaReceiptNumber", "TransactionDate"]}
-
-
             transaction_code = mpesa_data["MpesaReceiptNumber"]
             amount = mpesa_data["Amount"]
             phone_number = mpesa_data["PhoneNumber"]
@@ -165,11 +160,13 @@ class MpesaCallbackURL(APIView):
             transaction_desc = "{} confirmed, kes {} has been credited to your wallet by {} at {} ".format(transaction_code, amount, phone_number, mpesa_transaction_date )
 
             try:
+                created_objects = []
                 transactions = Transactions(wallet=wallet, transaction_type="CREDIT", transaction_desc=transaction_desc,
                                  transacted_by=wallet.acc_no, transaction_amount=amount,
                                  transaction_time=mpesa_transaction_date
                 )
                 transactions.save()
+                created_objects.append(transactions)
                 serializer = WalletTransactionsSerializer(transactions)
                 data = {"status": 1, "wallet_transaction": serializer.data}
                 print("Created the transaction")
@@ -180,14 +177,11 @@ class MpesaCallbackURL(APIView):
                 return Response(data, status=status.HTTP_200_OK)
 
             except Exception as e:
+                instance = general_utils.General()
+                instance.delete_created_objects(created_objects)
                 data = {"status": 0, "message": "Unable to process transaction"}
                 return Response(data, status=status.HTTP_200_OK)
-
-
         else:
             print("Transaction unsuccessful")
             data = {"status": 0, "message": "Transaction unsuccessful, something went wrong"}
             return Response(data, status=status.HTTP_200_OK)
-
-
-

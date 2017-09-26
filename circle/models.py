@@ -28,9 +28,6 @@ class Circle(models.Model):
     class Meta:
         db_table = 'Circle'
 
-
-
-
 class CircleMember(models.Model):
     circle = models.ForeignKey(Circle, null=False, blank=False)
     member = models.ForeignKey(Member, null=False, blank=False)
@@ -53,11 +50,12 @@ class CircleInvitation(models.Model):
         db_table = 'CircleInvitation'
 
     def save(self,*args,**kwargs):
-        if Member.objects.filter(phone_number=self.phone_number).exists():
+        try:
+            Member.objects.get(phone_number=self.phone_number)
             self.is_member = True
-        super(CircleInvitation,self).save()
-
-
+        except Member.DoesNotExist:
+            self.is_member = False
+        return super(CircleInvitation,self).save()
 
 class CircleDirector(models.Model):
     circle_member = models.ForeignKey(CircleMember, null=False, blank=False)

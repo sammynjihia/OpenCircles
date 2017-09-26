@@ -24,7 +24,7 @@ class Account():
             contact['phone'] = instance.format_phone_number(contact['phone'])
             contact['is_valid'] = True
         else:
-            rep_chars = [" ","(",")","-"]
+            rep_chars = [" ","(",")","-","\xa0","0xa0"]
             for rep in rep_chars:
                 if rep in contact['phone']:
                     contact['phone'] = contact['phone'].replace(rep,"")

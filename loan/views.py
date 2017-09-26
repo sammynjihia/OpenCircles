@@ -18,7 +18,7 @@ from shares.models import LockedShares,IntraCircleShareTransaction
 from wallet.models import Transactions
 from loan.models import LoanApplication as loanapplication,GuarantorRequest
 
-from app_utility import general_utils,fcm_utils,circle_utils
+from app_utility import general_utils,fcm_utils,circle_utils,wallet_utils
 
 import datetime,json
 
@@ -135,7 +135,12 @@ class LoanRepayment(APIView):
     def post(self,request,*args,**kwargs):
         serializer = LoanRepaymentSerializer(data=request.data)
         if serializer.is_valid():
-            pass
+            instance = wallet_utils.Wallet()
+            valid,response = instance.validate_account(pin,amount)
+            if valid:
+                pass
+            data = {"status":0,"message":response}
+            return Response(data,status=status.HTTP_200_OK)
         data = {"status":0,"message":serializer.errors}
         return Response(data,status=status.HTTP_200_OK)
 

@@ -15,10 +15,10 @@ class LoanApplicationSerializer(serializers.Serializer):
 class LoanRepaymentSerializer(serializers.Serializer):
     amount = serializers.IntegerField()
     pin = serializers.CharField()
-    circle_acc_number = serializers.CharField()
+    loan_code = serializers.CharField()
 
     class Meta:
-        fields = ['amount','pin','circle_acc_number']
+        fields = ['amount','pin','loan_code']
 
 class LoansSerializer(serializers.ModelSerializer):
     """

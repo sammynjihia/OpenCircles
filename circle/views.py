@@ -14,7 +14,6 @@ from .serializers import *
 from wallet.serializers import WalletTransactionsSerializer
 from shares.serializers import SharesTransactionSerializer
 
-
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.decorators import api_view,permission_classes,authentication_classes
@@ -100,11 +99,38 @@ class CircleCreation(APIView):
         data = {"status":0,"message":serializer.errors}
         return Response(data,status = status.HTTP_200_OK)
 
+class CircleMemberGuaranteeList(APIView):
+    """
+    Retrieves the circle member guarantee list
+    """
+    authentication_classes  = (TokenAuthentication,)
+    permission_classes = (IsAuthenticated,)
+
+    def post(self,request,*args,**kwargs):
+        serializer = CircleMemberGuaranteeSerializer(data=request.data)
+        if serializer.is_valid():
+            circle = Circle.objects.get(circle_acc_number=serializer.validated_data['circle_acc_number'])
+            try:
+                circle_member = CircleMember.objects.get(circle=circle,member=request.user.member)
+                guarantees_request = AllowedGuarantorRequest.objects.filter(circle_member=circle_member)
+                if guarantees_request.exists():
+                    guarantees = [guarantee_request.allows_request_from.member.phone_number for guarantee_request in guarantees_request]
+                    data = {"status":1,"guarantees":guarantees}
+                    return Response(data,status=status.HTTP_200_OK)
+                data = {"status":1,"guarantees":[]}
+                return Response(data,status=status.HTTP_200_OK)
+            except CircleMember.DoesNotExist:
+                message = "You are not a member of circle %s"%(circle.circle_name)
+                data = {"status":0,"message":message}
+                return Response(data,status=status.HTTP_200_OK)
+        data = {"status":0,"message":serializer.errors}
+        return Response(data,status=status.HTTP_200_OK)
+
 class CircleMemberDetails(APIView):
     """
     Retrieves circle member details
     """
-    # authentication_classes = (TokenAuthentication,)
+    authentication_classes = (TokenAuthentication,)
     permission_classes =(IsAuthenticated,)
 
     def post(self,request,*args,**kwargs):
@@ -202,7 +228,7 @@ class AllowedGuaranteeRegistration(APIView):
                 data = {"status":1,'guarantee':guarantee_serializer.data,'message':ms}
                 instance = fcm_utils.Fcm()
                 registration_id = guarantee_member.device_token
-                fcm_data = {"request_type":"UPDATE_ALLOWED_GUARANTOR_REQUEST","circle_acc_number":circle.circle_acc_number,"phone_number":member.phone_number,"allow_guarantor_request":True}
+                fcm_data = {"request_type":"UPDATE_ALLOW_GUARANTOR_REQUEST","circle_acc_number":circle.circle_acc_number,"phone_number":member.phone_number,"allow_guarantor_request":True}
                 instance.data_push("single",registration_id,fcm_data)
             except Exception as e:
                 print (str(e))
@@ -258,18 +284,22 @@ def remove_allowed_guarantee_request(request,*args,**kwargs):
     if serializer.is_valid():
         instance = sms_utils.Sms()
         circle = Circle.objects.get(circle_acc_number=serializer.validated_data['circle_acc_number'])
-        phone = instance.format_phone_number(serializer.validated_data['guarantee'])
+        phone_number = instance.format_phone_number(serializer.validated_data['guarantee'])
         user_circle_member = CircleMember.objects.get(circle=circle,member=request.user.member)
-        guarantee_circle_member = CircleMember.objects.get(circle=circle,member=Member.objects.get(phone_number=phone))
+        guarantee_circle_member = CircleMember.objects.get(circle=circle,member=Member.objects.get(phone_number=phone_number))
         try:
             AllowedGuarantorRequest.objects.filter(circle_member=user_circle_member,allows_request_from=guarantee_circle_member).delete()
-            ms = " {} {} removed from guarantee request list".format(guarantee_circle_member.member.user.first_name,guarantee_circle_member.member.user.last_name)
-            data = {"status":1,"message":ms}
+            message = " {} {} removed from guarantee request list".format(guarantee_circle_member.member.user.first_name,guarantee_circle_member.member.user.last_name)
+            data = {"status":1,"message":message}
+            instance = fcm_utils.Fcm()
+            registration_id = guarantee_circle_member.member.device_token
+            fcm_data = {"request_type":"UPDATE_ALLOW_GUARANTOR_REQUEST","circle_acc_number":circle.circle_acc_number,"phone_number":phone_number,"allow_guarantor_request":False}
+            instance.data_push("single",registration_id,fcm_data)
             return Response(data,status=status.HTTP_200_OK)
         except Exception as e:
             print(str(e))
-            ms = " Unable to remove {} {} from guarantee request list".format(guarantee_circle_member.member.user.first_name,guarantee_circle_member.member.user.last_name)
-            data = {"status":0,"message":ms}
+            message = " Unable to remove {} {} from guarantee request list".format(guarantee_circle_member.member.user.first_name,guarantee_circle_member.member.user.last_name)
+            data = {"status":0,"message":message}
             return Response(data,status=status.HTTP_200_OK)
     data = {"status":0,"message":serializer.errors}
     return Response(data,status=status.HTTP_200_OK)

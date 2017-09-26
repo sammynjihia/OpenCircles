@@ -293,3 +293,9 @@ class CircleMemberDetailsSerializer(serializers.Serializer):
     """
     phone_number = serializers.CharField()
     circle_acc_number = serializers.CharField()
+
+class CircleMemberGuaranteeSerializer(serializers.Serializer):
+    """
+    Serializer for circle member guarantee list
+    """
+    circle_acc_number = serializers.CharField()

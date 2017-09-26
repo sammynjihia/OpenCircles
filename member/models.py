@@ -142,6 +142,15 @@ class Contacts(models.Model):
     name = models.CharField(max_length=50)
     phone_number = models.CharField(max_length=20)
     is_member = models.BooleanField(default=False)
+    is_valid = models.BooleanField(default=False)
 
     class Meta():
         db_table = 'Contacts'
+
+    def save(self,*args,**kwargs):
+        try:
+            Member.objects.get(phone_number=self.phone_number)
+            self.is_member = True
+        except Member.DoesNotExist:
+            self.is_member = False
+        return super(Contacts,self).save()

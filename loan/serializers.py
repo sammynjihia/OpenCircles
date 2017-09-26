@@ -20,7 +20,6 @@ class LoanRepaymentSerializer(serializers.Serializer):
     class Meta:
         fields = ['amount','pin','circle_acc_number']
 
-
 class LoansSerializer(serializers.ModelSerializer):
     """
     Serializer for loan listing endpoint
@@ -29,12 +28,8 @@ class LoansSerializer(serializers.ModelSerializer):
         model = LoanApplication
         fields = ['amount','loan_code','interest_rate','num_of_repayment_cycles','time_of_application', 'is_approved', 'time_approved','is_disbursed','time_disbursed','is_fully_repaid', 'time_of_last_payment']
 
-
-class CircleAccNoSerializer(serializers.ModelSerializer):
+class CircleAccNoSerializer(serializers.Serializer):
     """
     serializer to retrieve circle account number
     """
-
-    class Meta:
-        model = Circle
-        fields = ['circle_acc_number']
+    circle_acc_number = serializers.CharField()

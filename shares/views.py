@@ -9,7 +9,7 @@ from rest_framework.reverse import reverse
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.authentication import TokenAuthentication
 
-from app_utility import wallet_utils
+from app_utility import wallet_utils,circle_utils,fcm_utils
 
 from .serializers import *
 from wallet.serializers import WalletTransactionsSerializer
@@ -56,9 +56,15 @@ class PurchaseShares(APIView):
                     shares_transaction = IntraCircleShareTransaction.objects.create(shares=shares,transaction_type="DEPOSIT",sender=circle_member,recipient= circle_member,num_of_shares=amount,transaction_desc=desc)
                     shares.num_of_shares = shares.num_of_shares + amount
                     shares.save()
+                    instance = circle_utils.Circle()
+                    available_shares = instance.get_available_circle_member_shares(circle,member)
                     wallet_serializer = WalletTransactionsSerializer(wallet_transaction)
                     shares_serializer = SharesTransactionSerializer(shares_transaction)
-                    data = {"status":1,"wallet_transaction":wallet_serializer.data,"shares_transaction":shares_serializer.data}
+                    data = {"status":1,"wallet_transaction":wallet_serializer.data,"shares_transaction":shares_serializer.data,"loan_limit":available_shares}
+                    instance = fcm_utils.Fcm()
+                    fcm_data = {"request_type":"UPDATE_AVAILABLE_SHARES","circle_acc_number":circle.circle_acc_number,"phone_number":member.phone_number,"available_shares":available_shares}
+                    registration_id = instance.get_circle_members_token(circle,member)
+                    instance.data_push("multiple",registration_id,fcm_data)
                     return Response(data,status=status.HTTP_200_OK)
                 except Exception as e:
                     print(str(e))

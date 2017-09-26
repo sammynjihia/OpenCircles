@@ -76,3 +76,4 @@ class AllowedGuarantorRequest(models.Model):
 
     class Meta:
         db_table = 'AllowedGuarantorRequest'
+        unique_together = ['circle_member','allows_request_from']

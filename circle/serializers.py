@@ -183,12 +183,10 @@ class CircleMemberSerializer(serializers.ModelSerializer):
     available_shares = serializers.SerializerMethodField()
     allow_guarantor_request = serializers.SerializerMethodField()
     allow_public_guarantees_request = serializers.SerializerMethodField()
-    guarantees = serializers.SerializerMethodField()
 
     class Meta:
         model = Member
-        fields = ['first_name','surname','other_name','email','gender','country','phone_number','national_id','currency','date_of_birth','time_registered','is_self','available_shares','allow_guarantor_request','allow_public_guarantees_request','guarantees']
-
+        fields = ['first_name','surname','other_name','email','gender','country','phone_number','national_id','currency','date_of_birth','time_registered','is_self','available_shares','allow_guarantor_request','allow_public_guarantees_request']
 
     def get_time_registered(self,member):
          date = member.time_registered
@@ -201,17 +199,9 @@ class CircleMemberSerializer(serializers.ModelSerializer):
 
     def get_available_shares(self,member):
         circle = self.context.get('circle')
-        circle_member = CircleMember.objects.get(member=member,circle=circle)
-        total_shares = circle_member.shares.get().num_of_shares
-        locked_shares = self.calculate_locked_shares(circle_member.shares.get())
-        return total_shares-locked_shares
-
-    def calculate_locked_shares(self,share):
-        locked_shares = LockedShares.objects.filter(shares=share)
-        if locked_shares.exists():
-            locked_shares = locked_shares.aggregate(total=Sum('num_of_shares'))
-            return int(locked_shares['total'])
-        return 0
+        instance = circle_utils.Circle()
+        available_shares = instance.get_available_circle_member_shares(circle,member)
+        return available_shares
 
     def get_allow_guarantor_request(self,member):
         request,circle = self.context.get('request'),self.context.get('circle')
@@ -233,16 +223,16 @@ class CircleMemberSerializer(serializers.ModelSerializer):
         circle_member = CircleMember.objects.get(circle=circle,member=member)
         return circle_member.allow_public_guarantees_request
 
-    def get_guarantees(self,member):
-        value = self.get_allow_public_guarantees_request(member)
-        circle = self.context.get('circle')
-        members = {}
-        if not value:
-            guarantees_ids = AllowedGuarantorRequest(circle_member=CircleMember.objects.get(circle=circle,member=member)).values_list('circle_member',flat=True)
-            guarantees = Member.objects.filter(id__in=CircleMember.objects.filter(id__in=guarantees).values_list('member',flat=True))
-            member_serializer = MemberSerializer(guarantees,many=True)
-            return member_serializer.data
-        return members
+    # def get_guarantees(self,member):
+    #     value = self.get_allow_public_guarantees_request(member)
+    #     circle = self.context.get('circle')
+    #     members = {}
+    #     if not value:
+    #         guarantees_ids = AllowedGuarantorRequest(circle_member=CircleMember.objects.get(circle=circle,member=member)).values_list('circle_member',flat=True)
+    #         guarantees = Member.objects.filter(id__in=CircleMember.objects.filter(id__in=guarantees).values_list('member',flat=True))
+    #         member_serializer = MemberSerializer(guarantees,many=True)
+    #         return member_serializer.data
+    #     return members
 
 class UnloggedCircleMemberSerializer(serializers.ModelSerializer):
     first_name = serializers.CharField(source='user.first_name')
@@ -254,11 +244,10 @@ class UnloggedCircleMemberSerializer(serializers.ModelSerializer):
     is_self = serializers.SerializerMethodField()
     available_shares = serializers.SerializerMethodField()
     allow_public_guarantees_request = serializers.SerializerMethodField()
-    guarantees = serializers.SerializerMethodField()
 
     class Meta:
         model = Member
-        fields = ['first_name','surname','other_name','email','gender','country','phone_number','national_id','currency','date_of_birth','time_registered','is_self','available_shares','allow_public_guarantees_request','guarantees']
+        fields = ['first_name','surname','other_name','email','gender','country','phone_number','national_id','currency','date_of_birth','time_registered','is_self','available_shares','allow_public_guarantees_request']
 
 
     def get_time_registered(self,member):
@@ -271,34 +260,25 @@ class UnloggedCircleMemberSerializer(serializers.ModelSerializer):
 
     def get_available_shares(self,member):
         circle = self.context.get('circle')
-        circle_member = CircleMember.objects.get(member=member,circle=circle)
-        total_shares = circle_member.shares.get().num_of_shares
-        locked_shares = self.calculate_locked_shares(circle_member.shares.get())
-        return total_shares-locked_shares
-
-    def calculate_locked_shares(self,share):
-        locked_shares = LockedShares.objects.filter(shares=share)
-        if locked_shares.exists():
-            locked_shares = locked_shares.aggregate(total=Sum('num_of_shares'))
-            return int(locked_shares['total'])
-        return 0
-
+        instance = circle_utils.Circle()
+        available_shares = instance.get_available_circle_member_shares(circle,member)
+        return available_shares
 
     def get_allow_public_guarantees_request(self,member):
         circle = self.context.get('circle')
         circle_member = CircleMember.objects.get(circle=circle,member=member)
         return circle_member.allow_public_guarantees_request
 
-    def get_guarantees(self,member):
-        value = self.get_allow_public_guarantees_request(member)
-        circle = self.context.get('circle')
-        members = {}
-        if not value:
-            guarantees_ids = AllowedGuarantorRequest(circle_member=CircleMember.objects.get(circle=circle,member=member)).values_list('circle_member',flat=True)
-            guarantees = Member.objects.filter(id__in=CircleMember.objects.filter(id__in=guarantees).values_list('member',flat=True))
-            member_serializer = MemberSerializer(guarantees,many=True)
-            return member_serializer.data
-        return members
+    # def get_guarantees(self,member):
+    #     value = self.get_allow_public_guarantees_request(member)
+    #     circle = self.context.get('circle')
+    #     members = {}
+    #     if not value:
+    #         guarantees_ids = AllowedGuarantorRequest(circle_member=CircleMember.objects.get(circle=circle,member=member)).values_list('circle_member',flat=True)
+    #         guarantees = Member.objects.filter(id__in=CircleMember.objects.filter(id__in=guarantees).values_list('member',flat=True))
+    #         member_serializer = MemberSerializer(guarantees,many=True)
+    #         return member_serializer.data
+    #     return members
 
 class CircleInviteSerializer(serializers.Serializer):
     """

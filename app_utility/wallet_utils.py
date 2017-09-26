@@ -18,6 +18,7 @@ class Wallet():
         if request.user.check_password(pin):
             wallet = request.user.member.wallet
             balance = self.calculate_wallet_balance(wallet)
+            print balance
             if balance >= amount:
                 return True,""
             return False,"Insufficient funds in your wallet"

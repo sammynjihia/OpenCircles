@@ -104,7 +104,7 @@ class CircleMemberDetails(APIView):
     """
     Retrieves circle member details
     """
-    authentication_classes = (TokenAuthentication,)
+    # authentication_classes = (TokenAuthentication,)
     permission_classes =(IsAuthenticated,)
 
     def post(self,request,*args,**kwargs):
@@ -188,23 +188,27 @@ class AllowedGuaranteeRegistration(APIView):
         serializer = AllowedGuaranteeSerializer(data=request.data)
         if serializer.is_valid():
             instance = sms_utils.Sms()
-            circle,guarantee_phone = Circle.objects.get(circle_acc_number=serializer.validated_data['circle_acc_number']),instance.format_phone_number(serializer.validated_data['guarantee'])
-            if guarantee_phone == request.user.member.phone_number:
+            circle,guarantee_phone,member = Circle.objects.get(circle_acc_number=serializer.validated_data['circle_acc_number']),instance.format_phone_number(serializer.validated_data['guarantee']),request.user.member
+            if guarantee_phone == member.phone_number:
                 data = {"status":0,"message":"Unable to add yourself to guarantee request list"}
                 return Response(data,status=status.HTTP_200_OK)
-            user_circle_member = CircleMember.objects.get(circle=circle,member=request.user.member)
+            user_circle_member = CircleMember.objects.get(circle=circle,member=member)
             guarantee_member = Member.objects.get(phone_number=guarantee_phone)
             allowed_guarantee = CircleMember.objects.get(circle=circle,member=guarantee_member)
             try:
                 AllowedGuarantorRequest.objects.create(circle_member=user_circle_member,allows_request_from=allowed_guarantee)
+                guarantee_serializer = CircleMemberSerializer(guarantee_member,context={"request":request,"circle":circle})
+                ms = "{} {} added to guarantee request list".format(guarantee_member.user.first_name,guarantee_member.user.last_name)
+                data = {"status":1,'guarantee':guarantee_serializer.data,'message':ms}
+                instance = fcm_utils.Fcm()
+                registration_id = guarantee_member.device_token
+                fcm_data = {"request_type":"UPDATE_ALLOWED_GUARANTOR_REQUEST","circle_acc_number":circle.circle_acc_number,"phone_number":member.phone_number,"allow_guarantor_request":True}
+                instance.data_push("single",registration_id,fcm_data)
             except Exception as e:
                 print (str(e))
                 ms = "Unable to add {} {} to guarantee request list".format(guarantee_member.user.first_name,guarantee_member.user.last_name)
                 data = {"status":0,"message":ms}
                 return Response(data,status=status.HTTP_200_OK)
-            guarantee_serializer = CircleMemberSerializer(guarantee_member,context={"request":request,"circle":circle})
-            ms = "{} {} added to guarantee request list".format(guarantee_member.user.first_name,guarantee_member.user.last_name)
-            data = {"status":1,'guarantee':guarantee_serializer.data,'message':ms}
             return Response(data,status=status.HTTP_201_CREATED)
         data = {"status":0,"errors":serializer.errors}
         return Response(data,status=status.HTTP_200_OK)
@@ -220,15 +224,26 @@ class AllowedGuaranteeRequestsSetting(APIView):
         serializer = AllowedGuaranteeRequestSerializer(data=request.data)
         if serializer.is_valid():
             allowed = serializer.validated_data['allow_public_guarantees']
-            circle = serializer.validated_data['circle_acc_number']
+            circle,member = Circle.objects.get(circle_acc_number=serializer.validated_data['circle_acc_number']),request.user.member
             if allowed == 'true':
                 try:
-                    CircleMember.objects.filter(circle=circle,member=request.user.member).update(allow_public_guarantees_request=True)
+                    CircleMember.objects.filter(circle=circle,member=member).update(allow_public_guarantees_request=True)
+                    instance = fcm_utils.Fcm()
+                    circle_members = CircleMember.objects.filter(circle=circle)
+                    registration_ids = instance.get_circle_members_token(circle,member)
+                    fcm_data = {"request_type":"UPDATE_ALLOW_GUARANTOR_REQUEST","circle_acc_number":circle.circle_acc_number,"phone_number":member.phone_number,"allow_guarantor_request":True}
+                    instance.data_push("multiple",registration_ids,fcm_data)
                 except Exception as e:
+                    print(str(e))
                     data = {"status":0,"message":"Unable to change allowed guarantees setting"}
                     return Response(data,status=status.HTTP_200_OK)
                 data = {"status":1}
                 return Response(data,status=status.HTTP_200_OK)
+            instance = fcm_utils.Fcm()
+            circle_members = CircleMember.objects.filter(circle=circle)
+            registration_ids = instance.get_circle_members_token(circle,member)
+            fcm_data = {"request_type":"UPDATE_ALLOW_GUARANTOR_REQUEST","circle_acc_number":circle.circle_acc_number,"phone_number":member.phone_number,"allow_guarantor_request":False}
+            instance.data_push("multiple",registration_ids,fcm_data)
             CircleMember.objects.filter(circle=circle,member=request.user.member).update(allow_public_guarantees_request=False)
             data = {"status":1}
             return Response(data,status=status.HTTP_200_OK)

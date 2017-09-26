@@ -43,13 +43,15 @@ class MemberRegistration(APIView):
             instance = accounts_utils.Account()
             if serializer.validated_data["country"].lower() == "kenya":
                 iprs = iprs_utils.Iprs()
-                person_data = iprs.get_person_details(serializer.validated_data.get("national_id"))
+                # person_data = iprs.get_person_details(serializer.validated_data.get("national_id"))
+                person_data = {}
                 if type(person_data) is dict:
-                    app_data = { key : serializer.validated_data['user'].get(key) for key in ['first_name','last_name']}
-                    valid,response = iprs.validate_info(person_data,app_data)
+                    # app_data = { key : serializer.validated_data['user'].get(key) for key in ['first_name','last_name']}
+                    # valid,response = iprs.validate_info(person_data,app_data)
+                    valid = True
                     if valid:
                         new_member = serializer.save()
-                        iprs.save_extracted_iprs_info(new_member,person_data)
+                        # iprs.save_extracted_iprs_info(new_member,person_data)
                     else:
                         data = { 'status':0,'message':response}
                         return Response(data,status = status.HTTP_200_OK)
@@ -77,6 +79,7 @@ class MemberRegistration(APIView):
                 new_member.is_validated = True
                 new_member.save()
                 Wallet.objects.create(member=new_member,acc_no=new_member.national_id)
+                print("hapa")
                 instance.save_contacts(new_member,contacts)
                 login(request,new_member.user)
             except Exception as e:
@@ -160,19 +163,24 @@ class PhoneNumberConfirmation(APIView):
         Sends confirmation code to phone number,requires phone_number to be provided
     """
     def post(self,request,*args,**kwargs):
+        mutable = request.data._mutable
+        request.data._mutable = True
+        instance = sms_utils.Sms()
+        request.data["phone"] = instance.format_phone_number(request.data["phone"])
+        request.data._mutable = mutable
+        print(request.data)
         serializer = PhoneNumberSerializer(data = request.data)
         if serializer.is_valid():
-            sms = sms_utils.Sms()
             phone_number = serializer.validated_data.get("phone_number")
             code = random.randint(1111,9999)
             message = "Your confirmation code is {}".format(code)
-            response = sms.sendsms(phone_number,message)
+            response = instance.sendsms(phone_number,message)
             if response:
                 data = {"status":1,"confirmation_code":code}
                 return Response(data,status = status.HTTP_200_OK)
             data = {"status":0,"message":"Unable to send confirmation code"}
             return Response(data,status=status.HTTP_200_OK)
-        data = {"status": 0,"message":serializer.errors}
+        data = {"status": 0,"message":serializer.errors['phone']}
         return Response(data,status = status.HTTP_400_BAD_REQUEST)
 
 class UpdateDeviceToken(APIView):

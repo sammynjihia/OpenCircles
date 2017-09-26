@@ -39,7 +39,7 @@ class PhoneNumberSerializer(serializers.ModelSerializer):
     """
     Serializer for phone number confirmation endpoint
     """
-    phone = serializers.CharField(source='phone_number')
+    phone = serializers.CharField(source='phone_number',validators=[UniqueValidator(queryset=Member.objects.all(),message="User with phone number already exists")])
     class Meta:
         model = Member
         fields = ['phone']

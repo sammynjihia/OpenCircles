@@ -110,8 +110,7 @@ class LoanApplication(APIView):
                     message = "Your loan of {} {} has been successfully processed".format(member.currency,loan_amount)
                     data = {"status":1,"loan":loan_serializer.data,"wallet_transaction":wallet_transaction_serializer.data,"shares_transaction":shares_transaction_serializer.data,"loan_limit":loan_limit,"message":message}
                     instance = fcm_utils.Fcm()
-                    param = {"phone":member.phone_number,"available_shares":available_shares}
-                    fcm_data = {"request_type":"UPDATE_AVAILABLE_SHARES","params":param}
+                    fcm_data = {"request_type":"UPDATE_AVAILABLE_SHARES","circle_acc_number":circle.circle_acc_number,"phone_number":member.phone_number,"available_shares":available_shares}
                     registration_id = instance.get_circle_members_token(circle,member)
                     instance.data_push("multiple",registration_id,fcm_data)
                     return Response(data, status=status.HTTP_200_OK)

@@ -73,3 +73,12 @@ class LoanAmortizationSchedule(models.Model):
 
     class Meta:
         db_table = 'LoanAmortizationSchedule'
+
+class LoanTariff(models.Model):
+    max_amount = models.IntegerField()
+    min_amount = models.IntegerField()
+    duration = models.IntegerField()
+    monthly_interest_rate = models.FloatField()
+
+    class Meta:
+        db_table = "LoanTariff"

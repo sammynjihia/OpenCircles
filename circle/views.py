@@ -253,14 +253,16 @@ class AllowedGuaranteeRequestsSetting(APIView):
             circle,member = Circle.objects.get(circle_acc_number=serializer.validated_data['circle_acc_number']),request.user.member
             if allowed == 'true':
                 try:
-                    CircleMember.objects.filter(circle=circle,member=member).update(allow_public_guarantees_request=True)
+                    circle_member = CircleMember.objects.filter(circle=circle,member=member).update(allow_public_guarantees_request=True)
                     instance = fcm_utils.Fcm()
                     circle_members = CircleMember.objects.filter(circle=circle)
                     registration_ids = instance.get_circle_members_token(circle,member)
                     fcm_data = {"request_type":"UPDATE_ALLOW_GUARANTOR_REQUEST","circle_acc_number":circle.circle_acc_number,"phone_number":member.phone_number,"allow_guarantor_request":True}
                     instance.data_push("multiple",registration_ids,fcm_data)
+                    AllowedGuarantorRequest.objects.filter(circle_member=circle_member).delete()
                 except Exception as e:
                     print(str(e))
+                    CircleMember.objects.filter(circle=circle,member=member).update(allow_public_guarantees_request=false)
                     data = {"status":0,"message":"Unable to change allowed guarantees setting"}
                     return Response(data,status=status.HTTP_200_OK)
                 data = {"status":1}

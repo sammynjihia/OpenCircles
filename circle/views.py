@@ -262,7 +262,7 @@ class AllowedGuaranteeRequestsSetting(APIView):
                     AllowedGuarantorRequest.objects.filter(circle_member=circle_member).delete()
                 except Exception as e:
                     print(str(e))
-                    CircleMember.objects.filter(circle=circle,member=member).update(allow_public_guarantees_request=false)
+                    CircleMember.objects.filter(circle=circle,member=member).update(allow_public_guarantees_request=False)
                     data = {"status":0,"message":"Unable to change allowed guarantees setting"}
                     return Response(data,status=status.HTTP_200_OK)
                 data = {"status":1}

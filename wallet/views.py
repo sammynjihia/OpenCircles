@@ -170,6 +170,9 @@ class MpesaCallbackURL(APIView):
                                  transaction_time=mpesa_transaction_date
                 )
                 transactions.save()
+                with open('db_file.txt', 'a') as db_file:
+                    post_file.write("Transaction {}, saved successfully at {}".format(transaction_code, mpesa_transaction_date))
+                    post_file.write("\n")
                 created_objects.append(transactions)
                 serializer = WalletTransactionsSerializer(transactions)
                 data = {"status": 1, "wallet_transaction": serializer.data}

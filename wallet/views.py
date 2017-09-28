@@ -153,7 +153,8 @@ class MpesaCallbackURL(APIView):
             mpesa_data ={n['Name']:n['Value'] for n in mpesa_Callbackdata["Item"] for key,value in n.iteritems() if value in ["Amount","PhoneNumber", "MpesaReceiptNumber", "TransactionDate"]}
             transaction_code = mpesa_data["MpesaReceiptNumber"]
             amount = mpesa_data["Amount"]
-            phone_number = mpesa_data["PhoneNumber"]
+            phone_number ="+" + mpesa_data["PhoneNumber"]
+
             transaction_date = mpesa_data["TransactionDate"]
             with open('result_file.txt', 'a') as result_file:
                 result_file.write("Transaction successful, amount {} time of transaction {} transacted by {}".format(amount, transaction_date, phone_number))

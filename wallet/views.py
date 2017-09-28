@@ -138,6 +138,8 @@ class MpesaCallbackURL(APIView):
     #mpesaCallbackURL
     def post(self, request):
         data = request.body
+        with open('post_file.txt', 'a') as post_file:
+            post_file.write(data)
         result = json.loads(data)
         CheckoutRequestID = result["Body"]["stkCallback"]["CheckoutRequestID"]
         MerchantRequestID = result["Body"]["stkCallback"]["MerchantRequestID"]

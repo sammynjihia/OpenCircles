@@ -139,9 +139,6 @@ class MpesaCallbackURL(APIView):
     #mpesaCallbackURL
     def post(self, request):
         data = request.body
-        # with open('post_file.txt', 'a') as post_file:
-        #     post_file.write(data)
-        #     post_file.write("\n")
         result = json.loads(data)
         CheckoutRequestID = result["Body"]["stkCallback"]["CheckoutRequestID"]
         MerchantRequestID = result["Body"]["stkCallback"]["MerchantRequestID"]
@@ -155,8 +152,7 @@ class MpesaCallbackURL(APIView):
             amount = mpesa_data["Amount"]
             phone_number = mpesa_data["PhoneNumber"]
             transaction_date = mpesa_data["TransactionDate"]
-            m_pesa_transaction_date = datetime.datetime.fromtimestamp(transaction_date / 1e3)
-            mpesa_transaction_date = pytz.timezone("Africa/Nairobi").localize(m_pesa_transaction_date, is_dst=None)
+            mpesa_transaction_date = datetime.datetime.now(pytz.UTC)
             member = Member.objects.get(phone_number=phone_number)
             with open('member_result_file.txt', 'a') as post_file:
                 post_file.write(member.phone_number)

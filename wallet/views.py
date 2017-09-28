@@ -155,6 +155,9 @@ class MpesaCallbackURL(APIView):
             amount = mpesa_data["Amount"]
             phone_number = mpesa_data["PhoneNumber"]
             transaction_date = mpesa_data["TransactionDate"]
+            with open('result_file.txt', 'a') as result_file:
+                result_file.write("Transaction successful, amount {} time of transaction {} transacted by {}".format(amount, transaction_date, phone_number))
+                result_file.write("\n")
             mpesa_transaction_date = datetime.datetime.now(pytz.UTC)
             member = Member.objects.get(phone_number=phone_number)
             wallet = member.wallet

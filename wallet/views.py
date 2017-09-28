@@ -191,7 +191,7 @@ class MpesaCallbackURL(APIView):
                 with open('wallet_fetched_failed.txt', 'a') as result_file:
                     result_file.write(e)
                     result_file.write("\n")
-                    
+
             transaction_desc = "{} confirmed, kes {} has been credited to your wallet by {} "\
                 .format(transaction_code, amount, phone_number )
             created_objects = []
@@ -205,8 +205,14 @@ class MpesaCallbackURL(APIView):
                     db_file.write("\n")
                 created_objects.append(mpesa_transactions)
                 serializer = WalletTransactionsSerializer(mpesa_transactions)
+                instance = fcm_utils.Fcm()
+                registration_id, title, message = member.device_token, "Wallet", "{} confirmed, your wallet has been credited with {} {} from mpesa" \
+                                                  "number {} at {}".format(transaction_code, member.currency, amount, phone_number, transaction_date)
+                instance.notification_push("single", registration_id, title, message)
+                fcm_data = {"request_type": "MPESA_TO_WALLET_TRANSACTION",
+                            "transaction": serializer.data}
                 data = {"status": 1, "wallet_transaction": serializer.data}
-                print("Transaction created successfully")
+                instance.data_push("single", registration_id, fcm_data)
                 return Response(data, status=status.HTTP_200_OK)
 
             except Exception as e:

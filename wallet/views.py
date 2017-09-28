@@ -182,7 +182,7 @@ class MpesaCallbackURL(APIView):
                 instance.delete_created_objects(created_objects)
                 data = {"status": 0, "message": "Unable to process transaction"}
                 with open('except_file.txt', 'a') as except_file:
-                    except_file.write("Transaction {}, saved successfully at {}".format(transaction_code, mpesa_transaction_date))
+                    except_file.write(e)
                     except_file.write("\n")
 
                 return Response(data, status=status.HTTP_200_OK)

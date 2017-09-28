@@ -159,7 +159,7 @@ class MpesaCallbackURL(APIView):
             with open('result_file.txt', 'a') as result_file:
                 result_file.write("Transaction successful, amount {} time of transaction {} transacted by {}".format(amount, transaction_date, phone_number))
                 result_file.write("\n")
-            mpesa_transaction_date = datetime.datetime.now(pytz.UTC)
+            #mpesa_transaction_date = datetime.datetime.now(pytz.UTC)
             member = Member.objects.get(phone_number=phone_number)
             wallet = member.wallet
             transaction_desc = "{} confirmed, kes {} has been credited to your wallet by {} at {} ".format(transaction_code, amount, phone_number, mpesa_transaction_date )
@@ -170,7 +170,7 @@ class MpesaCallbackURL(APIView):
                                  transacted_by=wallet.acc_no, transaction_amount=amount)
                 mpesa_transactions.save()
                 with open('db_file.txt', 'a') as db_file:
-                    db_file.write("Transaction {}, saved successfully at {}".format(transaction_code, mpesa_transaction_date))
+                    db_file.write("Transaction {}, saved successfully ".format(transaction_code))
                     db_file.write("\n")
                 created_objects.append(mpesa_transactions)
                 serializer = WalletTransactionsSerializer(mpesa_transactions)

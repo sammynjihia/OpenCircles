@@ -180,7 +180,18 @@ class MpesaCallbackURL(APIView):
                     result_file.write(exp)
                     result_file.write("\n")
 
-            wallet = member.wallet
+            try :
+
+                wallet = member.wallet
+                with open('wallet_fetched_success.txt', 'a') as result_file:
+                    result_file.write("Wallet")
+                    result_file.write("\n")
+
+            except Exception as e:
+                with open('wallet_fetched_failed.txt', 'a') as result_file:
+                    result_file.write(e)
+                    result_file.write("\n")
+                    
             transaction_desc = "{} confirmed, kes {} has been credited to your wallet by {} "\
                 .format(transaction_code, amount, phone_number )
             created_objects = []

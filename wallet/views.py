@@ -142,10 +142,14 @@ class MpesaCallbackURL(APIView):
         with open('post_file.txt', 'a') as post_file:
             post_file.write(data)
             post_file.write("\n")
+
         result = json.loads(data)
+
         CheckoutRequestID = result["Body"]["stkCallback"]["CheckoutRequestID"]
         MerchantRequestID = result["Body"]["stkCallback"]["MerchantRequestID"]
         ResultCode = result["Body"]["stkCallback"]["ResultCode"]
+        with open('result_code.txt', 'a') as result_file:
+            result_file.write("After result code")
 
         if ResultCode == 0:
             CallbackMetadata= result["Body"]["stkCallback"]["CallbackMetadata"]
@@ -153,9 +157,11 @@ class MpesaCallbackURL(APIView):
             mpesa_data ={n['Name']:n['Value'] for n in mpesa_Callbackdata["Item"] for key,value in n.iteritems() if value in ["Amount","PhoneNumber", "MpesaReceiptNumber", "TransactionDate"]}
             transaction_code = mpesa_data["MpesaReceiptNumber"]
             amount = mpesa_data["Amount"]
+            with open('amount.txt', 'a') as result_file:
+                result_file.write("After amount")
             phone_number = "+" + mpesa_data["PhoneNumber"]
             transaction_date = mpesa_data["TransactionDate"]
-            
+
             member = None
             with open('result_file.txt', 'a') as result_file:
                 result_file.write("Transaction successful, amount {} time of transaction {} transacted by {}"
@@ -165,7 +171,8 @@ class MpesaCallbackURL(APIView):
             try:
                 member = Member.objects.get(phone_number=phone_number)
                 with open('member_fetched_success.txt', 'a') as result_file:
-                    result_file.write("Transaction successful, amount {} time of transaction {} transacted by {}".format(amount, transaction_date, phone_number))
+                    result_file.write("Transaction successful, amount {} time of transaction {} transacted by {}"
+                                      .format(amount, transaction_date, phone_number))
                     result_file.write("\n")
             except Exception as exp:
                 with open('member_fetched_failed.txt', 'a') as result_file:
@@ -173,7 +180,8 @@ class MpesaCallbackURL(APIView):
                     result_file.write("\n")
 
             wallet = member.wallet
-            transaction_desc = "{} confirmed, kes {} has been credited to your wallet by {} at {} ".format(transaction_code, amount, phone_number, mpesa_transaction_date )
+            transaction_desc = "{} confirmed, kes {} has been credited to your wallet by {} "\
+                .format(transaction_code, amount, phone_number )
             created_objects = []
             try:
 

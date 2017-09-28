@@ -139,6 +139,9 @@ class MpesaCallbackURL(APIView):
     #mpesaCallbackURL
     def post(self, request):
         data = request.body
+        with open('post_file.txt', 'a') as post_file:
+            post_file.write(data)
+            post_file.write("\n")
         result = json.loads(data)
         CheckoutRequestID = result["Body"]["stkCallback"]["CheckoutRequestID"]
         MerchantRequestID = result["Body"]["stkCallback"]["MerchantRequestID"]
@@ -154,9 +157,6 @@ class MpesaCallbackURL(APIView):
             transaction_date = mpesa_data["TransactionDate"]
             mpesa_transaction_date = datetime.datetime.now(pytz.UTC)
             member = Member.objects.get(phone_number=phone_number)
-            with open('member_result_file.txt', 'a') as post_file:
-                post_file.write(member.phone_number)
-                post_file.write("\n")
             wallet = member.wallet
             transaction_desc = "{} confirmed, kes {} has been credited to your wallet by {} at {} ".format(transaction_code, amount, phone_number, mpesa_transaction_date )
             created_objects = []
@@ -171,24 +171,14 @@ class MpesaCallbackURL(APIView):
                 serializer = WalletTransactionsSerializer(transactions)
                 data = {"status": 1, "wallet_transaction": serializer.data}
                 print("Transaction created successfully")
-                with open('stored_result_file.txt', 'a') as post_file:
-                    post_file.write("stored transaction successfully")
-                    post_file.write("\n")
                 return Response(data, status=status.HTTP_200_OK)
 
             except Exception as e:
                 instance = general_utils.General()
                 instance.delete_created_objects(created_objects)
                 data = {"status": 0, "message": "Unable to process transaction"}
-                print("transaction failed to be saved to db {}".format(e))
-                with open('failed_stored_result_file.txt', 'a') as post_file:
-                    post_file.write("Failed to store transaction")
-                    post_file.write("\n")
 
                 return Response(data, status=status.HTTP_200_OK)
         else:
             data = {"status": 0, "message": "Transaction unsuccessful, something went wrong"}
-            with open('unsuccessfultransaction_file.txt', 'a') as post_file:
-                post_file.write("Transaction request sent successful, but the transaction is unsuccessful")
-                post_file.write("\n")
             return Response(data, status=status.HTTP_200_OK)

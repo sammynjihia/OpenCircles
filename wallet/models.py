@@ -20,7 +20,7 @@ class Transactions(models.Model):
     )
     wallet = models.ForeignKey(Wallet,on_delete=models.CASCADE)
     transaction_type = models.CharField(max_length=10,choices=TRANSACTION_TYPE_CHOICE)
-    transaction_time = models.DateTimeField()
+    transaction_time = models.DateTimeField(auto_now=True)
     transaction_desc = models.TextField()
     transaction_amount = models.IntegerField()
     transacted_by = models.CharField(max_length=100,default="SELF")

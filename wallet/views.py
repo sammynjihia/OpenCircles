@@ -153,14 +153,25 @@ class MpesaCallbackURL(APIView):
             mpesa_data ={n['Name']:n['Value'] for n in mpesa_Callbackdata["Item"] for key,value in n.iteritems() if value in ["Amount","PhoneNumber", "MpesaReceiptNumber", "TransactionDate"]}
             transaction_code = mpesa_data["MpesaReceiptNumber"]
             amount = mpesa_data["Amount"]
-            phone_number ="+" + mpesa_data["PhoneNumber"]
-
+            phone_number = "+" + mpesa_data["PhoneNumber"]
             transaction_date = mpesa_data["TransactionDate"]
+            
+            member = None
             with open('result_file.txt', 'a') as result_file:
-                result_file.write("Transaction successful, amount {} time of transaction {} transacted by {}".format(amount, transaction_date, phone_number))
+                result_file.write("Transaction successful, amount {} time of transaction {} transacted by {}"
+                                  .format(amount, transaction_date, phone_number))
                 result_file.write("\n")
-            #mpesa_transaction_date = datetime.datetime.now(pytz.UTC)
-            member = Member.objects.get(phone_number=phone_number)
+
+            try:
+                member = Member.objects.get(phone_number=phone_number)
+                with open('member_fetched_success.txt', 'a') as result_file:
+                    result_file.write("Transaction successful, amount {} time of transaction {} transacted by {}".format(amount, transaction_date, phone_number))
+                    result_file.write("\n")
+            except Exception as exp:
+                with open('member_fetched_failed.txt', 'a') as result_file:
+                    result_file.write(exp)
+                    result_file.write("\n")
+
             wallet = member.wallet
             transaction_desc = "{} confirmed, kes {} has been credited to your wallet by {} at {} ".format(transaction_code, amount, phone_number, mpesa_transaction_date )
             created_objects = []

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
-
+from django.utils.dateparse import parse_datetime
 from django.shortcuts import render
 
 from wallet import disable_csrf
@@ -20,6 +20,7 @@ from member.models import Member
 from app_utility import wallet_utils,general_utils,fcm_utils, mpesa_api_utils
 
 import datetime,json
+import pytz
 
 # Create your views here.
 @api_view(['GET'])
@@ -140,6 +141,7 @@ class MpesaCallbackURL(APIView):
         data = request.body
         with open('post_file.txt', 'a') as post_file:
             post_file.write(data)
+            post_file.write("\n")
         result = json.loads(data)
         CheckoutRequestID = result["Body"]["stkCallback"]["CheckoutRequestID"]
         MerchantRequestID = result["Body"]["stkCallback"]["MerchantRequestID"]
@@ -156,13 +158,17 @@ class MpesaCallbackURL(APIView):
             amount = mpesa_data["Amount"]
             phone_number = mpesa_data["PhoneNumber"]
             transaction_date = mpesa_data["TransactionDate"]
-            mpesa_transaction_date = datetime.datetime.fromtimestamp(transaction_date / 1e3)
+            m_pesa_transaction_date = datetime.datetime.fromtimestamp(transaction_date / 1e3)
+            print(transaction_date)
+            print(m_pesa_transaction_date)
+            mpesa_transaction_date = pytz.timezone("Africa/Nairobi").localize(m_pesa_transaction_date, is_dst=None)
+            print(mpesa_transaction_date)
             member = Member.objects.get(phone_number=phone_number)
             wallet = member.wallet
             transaction_desc = "{} confirmed, kes {} has been credited to your wallet by {} at {} ".format(transaction_code, amount, phone_number, mpesa_transaction_date )
-
+            created_objects = []
             try:
-                created_objects = []
+
                 transactions = Transactions(wallet=wallet, transaction_type="CREDIT", transaction_desc=transaction_desc,
                                  transacted_by=wallet.acc_no, transaction_amount=amount,
                                  transaction_time=mpesa_transaction_date
@@ -172,18 +178,26 @@ class MpesaCallbackURL(APIView):
                 serializer = WalletTransactionsSerializer(transactions)
                 data = {"status": 1, "wallet_transaction": serializer.data}
                 print("Created the transaction")
-                # instance = fcm_utils.Fcm()
-                # registration_id, title, message = member.device_token, "Wallet", "%s confirmed, you have credited your wallet with %s %s from M-pesa online checkout at %s" % (
-                #  transaction_code, member.currency, amount, mpesa_transaction_date)
-                # instance.notification_push("single", registration_id, title, message)
+                print(transactions)
+                with open('stored_result_file.txt', 'a') as post_file:
+                    post_file.write("stored transaction successfully")
+                    post_file.write("\n")
                 return Response(data, status=status.HTTP_200_OK)
 
             except Exception as e:
                 instance = general_utils.General()
                 instance.delete_created_objects(created_objects)
                 data = {"status": 0, "message": "Unable to process transaction"}
+                print(e)
+                with open('failed_stored_result_file.txt', 'a') as post_file:
+                    post_file.write("Failed to store transaction")
+                    post_file.write("\n")
+
                 return Response(data, status=status.HTTP_200_OK)
         else:
             print("Transaction unsuccessful")
             data = {"status": 0, "message": "Transaction unsuccessful, something went wrong"}
+            with open('unsuccessfultransaction_file.txt', 'a') as post_file:
+                post_file.write("Transaction request sent successful, but the transaction is unsuccessful")
+                post_file.write("\n")
             return Response(data, status=status.HTTP_200_OK)

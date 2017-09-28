@@ -165,16 +165,14 @@ class MpesaCallbackURL(APIView):
             created_objects = []
             try:
 
-                transactions = Transactions(wallet=wallet, transaction_type="CREDIT", transaction_desc=transaction_desc,
-                                 transacted_by=wallet.acc_no, transaction_amount=amount,
-                                 transaction_time=mpesa_transaction_date
-                )
-                transactions.save()
+                mpesa_transactions = Transactions(wallet=wallet, transaction_type="CREDIT", transaction_desc=transaction_desc,
+                                 transacted_by=wallet.acc_no, transaction_amount=amount)
+                mpesa_transactions.save()
                 with open('db_file.txt', 'a') as db_file:
                     db_file.write("Transaction {}, saved successfully at {}".format(transaction_code, mpesa_transaction_date))
                     db_file.write("\n")
-                created_objects.append(transactions)
-                serializer = WalletTransactionsSerializer(transactions)
+                created_objects.append(mpesa_transactions)
+                serializer = WalletTransactionsSerializer(mpesa_transactions)
                 data = {"status": 1, "wallet_transaction": serializer.data}
                 print("Transaction created successfully")
                 return Response(data, status=status.HTTP_200_OK)

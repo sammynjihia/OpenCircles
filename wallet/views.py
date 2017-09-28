@@ -148,8 +148,6 @@ class MpesaCallbackURL(APIView):
         CheckoutRequestID = result["Body"]["stkCallback"]["CheckoutRequestID"]
         MerchantRequestID = result["Body"]["stkCallback"]["MerchantRequestID"]
         ResultCode = result["Body"]["stkCallback"]["ResultCode"]
-        with open('result_code.txt', 'a') as result_file:
-            result_file.write("After result code")
 
         if ResultCode == 0:
             CallbackMetadata= result["Body"]["stkCallback"]["CallbackMetadata"]
@@ -157,10 +155,12 @@ class MpesaCallbackURL(APIView):
             mpesa_data ={n['Name']:n['Value'] for n in mpesa_Callbackdata["Item"] for key,value in n.iteritems() if value in ["Amount","PhoneNumber", "MpesaReceiptNumber", "TransactionDate"]}
             transaction_code = mpesa_data["MpesaReceiptNumber"]
             amount = mpesa_data["Amount"]
-            with open('amount.txt', 'a') as result_file:
-                result_file.write("After amount")
             phone_number = "+" + mpesa_data["PhoneNumber"]
+            with open('phone_number.txt', 'a') as result_file:
+                result_file.write("phonenumber ")
             transaction_date = mpesa_data["TransactionDate"]
+            with open('transactiodate.txt', 'a') as result_file:
+                result_file.write("Transaction date")
 
             member = None
             with open('result_file.txt', 'a') as result_file:

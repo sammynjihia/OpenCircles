@@ -146,12 +146,9 @@ class MpesaCallbackURL(APIView):
         CheckoutRequestID = result["Body"]["stkCallback"]["CheckoutRequestID"]
         MerchantRequestID = result["Body"]["stkCallback"]["MerchantRequestID"]
         ResultCode = result["Body"]["stkCallback"]["ResultCode"]
-        print(ResultCode)
 
         if ResultCode == 0:
             CallbackMetadata= result["Body"]["stkCallback"]["CallbackMetadata"]
-            print ("Transaction Successful")
-            print (CallbackMetadata)
             mpesa_Callbackdata = CallbackMetadata
             mpesa_data ={n['Name']:n['Value'] for n in mpesa_Callbackdata["Item"] for key,value in n.iteritems() if value in ["Amount","PhoneNumber", "MpesaReceiptNumber", "TransactionDate"]}
             transaction_code = mpesa_data["MpesaReceiptNumber"]
@@ -159,10 +156,7 @@ class MpesaCallbackURL(APIView):
             phone_number = mpesa_data["PhoneNumber"]
             transaction_date = mpesa_data["TransactionDate"]
             m_pesa_transaction_date = datetime.datetime.fromtimestamp(transaction_date / 1e3)
-            print(transaction_date)
-            print(m_pesa_transaction_date)
             mpesa_transaction_date = pytz.timezone("Africa/Nairobi").localize(m_pesa_transaction_date, is_dst=None)
-            print(mpesa_transaction_date)
             member = Member.objects.get(phone_number=phone_number)
             wallet = member.wallet
             transaction_desc = "{} confirmed, kes {} has been credited to your wallet by {} at {} ".format(transaction_code, amount, phone_number, mpesa_transaction_date )
@@ -177,8 +171,6 @@ class MpesaCallbackURL(APIView):
                 created_objects.append(transactions)
                 serializer = WalletTransactionsSerializer(transactions)
                 data = {"status": 1, "wallet_transaction": serializer.data}
-                print("Created the transaction")
-                print(transactions)
                 with open('stored_result_file.txt', 'a') as post_file:
                     post_file.write("stored transaction successfully")
                     post_file.write("\n")
@@ -188,14 +180,12 @@ class MpesaCallbackURL(APIView):
                 instance = general_utils.General()
                 instance.delete_created_objects(created_objects)
                 data = {"status": 0, "message": "Unable to process transaction"}
-                print(e)
                 with open('failed_stored_result_file.txt', 'a') as post_file:
                     post_file.write("Failed to store transaction")
                     post_file.write("\n")
 
                 return Response(data, status=status.HTTP_200_OK)
         else:
-            print("Transaction unsuccessful")
             data = {"status": 0, "message": "Transaction unsuccessful, something went wrong"}
             with open('unsuccessfultransaction_file.txt', 'a') as post_file:
                 post_file.write("Transaction request sent successful, but the transaction is unsuccessful")

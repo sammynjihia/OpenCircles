@@ -154,13 +154,7 @@ class MpesaCallbackURL(APIView):
                 post_file.write("In if statement")
                 post_file.write("\n")
             CallbackMetadata= result["Body"]["stkCallback"]["CallbackMetadata"]
-            with open('callbackmetadata_post_file.txt', 'a') as post_file:
-                post_file.write(CallbackMetadata)
-                post_file.write("\n")
             mpesa_Callbackdata = CallbackMetadata
-            with open('mpesacallbackdata_post_file.txt', 'a') as post_file:
-                post_file.write(mpesa_Callbackdata)
-                post_file.write("\n")
             mpesa_data ={n['Name']:n['Value'] for n in mpesa_Callbackdata["Item"] for key,value in n.iteritems() if value in ["Amount","PhoneNumber", "MpesaReceiptNumber", "TransactionDate"]}
             with open('afterforloop_post_file.txt', 'a') as post_file:
                 post_file.write(mpesa_data["MpesaReceiptNumber"])

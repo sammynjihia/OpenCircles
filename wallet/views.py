@@ -149,6 +149,10 @@ class MpesaCallbackURL(APIView):
         MerchantRequestID = result["Body"]["stkCallback"]["MerchantRequestID"]
         ResultCode = result["Body"]["stkCallback"]["ResultCode"]
 
+        with open('result_post_file.txt', 'a') as post_file:
+            post_file.write(ResultCode)
+            post_file.write("\n")
+
         if ResultCode == 0:
             CallbackMetadata= result["Body"]["stkCallback"]["CallbackMetadata"]
             mpesa_Callbackdata = CallbackMetadata
@@ -157,48 +161,25 @@ class MpesaCallbackURL(APIView):
             amount = mpesa_data["Amount"]
             temp_phone_number =  mpesa_data["PhoneNumber"]
             phone_number = "+{}".format(temp_phone_number)
-            with open('phone_number.txt', 'a') as result_file:
-                result_file.write("phonenumber ")
             transaction_date = mpesa_data["TransactionDate"]
-            with open('transactiodate.txt', 'a') as result_file:
-                result_file.write("Transaction date")
-
             member = None
-            with open('result_file.txt', 'a') as result_file:
-                result_file.write("Transaction successful, amount {} time of transaction {} transacted by {}"
-                                  .format(amount, transaction_date, phone_number))
-                result_file.write("\n")
-
-            try:
-                member = Member.objects.get(phone_number=phone_number)
-                with open('member_fetched_success.txt', 'a') as result_file:
-                    result_file.write("Transaction successful, amount {} time of transaction {} transacted by {}"
-                                      .format(amount, transaction_date, phone_number))
-                    result_file.write("\n")
-            except Exception as exp:
-                with open('member_fetched_failed.txt', 'a') as result_file:
-                    result_file.write(exp)
-                    result_file.write("\n")
-
-            try :
-
-                wallet = member.wallet
-                with open('wallet_fetched_success.txt', 'a') as result_file:
-                    result_file.write("Wallet")
-                    result_file.write("\n")
-
-            except Exception as e:
-                with open('wallet_fetched_failed.txt', 'a') as result_file:
-                    result_file.write(e)
-                    result_file.write("\n")
-
-            transaction_desc = "{} confirmed, kes {} has been credited to your wallet by {} "\
-                .format(transaction_code, amount, phone_number )
             created_objects = []
             try:
+                try:
+                    member = Member.objects.get(phone_number=phone_number)
 
-                mpesa_transactions = Transactions(wallet=wallet, transaction_type="CREDIT", transaction_desc=transaction_desc,
-                                 transacted_by=wallet.acc_no, transaction_amount=amount)
+                except Member.DoesNotExist as exp:
+                    with open('member_fetched_failed.txt', 'a') as result_file:
+                        result_file.write(exp)
+                        result_file.write("\n")
+
+                wallet = member.wallet
+                transaction_desc = "{} confirmed, kes {} has been credited to your wallet by {} " \
+                    .format(transaction_code, amount, phone_number)
+
+                mpesa_transactions = Transactions(wallet=wallet, transaction_type="CREDIT",
+                                                  transaction_desc=transaction_desc,
+                                                  transacted_by=wallet.acc_no, transaction_amount=amount)
                 mpesa_transactions.save()
                 with open('db_file.txt', 'a') as db_file:
                     db_file.write("Transaction {}, saved successfully ".format(transaction_code))
@@ -207,14 +188,14 @@ class MpesaCallbackURL(APIView):
                 serializer = WalletTransactionsSerializer(mpesa_transactions)
                 instance = fcm_utils.Fcm()
                 registration_id, title, message = member.device_token, "Wallet", "{} confirmed, your wallet has been credited with {} {} from mpesa" \
-                                                  "number {} at {}".format(transaction_code, member.currency, amount, phone_number, transaction_date)
+                                                                                 "number {} at {}".format(
+                    transaction_code, member.currency, amount, phone_number, transaction_date)
                 instance.notification_push("single", registration_id, title, message)
                 fcm_data = {"request_type": "MPESA_TO_WALLET_TRANSACTION",
                             "transaction": serializer.data}
                 data = {"status": 1, "wallet_transaction": serializer.data}
                 instance.data_push("single", registration_id, fcm_data)
                 return Response(data, status=status.HTTP_200_OK)
-
             except Exception as e:
                 instance = general_utils.General()
                 instance.delete_created_objects(created_objects)
@@ -222,8 +203,42 @@ class MpesaCallbackURL(APIView):
                 with open('except_file.txt', 'a') as except_file:
                     except_file.write(e)
                     except_file.write("\n")
-
                 return Response(data, status=status.HTTP_200_OK)
         else:
             data = {"status": 0, "message": "Transaction unsuccessful, something went wrong"}
             return Response(data, status=status.HTTP_200_OK)
+
+
+class MpesaB2CResultURL(APIView):
+    """
+    Result URL for mpesa B2C transaction
+    """
+    def post(self, request):
+        data = request.body
+        with open('b2c_post_file.txt', 'a') as post_file:
+            post_file.write(data)
+            post_file.write("\n")
+
+        result = json.loads(data)
+
+        print("Response from mpesa from the MpesaB2CResultURL")
+        print (result)
+
+        return Response(status=status.HTTP_200_OK)
+
+class MpesaB2CQueueTimeoutURL(APIView):
+    """
+    Result URL for mpesa B2C transaction
+    """
+    def post(self, request):
+        data = request.body
+        with open('b2c_queuetimeout_post_file.txt', 'a') as post_file:
+            post_file.write(data)
+            post_file.write("\n")
+
+        result = json.loads(data)
+
+        print ("Response from mpesa from the MpesaB2CQueueURL")
+        print (result)
+
+        return Response(status=status.HTTP_200_OK)

@@ -147,19 +147,14 @@ class MpesaCallbackURL(APIView):
 
         CheckoutRequestID = result["Body"]["stkCallback"]["CheckoutRequestID"]
         MerchantRequestID = result["Body"]["stkCallback"]["MerchantRequestID"]
-        ResultCode = result["Body"]["stkCallback"]["ResultCode"]
+        try:
+            ResultCode = result["Body"]["stkCallback"]["ResultCode"]
+        except Exception as e:
+            with open('resultcode_try_post_file.txt', 'a') as post_file:
+                post_file.write(str(e))
+                post_file.write("\n")
+
         ResultDescription = result["Body"]["stkCallback"]["ResultDesc"]
-
-        with open('result_post_file.txt', 'a') as post_file:
-            post_file.write(ResultDescription)
-            post_file.write("\n")
-            post_file.write("Hello")
-            post_file.write("\n")
-            post_file.write(ResultCode)
-            post_file.write("\n")
-            post_file.write(type(ResultCode))
-            post_file.write("\n")
-
         if ResultCode == 0:
             with open('if_post_file.txt', 'a') as post_file:
                 post_file.write(ResultCode)

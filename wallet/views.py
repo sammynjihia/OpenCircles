@@ -157,6 +157,8 @@ class MpesaCallbackURL(APIView):
             post_file.write("\n")
             post_file.write(ResultCode)
             post_file.write("\n")
+            post_file.write(type(ResultCode))
+            post_file.write("\n")
 
         if ResultCode == 0:
             CallbackMetadata= result["Body"]["stkCallback"]["CallbackMetadata"]
@@ -211,6 +213,9 @@ class MpesaCallbackURL(APIView):
                 return Response(data, status=status.HTTP_200_OK)
         else:
             data = {"status": 0, "message": "Transaction unsuccessful, something went wrong"}
+            with open('failed_tranaction_file.txt', 'a') as db_file:
+                db_file.write("ResultCode Not Zero")
+                db_file.write("\n")
             return Response(data, status=status.HTTP_200_OK)
 
 

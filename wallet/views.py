@@ -157,8 +157,6 @@ class MpesaCallbackURL(APIView):
             mpesa_Callbackdata = CallbackMetadata
             mpesa_data ={n['Name']:n['Value'] for n in mpesa_Callbackdata["Item"] for key,value in n.iteritems() if value in ["Amount","PhoneNumber", "MpesaReceiptNumber", "TransactionDate"]}
             with open('afterforloop_post_file.txt', 'a') as post_file:
-                post_file.write(mpesa_data["MpesaReceiptNumber"])
-                post_file.write("\n")
                 post_file.write(mpesa_data["PhoneNumber"])
                 post_file.write("\n")
                 post_file.write(mpesa_data["Amount"])

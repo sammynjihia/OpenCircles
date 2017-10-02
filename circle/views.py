@@ -39,10 +39,13 @@ class CircleCreation(APIView):
             mutable = request.data._mutable
             request.data._mutable = True
             request.data["contact_list"] = json.loads(request.data["contact_list"])
+            request.data["loan_tariff"] = json.loads(request.data["loan_tariff"])
             contacts = request.data["contact_list"] if "contact_list" in request.data else []
             request.data._mutable = mutable
+        print(request.data)
         serializer = CircleCreationSerializer(data=request.data)
         if serializer.is_valid():
+            print(serializer.validated_data['loan_tariff'][0])
             instance = wallet_utils.Wallet()
             minimum_share = serializer.validated_data['minimum_share']
             if minimum_share < settings.MININIMUM_CIRCLE_SHARES:
@@ -85,8 +88,13 @@ class CircleCreation(APIView):
                         fcm_data = {"request_type":"INVITED_CIRCLE","circle":serializer.data}
                         instance.notification_push(device,registration_ids,title,message)
                         instance.data_push(device,registration_ids,fcm_data)
-                    data={"status":1,"circle":serializer.data,"wallet_transaction":wallet_serializer.data,"shares_transaction":shares_serializer.data}
-                    return Response(data,status=status.HTTP_201_CREATED)
+                    instance = general_utils.General()
+                    instance.delete_created_objects(created_objects)
+                    error = "Unable to create circle"
+                    data = {"status":0,"message":error}
+                    return Response(data,status = status.HTTP_200_OK)
+                    # data={"status":1,"circle":serializer.data,"wallet_transaction":wallet_serializer.data,"shares_transaction":shares_serializer.data}
+                    # return Response(data,status=status.HTTP_201_CREATED)
                 except Exception as e:
                     print(str(e))
                     instance = general_utils.General()

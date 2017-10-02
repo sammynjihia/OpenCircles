@@ -35,7 +35,7 @@ class GuarantorRequest(models.Model):
         (True, "Accepted to guarantee applicant"),
         (False, "Denied to guarantee applicant")
     )
-    loan_application = models.ForeignKey(LoanApplication, null=False)
+    loan = models.ForeignKey(LoanApplication, null=False,on_delete=models.CASCADE)
     circle_member = models.ForeignKey(CircleMember, null=False)
     num_of_shares = models.IntegerField(blank=False, null=False, default=0)
     time_requested = models.DateTimeField(auto_now=True)
@@ -47,7 +47,7 @@ class GuarantorRequest(models.Model):
 
 
 class LoanGuarantor(models.Model):
-    loan_application = models.ForeignKey(LoanApplication, null=False)
+    loan_application = models.ForeignKey(LoanApplication, null=False,on_delete=models.CASCADE)
     circle_member = models.ForeignKey(CircleMember, null=False)
     locked_shares = models.ForeignKey(LockedShares, null=False)
     time_requested = models.DateTimeField(auto_now=True)
@@ -55,9 +55,21 @@ class LoanGuarantor(models.Model):
     class Meta:
         db_table = 'LoanGuarantor'
 
+class LoanAmortizationSchedule(models.Model):
+    loan = models.ForeignKey(LoanApplication,on_delete=models.CASCADE,null=False)
+    starting_balance = models.FloatField(null=False,default=0.0)
+    principal = models.FloatField(null=False,default=0.0)
+    interest = models.FloatField(null=False,default=0.0)
+    total_repayment = models.FloatField(null=False,default=0.0)
+    ending_balance = models.FloatField(null=False,default=0.0)
+    repayment_date = models.DateField(null=False)
+
+    class Meta:
+        db_table = 'LoanAmortizationSchedule'
 
 class LoanRepayment(models.Model):
-    loan_application = models.ForeignKey(LoanApplication, null=False)
+    loan = models.ForeignKey(LoanApplication,on_delete=models.CASCADE)
+    amortization_schedule = models.ForeignKey(LoanAmortizationSchedule,null=False,on_delete=models.CASCADE,default=1)
     amount = models.IntegerField(null=False, blank=False, default=0)
     time_of_repayment = models.DateTimeField(null=False)
     time_created = models.DateTimeField(auto_now=True)
@@ -65,19 +77,11 @@ class LoanRepayment(models.Model):
     class Meta:
         db_table = 'LoanRepayment'
 
-
-class LoanAmortizationSchedule(models.Model):
-    loan_application = models.ForeignKey(LoanApplication, null=False)
-    repayment_date = models.DateField(null=False)
-    min_amount_payable = models.IntegerField(null=False)
-
-    class Meta:
-        db_table = 'LoanAmortizationSchedule'
-
 class LoanTariff(models.Model):
+    circle = models.ForeignKey(Circle,on_delete=models.CASCADE,default=4)
     max_amount = models.IntegerField()
     min_amount = models.IntegerField()
-    duration = models.IntegerField()
+    num_of_months = models.IntegerField()
     monthly_interest_rate = models.FloatField()
 
     class Meta:

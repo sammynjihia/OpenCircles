@@ -3,6 +3,7 @@ from rest_framework import serializers
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Sum
 from django.db.models import Q
+from django.conf import settings
 
 from .models import Circle,CircleMember,AllowedGuarantorRequest,CircleInvitation
 
@@ -11,20 +12,25 @@ from member.models import Member,Contacts
 
 from shares.models import LockedShares,Shares,IntraCircleShareTransaction
 from app_utility import circle_utils
+
+from loan.serializers import LoanTariffSerializer
+from loan.models import LoanTariff
 class CircleCreationSerializer(serializers.ModelSerializer):
     """
     Serializer for circle registration endpoint
     """
     contact_list = serializers.ListField()
     pin = serializers.CharField()
+    loan_tariff = serializers.ListField()
 
     class Meta:
         model = Circle
-        fields = ['circle_name','circle_type','contact_list','minimum_share','pin']
+        fields = ['circle_name','circle_type','contact_list','minimum_share','pin','loan_tariff']
 
     def create(self,validated_data):
         validated_data.pop('contact_list')
         validated_data.pop('pin')
+        validated_data.pop('loan_tariff')
         # validated_data['circle_name'] = validated_data['circle_name'].lower()
         return Circle.objects.create(**validated_data)
 
@@ -41,9 +47,10 @@ class CircleSerializer(serializers.HyperlinkedModelSerializer):
     is_active = serializers.SerializerMethodField()
     is_invited = serializers.SerializerMethodField()
     loan_limit = serializers.SerializerMethodField()
+    loan_tariff = serializers.SerializerMethodField()
     class Meta:
         model = Circle
-        fields = ['circle_name','circle_type','circle_acc_number','is_active','is_member','is_invited','members','initiated_by','date_created','minimum_share','annual_interest_rate','loan_limit','member_count','phonebook_member_count']
+        fields = ['circle_name','circle_type','circle_acc_number','is_active','is_member','is_invited','members','initiated_by','date_created','minimum_share','loan_limit','member_count','phonebook_member_count','loan_tariff']
 
     def get_member_count(self,circle):
         return CircleMember.objects.filter(circle_id=circle.id).count()
@@ -57,6 +64,13 @@ class CircleSerializer(serializers.HyperlinkedModelSerializer):
 
     def get_date_created(self,circle):
         return circle.time_initiated.date()
+
+    def get_loan_tariff(self,circle):
+        loan_tariff = LoanTariff.objects.filter(circle=circle)
+        if loan_tariff.exists():
+            loan_tariff_serializer = LoanTariffSerializer(loan_tariff,many=True)
+            return loan_tariff_serializer.data
+        return []
 
     def get_members(self,circle):
         members_ids = CircleMember.objects.filter(circle_id=circle.id).values_list('member',flat=True)
@@ -89,7 +103,7 @@ class CircleSerializer(serializers.HyperlinkedModelSerializer):
     def get_loan_limit(self,circle):
         member = self.context.get('request').user.member
         instance = circle_utils.Circle()
-        available_shares =instance.get_available_circle_member_shares(circle,member)
+        available_shares =instance.get_available_circle_member_shares(circle,member)+settings.LOAN_LIMIT
         return available_shares
 
 class InvitedCircleSerializer(serializers.HyperlinkedModelSerializer):

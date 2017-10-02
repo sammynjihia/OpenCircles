@@ -3,7 +3,7 @@ import json
 from requests.auth import HTTPBasicAuth
 import datetime
 import base64
-from M2Crypto import RSA, X509
+#from M2Crypto import RSA, X509
 from base64 import b64encode
 
 consumer_key = "tAEyfavNAtEi68QLD7j534XgVCYQkY1v"
@@ -79,16 +79,16 @@ class MpesaUtils():
         print(response.text)
 
     # generating security credentials
-    def encryptInitiatorPassword(self):
-        cert_file = open(CERTIFICATE_FILE, 'r')
-        cert_data = cert_file.read()  # read certificate file
-        cert_file.close()
-        cert = X509.load_cert_string(cert_data)
-        # pub_key = X509.load_cert_string(cert_data)
-        pub_key = cert.get_pubkey()
-        rsa_key = pub_key.get_rsa()
-        cipher = rsa_key.public_encrypt(INITIATOR_PASS, RSA.pkcs1_padding)
-        return b64encode(cipher)
+    # def encryptInitiatorPassword(self):
+    #     cert_file = open(CERTIFICATE_FILE, 'r')
+    #     cert_data = cert_file.read()  # read certificate file
+    #     cert_file.close()
+    #     cert = X509.load_cert_string(cert_data)
+    #     # pub_key = X509.load_cert_string(cert_data)
+    #     pub_key = cert.get_pubkey()
+    #     rsa_key = pub_key.get_rsa()
+    #     cipher = rsa_key.public_encrypt(INITIATOR_PASS, RSA.pkcs1_padding)
+    #     return b64encode(cipher)
 
 
 

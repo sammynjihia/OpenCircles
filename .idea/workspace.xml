@@ -2,11 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="c446a03d-4dc8-4729-876e-727a77447669" name="Default" comment="">
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/OpenCircles/settings.py" afterPath="$PROJECT_DIR$/OpenCircles/settings.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/app_utility/mpesa_api_utils.py" afterPath="$PROJECT_DIR$/app_utility/mpesa_api_utils.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/wallet/serializers.py" afterPath="$PROJECT_DIR$/wallet/serializers.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/wallet/views.py" afterPath="$PROJECT_DIR$/wallet/views.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/loan/models.py" afterPath="$PROJECT_DIR$/loan/models.py" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -79,34 +75,12 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="b2c_post_file.txt" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/b2c_post_file.txt">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="45">
-              <caret line="3" column="0" lean-forward="false" selection-start-line="3" selection-start-column="0" selection-end-line="3" selection-end-column="0" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
       <file leaf-file-name="wallet_utils.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/app_utility/wallet_utils.py">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="210">
               <caret line="16" column="24" lean-forward="false" selection-start-line="16" selection-start-column="8" selection-end-line="16" selection-end-column="24" />
               <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="serializers.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/accounts/serializers.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="825">
-              <caret line="61" column="33" lean-forward="false" selection-start-line="61" selection-start-column="23" selection-end-line="61" selection-end-column="33" />
-              <folding>
-                <element signature="e#0#38#0" expanded="true" />
-              </folding>
             </state>
           </provider>
         </entry>
@@ -125,7 +99,7 @@
         <entry file="file://$PROJECT_DIR$/app_utility/mpesa_api_utils.py">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="330">
-              <caret line="54" column="44" lean-forward="true" selection-start-line="54" selection-start-column="44" selection-end-line="54" selection-end-column="44" />
+              <caret line="54" column="44" lean-forward="false" selection-start-line="54" selection-start-column="44" selection-end-line="54" selection-end-column="44" />
               <folding>
                 <element signature="e#0#15#0" expanded="true" />
               </folding>
@@ -143,14 +117,34 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="views.py" pinned="false" current-in-tab="true">
+      <file leaf-file-name="views.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/wallet/views.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="441">
-              <caret line="160" column="59" lean-forward="true" selection-start-line="160" selection-start-column="59" selection-end-line="160" selection-end-column="59" />
+            <state relative-caret-position="201">
+              <caret line="144" column="73" lean-forward="false" selection-start-line="144" selection-start-column="73" selection-end-line="144" selection-end-column="73" />
               <folding>
                 <element signature="e#24#63#0" expanded="true" />
               </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="models.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/circle/models.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="-101">
+              <caret line="22" column="18" lean-forward="false" selection-start-line="22" selection-start-column="18" selection-end-line="22" selection-end-column="18" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="models.py" pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/loan/models.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="444">
+              <caret line="84" column="47" lean-forward="true" selection-start-line="84" selection-start-column="47" selection-end-line="84" selection-end-column="47" />
+              <folding />
             </state>
           </provider>
         </entry>
@@ -183,7 +177,6 @@
         <option value="$PROJECT_DIR$/ledger/models.py" />
         <option value="$PROJECT_DIR$/shares/models.py" />
         <option value="$PROJECT_DIR$/deposit/deposit_utils.py" />
-        <option value="$PROJECT_DIR$/loan/models.py" />
         <option value="$PROJECT_DIR$/credit_rating/models.py" />
         <option value="$PROJECT_DIR$/app_settings/models.py" />
         <option value="$PROJECT_DIR$/member/models.py" />
@@ -213,6 +206,7 @@
         <option value="$PROJECT_DIR$/app_utility/mpesa_api_utils.py" />
         <option value="$PROJECT_DIR$/wallet/serializers.py" />
         <option value="$PROJECT_DIR$/wallet/views.py" />
+        <option value="$PROJECT_DIR$/loan/models.py" />
       </list>
     </option>
   </component>
@@ -266,6 +260,34 @@
             </PATH_ELEMENT>
             <PATH_ELEMENT>
               <option name="myItemId" value="wallet" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+          </PATH>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="opencircles" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="opencircles" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="loan" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+          </PATH>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="opencircles" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="opencircles" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="circle" />
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
           </PATH>
@@ -767,13 +789,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/loan/models.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="525">
-          <caret line="35" column="49" lean-forward="true" selection-start-line="35" selection-start-column="49" selection-end-line="35" selection-end-column="49" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/app_settings/models.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="165">
@@ -791,13 +806,6 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/app_utility/random_acc_number_utils.py" />
     <entry file="file://$PROJECT_DIR$/app_utility/circle_acc_number_utils.py" />
-    <entry file="file://$PROJECT_DIR$/circle/models.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="300">
-          <caret line="22" column="18" lean-forward="false" selection-start-line="22" selection-start-column="18" selection-end-line="22" selection-end-column="18" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/circle/serializers.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="105">
@@ -996,7 +1004,7 @@
     <entry file="file://$PROJECT_DIR$/app_utility/mpesa_api_utils.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="330">
-          <caret line="54" column="44" lean-forward="true" selection-start-line="54" selection-start-column="44" selection-end-line="54" selection-end-column="44" />
+          <caret line="54" column="44" lean-forward="false" selection-start-line="54" selection-start-column="44" selection-end-line="54" selection-end-column="44" />
           <folding>
             <element signature="e#0#15#0" expanded="true" />
           </folding>
@@ -1013,11 +1021,27 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/wallet/views.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="441">
-          <caret line="160" column="59" lean-forward="true" selection-start-line="160" selection-start-column="59" selection-end-line="160" selection-end-column="59" />
+        <state relative-caret-position="201">
+          <caret line="144" column="73" lean-forward="false" selection-start-line="144" selection-start-column="73" selection-end-line="144" selection-end-column="73" />
           <folding>
             <element signature="e#24#63#0" expanded="true" />
           </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/circle/models.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-101">
+          <caret line="22" column="18" lean-forward="false" selection-start-line="22" selection-start-column="18" selection-end-line="22" selection-end-column="18" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/loan/models.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="444">
+          <caret line="84" column="47" lean-forward="true" selection-start-line="84" selection-start-column="47" selection-end-line="84" selection-end-column="47" />
+          <folding />
         </state>
       </provider>
     </entry>

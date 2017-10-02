@@ -78,7 +78,7 @@ class LoanRepayment(models.Model):
         db_table = 'LoanRepayment'
 
 class LoanTariff(models.Model):
-    circle = models.ForeignKey(Circle,on_delete=models.CASCADE,default=4)
+    circle = models.ForeignKey(Circle,on_delete=models.CASCADE,default=5)
     max_amount = models.IntegerField()
     min_amount = models.IntegerField()
     num_of_months = models.IntegerField()

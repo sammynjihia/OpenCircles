@@ -150,24 +150,13 @@ class MpesaCallbackURL(APIView):
         ResultCode = result["Body"]["stkCallback"]["ResultCode"]
         ResultDescription = result["Body"]["stkCallback"]["ResultDesc"]
         if ResultCode == 0:
-            with open('if_post_file.txt', 'a') as post_file:
-                post_file.write("In if statement")
-                post_file.write("\n")
             CallbackMetadata= result["Body"]["stkCallback"]["CallbackMetadata"]
             mpesa_Callbackdata = CallbackMetadata
             mpesa_data ={n['Name']:n['Value'] for n in mpesa_Callbackdata["Item"] for key,value in n.iteritems() if value in ["Amount","PhoneNumber", "MpesaReceiptNumber", "TransactionDate"]}
-            with open('afterforloop_post_file.txt', 'a') as post_file:
-                post_file.write(str(mpesa_data["Amount"]))
-                post_file.write("\n")
-                post_file.write(str(mpesa_data["PhoneNumber"]))
-                post_file.write("\n")
             transaction_code = mpesa_data["MpesaReceiptNumber"]
             amount = mpesa_data["Amount"]
             temp_phone_number =  mpesa_data["PhoneNumber"]
             phone_number = "+{}".format(str(temp_phone_number))
-            with open('try_phonenumber_post_file.txt', 'a') as post_file:
-                post_file.write(phone_number)
-                post_file.write("\n")
             transaction_date = mpesa_data["TransactionDate"]
             member = None
             created_objects = []
@@ -177,7 +166,7 @@ class MpesaCallbackURL(APIView):
 
                 except Member.DoesNotExist as exp:
                     with open('member_fetched_failed.txt', 'a') as result_file:
-                        result_file.write(exp)
+                        result_file.write(str(exp))
                         result_file.write("\n")
 
                 wallet = member.wallet
@@ -195,7 +184,7 @@ class MpesaCallbackURL(APIView):
                 serializer = WalletTransactionsSerializer(mpesa_transactions)
                 instance = fcm_utils.Fcm()
                 registration_id, title, message = member.device_token, "Wallet", "{} confirmed, your wallet has been credited with {} {} from mpesa" \
-                                                                                 "number {} at {}".format(
+                                                                                 " number {} at {}".format(
                     transaction_code, member.currency, amount, phone_number, transaction_date)
                 instance.notification_push("single", registration_id, title, message)
                 fcm_data = {"request_type": "MPESA_TO_WALLET_TRANSACTION",
@@ -207,16 +196,12 @@ class MpesaCallbackURL(APIView):
                 instance = general_utils.General()
                 instance.delete_created_objects(created_objects)
                 data = {"status": 0, "message": "Unable to process transaction"}
-                with open('except_file.txt', 'a') as except_file:
-                    except_file.write(e)
-                    except_file.write("\n")
                 return Response(data, status=status.HTTP_200_OK)
         else:
             data = {"status": 0, "message": "Transaction unsuccessful, something went wrong"}
-            with open('failed_tranaction_file.txt', 'a') as db_file:
-                db_file.write("ResultCode Not Zero")
-                db_file.write("\n")
             return Response(data, status=status.HTTP_200_OK)
+
+
 
 
 class MpesaB2CResultURL(APIView):

@@ -147,13 +147,7 @@ class MpesaCallbackURL(APIView):
 
         CheckoutRequestID = result["Body"]["stkCallback"]["CheckoutRequestID"]
         MerchantRequestID = result["Body"]["stkCallback"]["MerchantRequestID"]
-        try:
-            ResultCode = result["Body"]["stkCallback"]["ResultCode"]
-        except Exception as e:
-            with open('resultcode_try_post_file.txt', 'a') as post_file:
-                post_file.write(str(e))
-                post_file.write("\n")
-
+        ResultCode = result["Body"]["stkCallback"]["ResultCode"]
         ResultDescription = result["Body"]["stkCallback"]["ResultDesc"]
         if ResultCode == 0:
             with open('if_post_file.txt', 'a') as post_file:
@@ -165,13 +159,18 @@ class MpesaCallbackURL(APIView):
             transaction_code = mpesa_data["MpesaReceiptNumber"]
             amount = mpesa_data["Amount"]
             temp_phone_number =  mpesa_data["PhoneNumber"]
-            phone_number = "+{}".format(temp_phone_number)
+            try :
+                phone_number = "+{}".format(temp_phone_number)
+                with open('try_phonenumber_post_file.txt', 'a') as post_file:
+                    post_file.write(phone_number)
+                    post_file.write("\n")
+            except Exception as e:
+                with open('new_phonenumber_post_file.txt', 'a') as post_file:
+                    post_file.write(str(e))
+                    post_file.write("\n")
             transaction_date = mpesa_data["TransactionDate"]
             member = None
             created_objects = []
-            with open('before_try_post_file.txt', 'a') as post_file:
-                post_file.write(phone_number)
-                post_file.write("\n")
             try:
                 try:
                     member = Member.objects.get(phone_number=phone_number)

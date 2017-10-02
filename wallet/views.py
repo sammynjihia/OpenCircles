@@ -155,6 +155,8 @@ class MpesaCallbackURL(APIView):
             post_file.write("\n")
             post_file.write("Hello")
             post_file.write("\n")
+            post_file.write(ResultCode)
+            post_file.write("\n")
 
         if ResultCode == 0:
             CallbackMetadata= result["Body"]["stkCallback"]["CallbackMetadata"]

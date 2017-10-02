@@ -161,6 +161,9 @@ class MpesaCallbackURL(APIView):
             post_file.write("\n")
 
         if ResultCode == 0:
+            with open('if_post_file.txt', 'a') as post_file:
+                post_file.write(ResultCode)
+                post_file.write("\n")
             CallbackMetadata= result["Body"]["stkCallback"]["CallbackMetadata"]
             mpesa_Callbackdata = CallbackMetadata
             mpesa_data ={n['Name']:n['Value'] for n in mpesa_Callbackdata["Item"] for key,value in n.iteritems() if value in ["Amount","PhoneNumber", "MpesaReceiptNumber", "TransactionDate"]}
@@ -171,6 +174,9 @@ class MpesaCallbackURL(APIView):
             transaction_date = mpesa_data["TransactionDate"]
             member = None
             created_objects = []
+            with open('before_try_post_file.txt', 'a') as post_file:
+                post_file.write(phone_number)
+                post_file.write("\n")
             try:
                 try:
                     member = Member.objects.get(phone_number=phone_number)

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
-
+from django.utils.dateparse import parse_datetime
 from django.shortcuts import render
 
 from wallet import disable_csrf
@@ -20,6 +20,7 @@ from member.models import Member
 from app_utility import wallet_utils,general_utils,fcm_utils, mpesa_api_utils
 
 import datetime,json
+import pytz
 
 # Create your views here.
 @api_view(['GET'])
@@ -138,50 +139,101 @@ class MpesaCallbackURL(APIView):
     #mpesaCallbackURL
     def post(self, request):
         data = request.body
+        with open('post_file.txt', 'a') as post_file:
+            post_file.write(data)
+            post_file.write("\n")
+
         result = json.loads(data)
+
         CheckoutRequestID = result["Body"]["stkCallback"]["CheckoutRequestID"]
         MerchantRequestID = result["Body"]["stkCallback"]["MerchantRequestID"]
         ResultCode = result["Body"]["stkCallback"]["ResultCode"]
-        print(ResultCode)
-
+        ResultDescription = result["Body"]["stkCallback"]["ResultDesc"]
         if ResultCode == 0:
             CallbackMetadata= result["Body"]["stkCallback"]["CallbackMetadata"]
-            print ("Transaction Successful")
-            print (CallbackMetadata)
             mpesa_Callbackdata = CallbackMetadata
             mpesa_data ={n['Name']:n['Value'] for n in mpesa_Callbackdata["Item"] for key,value in n.iteritems() if value in ["Amount","PhoneNumber", "MpesaReceiptNumber", "TransactionDate"]}
             transaction_code = mpesa_data["MpesaReceiptNumber"]
             amount = mpesa_data["Amount"]
-            phone_number = mpesa_data["PhoneNumber"]
+            temp_phone_number =  mpesa_data["PhoneNumber"]
+            phone_number = "+{}".format(str(temp_phone_number))
             transaction_date = mpesa_data["TransactionDate"]
-            mpesa_transaction_date = datetime.datetime.fromtimestamp(transaction_date / 1e3)
-            member = Member.objects.get(phone_number=phone_number)
-            wallet = member.wallet
-            transaction_desc = "{} confirmed, kes {} has been credited to your wallet by {} at {} ".format(transaction_code, amount, phone_number, mpesa_transaction_date )
-
+            member = None
+            created_objects = []
             try:
-                created_objects = []
-                transactions = Transactions(wallet=wallet, transaction_type="CREDIT", transaction_desc=transaction_desc,
-                                 transacted_by=wallet.acc_no, transaction_amount=amount,
-                                 transaction_time=mpesa_transaction_date
-                )
-                transactions.save()
-                created_objects.append(transactions)
-                serializer = WalletTransactionsSerializer(transactions)
-                data = {"status": 1, "wallet_transaction": serializer.data}
-                print("Created the transaction")
-                # instance = fcm_utils.Fcm()
-                # registration_id, title, message = member.device_token, "Wallet", "%s confirmed, you have credited your wallet with %s %s from M-pesa online checkout at %s" % (
-                #  transaction_code, member.currency, amount, mpesa_transaction_date)
-                # instance.notification_push("single", registration_id, title, message)
-                return Response(data, status=status.HTTP_200_OK)
+                try:
+                    member = Member.objects.get(phone_number=phone_number)
 
+                except Member.DoesNotExist as exp:
+                    with open('member_fetched_failed.txt', 'a') as result_file:
+                        result_file.write(str(exp))
+                        result_file.write("\n")
+
+                wallet = member.wallet
+                transaction_desc = "{} confirmed, kes {} has been credited to your wallet by {} " \
+                    .format(transaction_code, amount, phone_number)
+
+                mpesa_transactions = Transactions(wallet=wallet, transaction_type="CREDIT",
+                                                  transaction_desc=transaction_desc,
+                                                  transacted_by=wallet.acc_no, transaction_amount=amount)
+                mpesa_transactions.save()
+                with open('db_file.txt', 'a') as db_file:
+                    db_file.write("Transaction {}, saved successfully ".format(transaction_code))
+                    db_file.write("\n")
+                created_objects.append(mpesa_transactions)
+                serializer = WalletTransactionsSerializer(mpesa_transactions)
+                instance = fcm_utils.Fcm()
+                registration_id, title, message = member.device_token, "Wallet", "{} confirmed, your wallet has been credited with {} {} from mpesa" \
+                                                                                 " number {} at {}".format(
+                    transaction_code, member.currency, amount, phone_number, transaction_date)
+                instance.notification_push("single", registration_id, title, message)
+                fcm_data = {"request_type": "MPESA_TO_WALLET_TRANSACTION",
+                            "transaction": serializer.data}
+                data = {"status": 1, "wallet_transaction": serializer.data}
+                instance.data_push("single", registration_id, fcm_data)
+                return Response(data, status=status.HTTP_200_OK)
             except Exception as e:
                 instance = general_utils.General()
                 instance.delete_created_objects(created_objects)
                 data = {"status": 0, "message": "Unable to process transaction"}
                 return Response(data, status=status.HTTP_200_OK)
         else:
-            print("Transaction unsuccessful")
             data = {"status": 0, "message": "Transaction unsuccessful, something went wrong"}
             return Response(data, status=status.HTTP_200_OK)
+
+
+
+
+class MpesaB2CResultURL(APIView):
+    """
+    Result URL for mpesa B2C transaction
+    """
+    def post(self, request):
+        data = request.body
+        with open('b2c_post_file.txt', 'a') as post_file:
+            post_file.write(data)
+            post_file.write("\n")
+
+        result = json.loads(data)
+
+        print("Response from mpesa from the MpesaB2CResultURL")
+        print (result)
+
+        return Response(status=status.HTTP_200_OK)
+
+class MpesaB2CQueueTimeoutURL(APIView):
+    """
+    Result URL for mpesa B2C transaction
+    """
+    def post(self, request):
+        data = request.body
+        with open('b2c_queuetimeout_post_file.txt', 'a') as post_file:
+            post_file.write(data)
+            post_file.write("\n")
+
+        result = json.loads(data)
+
+        print ("Response from mpesa from the MpesaB2CQueueURL")
+        print (result)
+
+        return Response(status=status.HTTP_200_OK)

@@ -42,3 +42,18 @@ class MpesaToWalletSerializer(serializers.Serializer):
 
     class Meta():
         fields = ["amount"]
+
+
+class WalletToMpesaSerializer(serializers.Serializer):
+    """
+    Serializer for Wallet to Mpesa (B2C) transaction endpoint
+    """
+
+    amount = serializers.IntegerField()
+    phone_number = serializers.CharField()
+    pin = serializers.CharField()
+
+    class Meta():
+        fields = ["amount", "phone_number", "pin"]
+
+

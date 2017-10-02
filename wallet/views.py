@@ -131,6 +131,36 @@ class MpesaToWallet(APIView):
         data = {"status": 0, "message": serializers.errors}
         return Response(data, status=status.HTTP_200_OK)
 
+class WalletToMpesa(APIView):
+    """
+    Credits wallet from M-pesa, amount to be provided
+    """
+    authentication_classes = (TokenAuthentication,)
+    permissions_class = (IsAuthenticated,)
+    def post(self, request, *args):
+        serializers = WalletToMpesaSerializer(data=request.data)
+        if serializers.is_valid():
+            amount = serializers.validated_data["amount"]
+            pin = serializers.validated_data["pin"]
+            phone_number_raw = serializers.validated_data["phone_number"]
+            mpesaAPI = mpesa_api_utils.MpesaUtils()
+            phone_number = phone_number_raw.strip('+')
+
+            validty = wallet_utils.Wallet()
+            valid, message = validty.validate_account(request, pin, amount)
+            if valid:
+                if 50 <= amount <=70000:
+                    mpesaAPI.mpesa_b2c_checkout(amount, phone_number)
+                    data = {"status": 1, "message": "Transaction Sent successfully"}
+                    return Response(data, status=status.HTTP_200_OK)
+                data = {"status":0, "message": "Transaction unsuccessful, amount is not in the range of 50-70000"}
+                return Response(data, status=status.HTTP_200_OK)
+            data = {"status":0, "message":message}
+            return Response(data, status=status.HTTP_200_OK)
+
+        data = {"status": 0, "message": serializers.errors}
+        return Response(data, status=status.HTTP_200_OK)
+
 
 class MpesaCallbackURL(APIView):
     """

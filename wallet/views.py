@@ -159,12 +159,12 @@ class MpesaCallbackURL(APIView):
             with open('afterforloop_post_file.txt', 'a') as post_file:
                 post_file.write(mpesa_data["Amount"])
                 post_file.write("\n")
-                post_file.write(mpesa_data["PhoneNumber"])
+                post_file.write(str(mpesa_data["PhoneNumber"]))
                 post_file.write("\n")
             transaction_code = mpesa_data["MpesaReceiptNumber"]
             amount = mpesa_data["Amount"]
             temp_phone_number =  mpesa_data["PhoneNumber"]
-            phone_number = "+{}".format(temp_phone_number)
+            phone_number = "+{}".format(str(temp_phone_number))
             with open('try_phonenumber_post_file.txt', 'a') as post_file:
                 post_file.write(phone_number)
                 post_file.write("\n")

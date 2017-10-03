@@ -1,14 +1,12 @@
 from __future__ import unicode_literals
-
 from django.db import models
 
 from circle.models import Circle, CircleMember
 from member.models import Member
+
 from shares.models import Shares, LockedShares, UnlockedShares
 
 # Create your models here.
-
-
 class LoanApplication(models.Model):
     loan_code = models.CharField(unique=True,max_length=20,default='LN0001')
     circle_member = models.ForeignKey(CircleMember, null=False)
@@ -39,6 +37,7 @@ class GuarantorRequest(models.Model):
     circle_member = models.ForeignKey(CircleMember, null=False)
     num_of_shares = models.IntegerField(blank=False, null=False, default=0)
     time_requested = models.DateTimeField(auto_now=True)
+    fraction_guaranteed = models.FloatField(default=0.00)
     has_accepted = models.NullBooleanField(choices=GUARANTOR_CHOICES, default=None)
     time_accepted = models.DateTimeField(null=True)
 
@@ -69,7 +68,7 @@ class LoanAmortizationSchedule(models.Model):
 
 class LoanRepayment(models.Model):
     loan = models.ForeignKey(LoanApplication,on_delete=models.CASCADE)
-    amortization_schedule = models.ForeignKey(LoanAmortizationSchedule,null=False,on_delete=models.CASCADE,default=1)
+    amortization_schedule = models.ForeignKey(LoanAmortizationSchedule,null=False,on_delete=models.CASCADE)
     amount = models.IntegerField(null=False, blank=False, default=0)
     time_of_repayment = models.DateTimeField(null=False)
     time_created = models.DateTimeField(auto_now=True)
@@ -78,7 +77,7 @@ class LoanRepayment(models.Model):
         db_table = 'LoanRepayment'
 
 class LoanTariff(models.Model):
-    circle = models.ForeignKey(Circle,on_delete=models.CASCADE,default=4)
+    circle = models.ForeignKey(Circle,on_delete=models.CASCADE)
     max_amount = models.IntegerField()
     min_amount = models.IntegerField()
     num_of_months = models.IntegerField()

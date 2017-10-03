@@ -22,7 +22,7 @@ from loan.models import LoanApplication as loanapplication,GuarantorRequest,Loan
 
 from app_utility import general_utils,fcm_utils,circle_utils,wallet_utils,loan_utils
 
-import datetime,json
+import datetime,json,math
 
 # Create your views here.
 
@@ -93,7 +93,7 @@ class LoanApplication(APIView):
                                 guarantor_objs = [ GuarantorRequest(loan=loan,
                                                                     circle_member=CircleMember.objects.get(
                                                                                     member=Member.objects.get(phone_number=guarantor["phone_number"]),circle=circle),
-                                                                    num_of_shares=guarantor["amount"], time_requested=datetime.datetime.today()
+                                                                    num_of_shares=guarantor["amount"], time_requested=datetime.datetime.today(),fraction_guaranteed=guarantor["amount"]/guaranteed_loan
                                                                     ) for guarantor in guarantors]
                                 GuarantorRequest.objects.bulk_create(guarantor_objs)
                                 locked_shares = LockedShares.objects.create(shares = shares,num_of_shares=available_shares, transaction_description=shares_desc)
@@ -185,14 +185,17 @@ class LoanRepayment(APIView):
                 loan = loanapplication.objects.get(loan_code=serializer.validated_data['loan_code'])
                 if not loan.is_fully_repaid:
                     loan_amortize = LoanAmortizationSchedule.objects.filter(loan=loan)
+                    loan_instance = loan_utils.Loan()
                     if not loan_amortize.exists():
                         data = {"status":0,"message":"Unable to repay loan.The loan has not been amortized.Kindly contact admin for further details"}
                         return Response(data,status=status.HTTP_200_OK)
-                    circle = loan.circle_member.circle
-                    loan_tariff = LoanTariff.objects.get(circle=circle,max_amount__gte=loan.amount,min_amount__lte=loan.amount)
-                    remaining_number_of_months = loan_tariff.num_of_months-loan_amortize.count()
                     latest_loan_amortize = loan_amortize.latest('id')
-                    if repayment_amount >= latest_loan_amortize.total_repayment:
+                    valid,response = loan_instance.validate_repayment_amount(repayment_amount,latest_loan_amortize)
+                    if valid:
+                        circle = loan.circle_member.circle
+                        loan_tariff = LoanTariff.objects.get(circle=circle,max_amount__gte=loan.amount,min_amount__lte=loan.amount)
+                        remaining_number_of_months = loan_tariff.num_of_months-loan_amortize.count()
+                        annual_interest_rate = loan_tariff.monthly_interest_rate*12
                         if repayment_amount > latest_loan_amortize.total_repayment and remaining_number_of_months == 0:
                             data = {"status":0,"message":"The amount entered exceeds this month's loan repayment amount."}
                             return Response(data,status=status.HTTP_200_OK)
@@ -203,47 +206,49 @@ class LoanRepayment(APIView):
                             loan_repayment = loanrepayment.objects.create(amount=repayment_amount,time_of_repayment=datetime.datetime.now(),loan=loan,amortization_schedule=latest_loan_amortize)
                             created_objects.append(loan_repayment)
                             guarantors = LoanGuarantor.objects.filter(circle_member=loan.circle_member)
+                            extra_principal = repayment_amount - latest_loan_amortize.total_repayment
+                            ending_balance = math.ceil(latest_loan_amortize.ending_balance) - extra_principal
                             if guarantors.exists():
                                 #if any guarantors exist unlock there shares according to the fraction of money they have guaranteed
                                 pass
                             wallet_transaction_serializer = WalletTransactionsSerializer(wallet_transaction)
-                            loan.time_of_last_payment = loan_repayment.time_of_repayment
-                            if remaining_number_of_months == 0:
-                                shares_desc = "Shares worth {} {} unlocked".format(user.member.currency,repayment_amount)
+                            circle_instance = circle_utils.Circle()
+                            if remaining_number_of_months == 0 or ending_balance == 0:
+                                shares_desc = "Shares worth {} {} unlocked".format(user.member.currency,loan.amount)
                                 shares = loan.circle_member.shares.get()
                                 locked_shares = IntraCircleShareTransaction.objects.get(locked_loan=loan)
                                 shares_transaction = IntraCircleShareTransaction.objects.create(shares=shares,transaction_type="UNLOCKED",num_of_shares=locked_shares.num_of_shares,transaction_desc=shares_desc,locked_loan=loan)
                                 created_objects.append(shares_transaction)
                                 shares_transaction_serializer = SharesTransactionSerializer(shares_transaction)
                                 loan_repayment_serializer = LoanRepaymentSerializer(loan_repayment,context={"is_fully_repaid":True})
-                                circle_instance = circle_utils.Circle()
                                 available_shares = circle_instance.get_available_circle_member_shares(circle,user.member)
                                 loan_limit = available_shares + settings.LOAN_LIMIT
+                                print(loan_limit)
                                 data = {"status":1,"message":"You have completed your loan.","wallet_transaction":wallet_transaction_serializer.data,"shares_transaction":shares_transaction_serializer.data,"loan_repayment":loan_repayment_serializer.data,'loan_limit':loan_limit}
                                 fcm_instance = fcm_utils.Fcm()
                                 registration_ids = fcm_instance.get_circle_members_token(circle,user.member)
                                 loan.is_fully_repaid = True
-                                print(loan_repayment_serializer.data)
                                 fcm_data = {"request_type":"UPDATE_AVAILABLE_SHARES","available_shares":available_shares,"circle_acc_number":circle.circle_acc_number,"phone_number":user.member.phone_number}
                                 fcm_instance.data_push("multiple",registration_ids,fcm_data)
+                                loan.time_of_last_payment = loan_repayment.time_of_repayment
                                 loan.save()
                                 return Response(data,status=status.HTTP_200_OK)
                             else:
-                                loan_instance = loan_utils.Loan()
-                                amortize_data = loan_instance.amortization_schedule(loan_tariff.monthly_interest_rate,latest_loan_amortize.ending_balance,remaining_number_of_months,latest_loan_amortize.repayment_date)
+                                ending_balance = latest_loan_amortize.ending_balance - extra_principal
+                                amortize_data = loan_instance.amortization_schedule(annual_interest_rate,ending_balance,remaining_number_of_months,latest_loan_amortize.repayment_date)
                                 amortize_data['loan'] = loan
                                 loan_amortization = LoanAmortizationSchedule(**amortize_data)
                                 loan_amortization.save()
                                 created_objects.append(loan_amortization)
                                 loan_amortization_serializer = LoanAmortizationSerializer(loan_amortization)
-                                print(loan_amortization_serializer.data)
                                 loan_repayment_serializer = LoanRepaymentSerializer(loan_repayment)
-                                print(loan_repayment_serializer.data)
+                                available_shares = circle_instance.get_available_circle_member_shares(circle,user.member)
+                                loan_limit = available_shares + settings.LOAN_LIMIT
+                                total_repayable_amount = loan_amortization.total_repayment * remaining_number_of_months
                                 message = "Loan repayment of kes {} has been successfully received.".format(repayment_amount)
-                                print(message)
-                                data = {"status":1,"message":message,"wallet_transaction":wallet_transaction_serializer.data,"loan_repayment":loan_repayment_serializer.data,"amortization_schedule":loan_amortization_serializer.data}
+                                data = {"status":1,"message":message,"wallet_transaction":wallet_transaction_serializer.data,"loan_repayment":loan_repayment_serializer.data,"loan_limit":loan_limit,"amortization_schedule":loan_amortization_serializer.data,"due_balance":total_repayable_amount,"remaining_num_of_months":remaining_number_of_months}
+                                loan.time_of_last_payment = loan_repayment.time_of_repayment
                                 loan.save()
-                                print(loan)
                                 return Response(data,status=status.HTTP_200_OK)
                         except Exception as e:
                             print(str(e))
@@ -253,7 +258,7 @@ class LoanRepayment(APIView):
                             general_instance.delete_created_objects(created_objects)
                             data ={"status":0,"message":"Unable to complete the loan repayment transaction"}
                             return Response(data,status=status.HTTP_200_OK)
-                    data = {"status":0,"message":"The amount entered is less than this month allowed minimun repayment amount"}
+                    data = {"status":0,"message":response}
                     return Response(data,status=status.HTTP_200_OK)
                 data = {"status":0,"message":"Unable to complete the loan repayment transaction.The loan is already fully repaid."}
                 return Response(data,status=status.HTTP_200_OK)
@@ -321,7 +326,7 @@ class Loans(APIView):
             circle_acc_number = serializers.validated_data['circle_acc_number']
             circle = Circle.objects.get(circle_acc_number=circle_acc_number)
             circle_member = CircleMember.objects.get(circle=circle, member=request.user.member)
-            loans = loanapplication.objects.filter(circle_member=circle_member)
+            loans = loanapplication.objects.filter(circle_member=circle_member,is_fully_repaid=False)
             if loans.exists():
                 loans = LoansSerializer(loans, many=True)
                 data = {"status": 1, "loans":loans.data}

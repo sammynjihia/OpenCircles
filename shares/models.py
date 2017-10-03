@@ -15,7 +15,7 @@ class IntraCircleShareTransaction(models.Model):
     transaction_type = models.CharField(choices=TRANSACTION_TYPE,max_length=8)
     recipient = models.ForeignKey(CircleMember, null=True,related_name='recipient')
     sender = models.ForeignKey(CircleMember, null=True,related_name='sender')
-    locked_loan = models.ForeignKey('loan.LoanApplication',null=True,related_name='loan',default=8)
+    locked_loan = models.ForeignKey('loan.LoanApplication',null=True,related_name='loan')
     num_of_shares = models.IntegerField(blank=False, null=False, default=0)
     transaction_desc = models.TextField(max_length=10000, blank=False)
     transaction_time = models.DateTimeField(null=False, auto_now=True)
@@ -25,7 +25,7 @@ class IntraCircleShareTransaction(models.Model):
 
 
 class LockedShares(models.Model):
-    shares = models.ForeignKey(Shares,null=False,default=75)
+    shares = models.ForeignKey(Shares,null=False)
     num_of_shares = models.IntegerField(blank=False, null=False, default=0)
     transaction_description = models.TextField(max_length=1000, blank=False)
     time_of_transaction = models.DateTimeField(null=False, auto_now=True)

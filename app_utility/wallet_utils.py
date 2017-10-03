@@ -16,11 +16,13 @@ class Wallet():
 
     def validate_account(self,request,pin,amount):
         if request.user.check_password(pin):
-            wallet = request.user.member.wallet
-            balance = self.calculate_wallet_balance(wallet)
-            if balance >= amount:
-                return True,""
-            return False,"Insufficient funds in your wallet"
+            if amount > 0:
+                wallet = request.user.member.wallet
+                balance = self.calculate_wallet_balance(wallet)
+                if balance >= amount:
+                    return True,""
+                return False,"Insufficient funds in your wallet"
+            return False,"Invalid amount"
         return False,"Incorrect pin"
 
     def deduct_wallet_funds(self,wallet,amount):

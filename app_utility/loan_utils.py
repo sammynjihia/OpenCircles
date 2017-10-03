@@ -20,6 +20,15 @@ class Loan():
             return False,"The loan amount exceeds the maximum loan tariff limit"
         return False,"The allowed minimum loan is kes %s"%(settings.MINIMUM_LOAN)
 
+    def validate_repayment_amount(self,amount,loan_amortization):
+        max_repaid_amount = loan_amortization.total_repayment + math.ceil(loan_amortization.ending_balance)
+        min_repaid_amount = loan_amortization.total_repayment
+        if amount >= min_repaid_amount:
+            if amount <= max_repaid_amount:
+                return True,""
+            return False,"Amount entered exceeds the current total repayable loan amount of kes {}".format(max_repaid_amount)
+        return False,"The amount entered is less than this month allowed minimun repayment amount"
+
     def full_amortization_schedule(self,annual_interest,balance,num_of_months,date_time_approved):
         monthly_interest = annual_interest/(12*100)
         i = monthly_interest
@@ -37,9 +46,8 @@ class Loan():
             principal = repayment - interest
             ending_balance = max(0, starting_balance - principal)
             total_repayment = math.ceil(float(format(repayment,'.2f')))
-            data = {'repayment_date':fmt_date,'principal':format(principal,'.2f'),'interest':format(interest,'.2f'),'total_monthly_repayment':total_repayment}
+            data = {'repayment_date':fmt_date,'principal':format(principal,'.2f'),'interest':format(interest,'.2f'),'total_monthly_repayment':total_repayment,'ending_balance':format(ending_balance,'.2f')}
             full_amortize.append(data)
-            print data
         return full_amortize
 
     def amortization_schedule(self,annual_interest, balance, num_of_months, date_time_approved):
@@ -55,5 +63,5 @@ class Loan():
         ending_balance = max(0, starting_balance - principal)
         print("Date: {0} Starting Balance: {1:.2f} principal:  {2:.2f} Interest: {3:.2f} Repayment: {4:.2f} Ending Balance: {5:.2F}".format(repayment_date, starting_balance, principal, interest, repayment,ending_balance))
         total_repayment = math.ceil(float(format(repayment,'.2f')))
-        data = {"repayment_date":repayment_date,"starting_balance":format(starting_balance,'.2f'),"principal":format(principal,'.2f'),"interest":format(interest,'.2f'),"total_repayment":total_repayment,"ending_balance":format(ending_balance,'.2f')}
+        data = {"repayment_date":repayment_date,"starting_balance":float(format(starting_balance,'.2f')),"principal":float(format(principal,'.2f')),"interest":float(format(interest,'.2f')),"total_repayment":total_repayment,"ending_balance":float(format(ending_balance,'.2f'))}
         return data

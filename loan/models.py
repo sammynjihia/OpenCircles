@@ -1,14 +1,12 @@
 from __future__ import unicode_literals
-
 from django.db import models
 
 from circle.models import Circle, CircleMember
 from member.models import Member
+
 from shares.models import Shares, LockedShares, UnlockedShares
 
 # Create your models here.
-
-
 class LoanApplication(models.Model):
     loan_code = models.CharField(unique=True,max_length=20,default='LN0001')
     circle_member = models.ForeignKey(CircleMember, null=False)
@@ -39,6 +37,7 @@ class GuarantorRequest(models.Model):
     circle_member = models.ForeignKey(CircleMember, null=False)
     num_of_shares = models.IntegerField(blank=False, null=False, default=0)
     time_requested = models.DateTimeField(auto_now=True)
+    fraction_guaranteed = models.FloatField(default=0.00)
     has_accepted = models.NullBooleanField(choices=GUARANTOR_CHOICES, default=None)
     time_accepted = models.DateTimeField(null=True)
 

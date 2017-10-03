@@ -25,7 +25,7 @@ class IntraCircleShareTransaction(models.Model):
 
 
 class LockedShares(models.Model):
-    shares = models.ForeignKey(Shares,null=False,default=75)
+    shares = models.ForeignKey(Shares,null=False)
     num_of_shares = models.IntegerField(blank=False, null=False, default=0)
     transaction_description = models.TextField(max_length=1000, blank=False)
     time_of_transaction = models.DateTimeField(null=False, auto_now=True)

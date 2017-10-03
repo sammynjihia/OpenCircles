@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from loan.models import LoanApplication,LoanTariff,LoanRepayment
+from loan.models import LoanApplication,LoanTariff,LoanRepayment,LoanAmortizationSchedule
 from circle.models import Circle
 
 
@@ -63,7 +63,7 @@ class LoanAmortizationSerializer(serializers.ModelSerializer):
     total_monthly_repayment = serializers.CharField(source='total_repayment')
     repayment_date = serializers.SerializerMethodField()
     class Meta:
-        model = "LoanAmortizationSchedule"
+        model = LoanAmortizationSchedule
         fields = ['repayment_date','principal','interest','total_monthly_repayment']
 
     def get_repayment_date(self,amortization_schedule):

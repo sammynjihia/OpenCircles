@@ -14,7 +14,7 @@ from rest_framework.reverse import reverse
 
 from .serializers import *
 
-from .models import Transactions,Wallet
+from .models import Transactions,Wallet, B2CTransaction_log
 from member.models import Member
 
 from app_utility import wallet_utils,general_utils,fcm_utils, mpesa_api_utils
@@ -28,7 +28,8 @@ def api_root(request,format=None):
     return Response({
              "wallet_to_wallet_tranfer":reverse("wallet-tranfer",request=request,format=format),
              "wallet_transactions":reverse("wallet-transactions",request=request,format=format),
-             "mpesa_lipa_online_initiate":reverse("mpesa_lipa_online_initiate", request=request, format=format)
+             "mpesa_lipa_online_initiate":reverse("mpesa_lipa_online_initiate", request=request, format=format),
+             "mpesa_B2C_checkout_initiate":reverse("mpesa_B2C_checkout_initiate", request=request, format=format)
     })
 
 class WallettoWalletTranfer(APIView):
@@ -125,15 +126,22 @@ class MpesaToWallet(APIView):
             phone_number_raw = request.user.member.phone_number
             mpesaAPI = mpesa_api_utils.MpesaUtils()
             phone_number = phone_number_raw.strip('+')
-            mpesaAPI.mpesa_online_checkout(amount, phone_number)
-            data = {"status": 1, "message": "Transaction Sent successfully, wait for m-pesa prompt"}
-            return Response(data, status=status.HTTP_200_OK)
+            result = mpesaAPI.mpesa_online_checkout(amount, phone_number)
+            if "errorCode" in result.keys():
+                data = {"status": 0, "message": result["errorMessage"]}
+                return Response(data, status=status.HTTP_200_OK)
+            else:
+                # log conversation id, senders phone number and recepients phone number in db
+
+                print(result["ResponseDescription"])
+                data = {"status": 1, "message": "{}. Wait for mpesa prompt".format(result["ResponseDescription"])}
+                return Response(data, status=status.HTTP_200_OK)
         data = {"status": 0, "message": serializers.errors}
         return Response(data, status=status.HTTP_200_OK)
 
 class WalletToMpesa(APIView):
     """
-    Credits wallet from M-pesa, amount to be provided
+    Debits wallet to M-pesa, amount, phone number and pin to be provided
     """
     authentication_classes = (TokenAuthentication,)
     permissions_class = (IsAuthenticated,)
@@ -150,9 +158,22 @@ class WalletToMpesa(APIView):
             valid, message = validty.validate_account(request, pin, amount)
             if valid:
                 if 50 <= amount <=70000:
-                    mpesaAPI.mpesa_b2c_checkout(amount, phone_number)
-                    data = {"status": 1, "message": "Transaction Sent successfully"}
-                    return Response(data, status=status.HTTP_200_OK)
+                    result = mpesaAPI.mpesa_b2c_checkout(amount, phone_number)
+                    if "errorCode" in result.keys():
+                        data = {"status":0, "message": result["errorMessage"] }
+                        return Response(data, status=status.HTTP_200_OK)
+                    else :
+                        #log conversation id, senders phone number and recepients phone number in db
+                        OriginatorConversationID = result["OriginatorConversationID"]
+                        senders_PhoneNumber = request.user.member.phone_number
+                        raw_recepient_PhoneNumber = phone_number
+                        recepient_PhoneNumber = "+{}".format(str(raw_recepient_PhoneNumber))
+                        b2c_Transaction_log = B2CTransaction_log(OriginatorConversationID=OriginatorConversationID, Initiator_PhoneNumber= senders_PhoneNumber,
+                                                                 Recipient_PhoneNumber=recepient_PhoneNumber)
+                        b2c_Transaction_log.save()
+                        print (result["ResponseDescription"])
+                        data = {"status": 1, "message": result["ResponseDescription"]}
+                        return Response(data, status=status.HTTP_200_OK)
                 data = {"status":0, "message": "Transaction unsuccessful, amount is not in the range of 50-70000"}
                 return Response(data, status=status.HTTP_200_OK)
             data = {"status":0, "message":message}
@@ -246,14 +267,80 @@ class MpesaB2CResultURL(APIView):
 
         result = json.loads(data)
 
-        print("Response from mpesa from the MpesaB2CResultURL")
-        print (result)
+        B2CResults = result["Result"]
+        OriginatorConversationID = B2CResults["OriginatorConversationID"]
+        ResultCode= B2CResults["ResultCode"]
+        ResultDesc = B2CResults["ResultDesc"]
 
-        return Response(status=status.HTTP_200_OK)
+
+        if ResultCode == 0:
+            TransactionID = B2CResults["TransactionID"]
+            ResultParameters = B2CResults["ResultParameters"]["ResultParameter"]
+            mpesa_data ={n['Key']:n['Value'] for n in ResultParameters for key,value in n.iteritems() if value in
+                         ["TransactionReceipt","TransactionAmount", "TransactionCompletedDateTime", "ReceiverPartyPublicName"]}
+            transactionAmount = mpesa_data["TransactionAmount"]
+            transactionDateTime = mpesa_data["TransactionCompletedDateTime"]
+            transactionReceipt = mpesa_data["TransactionReceipt"]
+            receiverPartyPublicName = mpesa_data["ReceiverPartyPublicName"]
+            PhoneNumber = B2CTransaction_log.objects.get(OriginatorConversationID=OriginatorConversationID)
+            initiatorPhoneNumber = PhoneNumber.Initiator_PhoneNumber
+            print("&"*90)
+            print(initiatorPhoneNumber)
+
+            member = None
+            created_objects = []
+            try:
+                try:
+                    member = Member.objects.get(phone_number=initiatorPhoneNumber)
+
+                except Member.DoesNotExist as exp:
+                    print("*"*90)
+                    print(initiatorPhoneNumber)
+                    with open('member_fetched_failed.txt', 'a') as result_file:
+                        result_file.write(str(exp))
+                        result_file.write("\n")
+
+                wallet = member.wallet
+                transaction_desc = "{} confirmed, kes {} has been sent to {} from your wallet at {} " \
+                    .format(transactionReceipt, transactionAmount, receiverPartyPublicName, transactionDateTime)
+
+                mpesa_transactions = Transactions(wallet=wallet, transaction_type="DEBIT",
+                                                  transaction_desc=transaction_desc,
+                                                  transacted_by=wallet.acc_no, transaction_amount=transactionAmount)
+                mpesa_transactions.save()
+                with open('db_file.txt', 'a') as db_file:
+                    db_file.write("Transaction {}, saved successfully ".format(transactionReceipt))
+                    db_file.write("\n")
+                created_objects.append(mpesa_transactions)
+                serializer = WalletTransactionsSerializer(mpesa_transactions)
+                instance = fcm_utils.Fcm()
+                registration_id, title, message = member.device_token, "Wallet", "{} confirmed, kes {} has been debited from your wallet to {} at {} " \
+                    .format(transactionReceipt, transactionAmount, receiverPartyPublicName, transactionDateTime)
+                instance.notification_push("single", registration_id, title, message)
+                fcm_data = {"request_type": "WALLET_TO_MPESA_TRANSACTION",
+                            "transaction": serializer.data}
+                data = {"status": 1, "wallet_transaction": serializer.data}
+                instance.data_push("single", registration_id, fcm_data)
+                return Response(data, status=status.HTTP_200_OK)
+            except Exception as e:
+                instance = general_utils.General()
+                instance.delete_created_objects(created_objects)
+                data = {"status": 0, "message": "Unable to process transaction"}
+                return Response(data, status=status.HTTP_200_OK)
+
+        elif ResultCode == 2 :
+            data = {"status": 0, "message": "Transaction unsuccessful, {}".format(ResultDesc)}
+            return Response(data, status=status.HTTP_200_OK)
+
+        else:
+            data = {"status": 0, "message": "Transaction unsuccessful, something went wrong"}
+            return Response(data, status=status.HTTP_200_OK)
+
+
 
 class MpesaB2CQueueTimeoutURL(APIView):
     """
-    Result URL for mpesa B2C transaction
+    Queue Timeout URL for mpesa B2C transaction
     """
     def post(self, request):
         data = request.body

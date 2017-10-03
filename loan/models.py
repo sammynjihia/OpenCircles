@@ -69,7 +69,7 @@ class LoanAmortizationSchedule(models.Model):
 
 class LoanRepayment(models.Model):
     loan = models.ForeignKey(LoanApplication,on_delete=models.CASCADE)
-    amortization_schedule = models.ForeignKey(LoanAmortizationSchedule,null=False,on_delete=models.CASCADE,default=1)
+    amortization_schedule = models.ForeignKey(LoanAmortizationSchedule,null=False,on_delete=models.CASCADE)
     amount = models.IntegerField(null=False, blank=False, default=0)
     time_of_repayment = models.DateTimeField(null=False)
     time_created = models.DateTimeField(auto_now=True)
@@ -78,7 +78,7 @@ class LoanRepayment(models.Model):
         db_table = 'LoanRepayment'
 
 class LoanTariff(models.Model):
-    circle = models.ForeignKey(Circle,on_delete=models.CASCADE,default=5)
+    circle = models.ForeignKey(Circle,on_delete=models.CASCADE)
     max_amount = models.IntegerField()
     min_amount = models.IntegerField()
     num_of_months = models.IntegerField()

@@ -9,7 +9,7 @@ from base64 import b64encode
 consumer_key = "tAEyfavNAtEi68QLD7j534XgVCYQkY1v"
 consumer_secret = "S7IQHLdo2epsV35O"
 api_URL = "https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials"
-main_url = "https://mpesa-test.teamnairobi.com/"
+main_url = "https://mpesa-test2.teamnairobi.com/"
 lipaonline_callbackURL = main_url + "wallet/mpesaCallbackURL/"
 shortcode = "174379"
 timestamp_raw = datetime.datetime.now()
@@ -57,26 +57,29 @@ class MpesaUtils():
 
         response = requests.post(api_url, json = request, headers=headers)
         print(response.text)
+        result = response.json()
+        return result
 
     def mpesa_b2c_checkout(self, amount, phone_number):
         access_token = self.get_access_token()
-        api_url = "https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest"
-        headers = { "Authorization": "Bearer %s" % access_token }
+        api_url = "https://sandbox.safaricom.co.ke/mpesa/b2c/v1/paymentrequest"
+        headers = {"Authorization": "Bearer %s" % access_token}
         request = {
             "InitiatorName": "testapi0232",
-            "SecurityCredential": security_credential2,
-            "CommandID": "BusinessPayment",
+            "SecurityCredential": str(security_credential2.replace(" ", "")),
+            "CommandID": "SalaryPayment",
             "Amount": amount,
             "PartyA": B2CPartyA,
-            "PartyB": B2CPartyB,
+            "PartyB": phone_number,
             "Remarks": "Payment of business",
             "QueueTimeOutURL": B2CQueueTimeOutURL,
             "ResultURL": B2CResultURL,
-            "Occasion": " "
+            "Occasion": "sammieid30045358"
         }
 
         response = requests.post(api_url, json = request, headers=headers)
-        print(response.text)
+        result = response.json()
+        return  result
 
     # generating security credentials
     # def encryptInitiatorPassword(self):

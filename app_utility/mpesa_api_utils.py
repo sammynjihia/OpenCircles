@@ -3,7 +3,7 @@ import json
 from requests.auth import HTTPBasicAuth
 import datetime
 import base64
-#from M2Crypto import RSA, X509
+from M2Crypto import RSA, X509
 from base64 import b64encode
 
 consumer_key = "tAEyfavNAtEi68QLD7j534XgVCYQkY1v"
@@ -37,6 +37,19 @@ class MpesaUtils():
         access_token = mpesa_reponse['access_token']
         return access_token
 
+    # generating security credentials
+    def encryptInitiatorPassword(self):
+        cert_file = open(CERTIFICATE_FILE, 'r')
+        cert_data = cert_file.read()  # read certificate file
+        cert_file.close()
+        cert = X509.load_cert_string(cert_data)
+        # pub_key = X509.load_cert_string(cert_data)
+        pub_key = cert.get_pubkey()
+        rsa_key = pub_key.get_rsa()
+        cipher = rsa_key.public_encrypt(INITIATOR_PASS, RSA.pkcs1_padding)
+        return b64encode(cipher)
+
+
     def mpesa_online_checkout(self, amount, phone_number):
         access_token = self.get_access_token()
         api_url = "https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest"
@@ -66,7 +79,7 @@ class MpesaUtils():
         headers = {"Authorization": "Bearer %s" % access_token}
         request = {
             "InitiatorName": "testapi0232",
-            "SecurityCredential": security_credential2,
+            "SecurityCredential": self.encryptInitiatorPassword(),
             "CommandID": "SalaryPayment",
             "Amount": amount,
             "PartyA": B2CPartyA,
@@ -81,17 +94,7 @@ class MpesaUtils():
         result = response.json()
         return  result
 
-    # generating security credentials
-    # def encryptInitiatorPassword(self):
-    #     cert_file = open(CERTIFICATE_FILE, 'r')
-    #     cert_data = cert_file.read()  # read certificate file
-    #     cert_file.close()
-    #     cert = X509.load_cert_string(cert_data)
-    #     # pub_key = X509.load_cert_string(cert_data)
-    #     pub_key = cert.get_pubkey()
-    #     rsa_key = pub_key.get_rsa()
-    #     cipher = rsa_key.public_encrypt(INITIATOR_PASS, RSA.pkcs1_padding)
-    #     return b64encode(cipher)
+
 
 
 

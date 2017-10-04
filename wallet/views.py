@@ -17,7 +17,7 @@ from .serializers import *
 from .models import Transactions,Wallet, B2CTransaction_log
 from member.models import Member
 
-from app_utility import wallet_utils,general_utils,fcm_utils, mpesa_api_utils
+from app_utility import wallet_utils,general_utils,fcm_utils, mpesa_api_utils, sms_utils
 
 import datetime,json
 import pytz
@@ -143,14 +143,16 @@ class WalletToMpesa(APIView):
     """
     Debits wallet to M-pesa, amount, phone number and pin to be provided
     """
-    authentication_classes = (TokenAuthentication,)
+    #authentication_classes = (TokenAuthentication,)
     permissions_class = (IsAuthenticated,)
     def post(self, request, *args):
         serializers = WalletToMpesaSerializer(data=request.data)
+        phonenumber = sms_utils.Sms()
         if serializers.is_valid():
             amount = serializers.validated_data["amount"]
             pin = serializers.validated_data["pin"]
-            phone_number_raw = serializers.validated_data["phone_number"]
+            phone_number_raw1 = serializers.validated_data["phone_number"]
+            phone_number_raw = phonenumber.format_phone_number(phone_number_raw1)
             mpesaAPI = mpesa_api_utils.MpesaUtils()
             phone_number = phone_number_raw.strip('+')
 

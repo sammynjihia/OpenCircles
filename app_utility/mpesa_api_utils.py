@@ -66,7 +66,7 @@ class MpesaUtils():
         headers = {"Authorization": "Bearer %s" % access_token}
         request = {
             "InitiatorName": "testapi0232",
-            "SecurityCredential": str(security_credential2.replace(" ", "")),
+            "SecurityCredential": security_credential2,
             "CommandID": "SalaryPayment",
             "Amount": amount,
             "PartyA": B2CPartyA,

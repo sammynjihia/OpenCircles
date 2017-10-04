@@ -268,6 +268,7 @@ class MpesaB2CResultURL(APIView):
             post_file.write("\n")
 
         result = json.loads(data)
+        #print(json.dumps(result, indent=4, sort_keys=True))
 
         B2CResults = result["Result"]
         OriginatorConversationID = B2CResults["OriginatorConversationID"]

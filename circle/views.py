@@ -23,7 +23,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.authentication import TokenAuthentication,BasicAuthentication
 from rest_framework.authtoken.models import Token
 
-from app_utility import circle_utils,wallet_utils,sms_utils,general_utils,fcm_utils
+from app_utility import circle_utils,wallet_utils,sms_utils,general_utils,fcm_utils,member_utils
 
 import datetime,json
 
@@ -40,12 +40,11 @@ class CircleCreation(APIView):
             request.data._mutable = True
             request.data["contact_list"] = json.loads(request.data["contact_list"])
             request.data["loan_tariff"] = json.loads(request.data["loan_tariff"])
+            circle_loan_tariff = request.data["loan_tariff"]
             contacts = request.data["contact_list"] if "contact_list" in request.data else []
             request.data._mutable = mutable
-        print(request.data)
         serializer = CircleCreationSerializer(data=request.data)
         if serializer.is_valid():
-            print(serializer.validated_data['loan_tariff'][0])
             instance = wallet_utils.Wallet()
             minimum_share = serializer.validated_data['minimum_share']
             if minimum_share < settings.MININIMUM_CIRCLE_SHARES:
@@ -73,28 +72,26 @@ class CircleCreation(APIView):
                     shares_transaction = IntraCircleShareTransaction.objects.create(shares=shares,transaction_type="DEPOSIT",num_of_shares=minimum_share,transaction_desc=shares_desc,recipient=circle_member)
                     if len(contacts):
                         instance = sms_utils.Sms()
-                        circle_invites = [CircleInvitation(invited_by=circle_member,phone_number=phone) for phone in contacts]
+                        member_instance = member_utils.OpenCircleMember()
+                        circle_invites = [CircleInvitation(invited_by=circle_member,phone_number=phone,is_member=member_instance.get_is_member(phone)) for phone in contacts]
                         invites = CircleInvitation.objects.bulk_create(circle_invites)
                     wallet_serializer = WalletTransactionsSerializer(wallet_transaction)
                     shares_serializer = SharesTransactionSerializer(shares_transaction)
                     serializer = CircleSerializer(circle,context={'request':request})
                     instance = fcm_utils.Fcm()
                     registration_ids = instance.get_invited_circle_member_token(circle,member)
+                    circle_instance = circle_utils.Circle()
+                    loan_tariffs = circle_instance.save_loan_tariff(circle,circle_loan_tariff)
                     if len(registration_ids):
                         title = circle.circle_name
                         message = "{} {} invited you to join circle {}.".format(member.user.first_name,member.user.last_name,title)
-                        device =  "multiple" if len(registration_ids)>1 else "single"
+                        device =  "multiple"
                         inivited_serializer = InvitedCircleSerializer(circle)
                         fcm_data = {"request_type":"INVITED_CIRCLE","circle":serializer.data}
                         instance.notification_push(device,registration_ids,title,message)
                         instance.data_push(device,registration_ids,fcm_data)
-                    instance = general_utils.General()
-                    instance.delete_created_objects(created_objects)
-                    error = "Unable to create circle"
-                    data = {"status":0,"message":error}
-                    return Response(data,status = status.HTTP_200_OK)
-                    # data={"status":1,"circle":serializer.data,"wallet_transaction":wallet_serializer.data,"shares_transaction":shares_serializer.data}
-                    # return Response(data,status=status.HTTP_201_CREATED)
+                    data={"status":1,"circle":serializer.data,"wallet_transaction":wallet_serializer.data,"shares_transaction":shares_serializer.data,"message":"Circle created successfully.Circle will be activated when members join."}
+                    return Response(data,status=status.HTTP_201_CREATED)
                 except Exception as e:
                     print(str(e))
                     instance = general_utils.General()

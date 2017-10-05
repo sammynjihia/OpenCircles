@@ -5,5 +5,9 @@ urlpatterns = [
     url(r'^$',views.api_root,name='api-root'),
     url(r'^loan_application/$',views.LoanApplication.as_view(),name='loan_application'),
     url(r'^my_loans/$', views.Loans.as_view(), name='my_loans'),
-    url(r'^repay_loan/$',views.LoanRepayment.as_view(),name='repay_loan')
+    url(r'^repay_loan/$',views.LoanRepayment.as_view(),name='repay_loan'),
+    url(r'^loan_guarantors/$',views.LoanGuarantors.as_view(),name='loan_guarantors'),
+    url(r'^add_loan_guarantor/$',views.NewLoanGuarantor.as_view(),name='add-loan-guarantor'),
+    url(r'^remove_loan_guarantor/$',views.remove_loan_guarantor,name='remove_loan_guarantor'),
+    url(r'^get_loan_amortization/$',views.AmortizationSchedule.as_view(),name='amortization_schedule')
 ]

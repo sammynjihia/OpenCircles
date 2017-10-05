@@ -1,3 +1,5 @@
+from __future__ import division
+
 from django.shortcuts import render
 from django.db.models import Q
 from django.conf import settings
@@ -11,7 +13,7 @@ from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view,authentication_classes,permission_classes
 from rest_framework.reverse import reverse
 
 from circle.models import Circle,CircleMember
@@ -20,7 +22,7 @@ from shares.models import LockedShares,IntraCircleShareTransaction
 from wallet.models import Transactions
 from loan.models import LoanApplication as loanapplication,GuarantorRequest,LoanAmortizationSchedule,LoanRepayment as loanrepayment,LoanGuarantor
 
-from app_utility import general_utils,fcm_utils,circle_utils,wallet_utils,loan_utils
+from app_utility import general_utils,fcm_utils,circle_utils,wallet_utils,loan_utils,sms_utils
 
 import datetime,json,math
 
@@ -95,7 +97,7 @@ class LoanApplication(APIView):
                                                                                     member=Member.objects.get(phone_number=guarantor["phone_number"]),circle=circle),
                                                                     num_of_shares=guarantor["amount"], time_requested=datetime.datetime.today(),fraction_guaranteed=guarantor["amount"]/guaranteed_loan
                                                                     ) for guarantor in guarantors]
-                                GuarantorRequest.objects.bulk_create(guarantor_objs)
+                                loan_guarantors = GuarantorRequest.objects.bulk_create(guarantor_objs)
                                 locked_shares = LockedShares.objects.create(shares = shares,num_of_shares=available_shares, transaction_description=shares_desc)
                                 created_objects.append(locked_shares)
                                 shares_transaction = IntraCircleShareTransaction.objects.create(shares=shares,transaction_type="LOCKED",num_of_shares=available_shares,transaction_desc=shares_desc,locked_loan=loan)
@@ -106,8 +108,10 @@ class LoanApplication(APIView):
                                 print(loan_limit)
                                 shares_transaction_serializer = SharesTransactionSerializer(shares_transaction)
                                 print(shares_transaction_serializer.data)
+                                print(loan_guarantors)
+                                loan_guarantors_serializer = LoanGuarantorsSerializer(loan_guarantors,many=True)
                                 loan_serializer = LoansSerializer(loan)
-                                data = {"status":1,"shares_transaction":shares_transaction_serializer.data,"message":"Loan application successfully received.Waiting for guarantors approval","loan":loan_serializer.data,"loan_limit":loan_limit}
+                                data = {"status":1,"shares_transaction":shares_transaction_serializer.data,"message":"Loan application successfully received.Waiting for guarantors approval","loan":loan_serializer.data,"loan_limit":loan_limit,"loan_guarantors":loan_guarantors_serializer.data}
                                 instance = fcm_utils.Fcm()
                                 fcm_data = {"request_type":"UPDATE_AVAILABLE_SHARES","circle_acc_number":circle.circle_acc_number,"phone_number":member.phone_number,"available_shares":available_shares}
                                 registration_id = instance.get_circle_members_token(circle,member)
@@ -336,3 +340,80 @@ class Loans(APIView):
             return Response(data,status=status.HTTP_200_OK)
         data = {"status": 0, "message": serializers.errors}
         return Response(data, status=status.HTTP_200_OK)
+
+class LoanGuarantors(APIView):
+    """
+    Retrieves all guarantors for the loan
+    """
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = (IsAuthenticated,)
+    def post(self,request,*args,**kwargs):
+        serializer = LoanCodeSerializer(data=request.data)
+        if serializer.is_valid():
+            loan_code = serializer.validated_data['loan_code']
+            loan = loanapplication.objects.get(loan_code=loan_code)
+            loan_guarantors = GuarantorRequest.objects.filter(loan=loan)
+            loan_guarantors_serializer = LoanGuarantorsSerializer(loan_guarantors,many=True)
+            data={"status":1,"loan_guarantors":loan_guarantors_serializer.data}
+            return Response(data,status=status.HTTP_200_OK)
+        data = {"status":0,"message":serializer.errors}
+        return Response(data,status=status.HTTP_200_OK)
+
+class NewLoanGuarantor(APIView):
+    """
+    Adds new loan guarantor
+    """
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = (IsAuthenticated,)
+    def post(self,request,*args,**kwargs):
+        serializer = NewLoanGuarantorSerializer(data=request.data)
+        if serializer.is_valid():
+            loan_code,phone_number,amount = serializer.validated_data['loan_code'],sms_utils.Sms().format_phone_number(serializer.validated_data['phone_number']),serializer.validated_data['amount']
+            loan = loanapplication.objects.get(loan_code=loan_code)
+            circle = loan.circle_member.circle
+            guaranteed_amount = loan.amount - IntraCircleShareTransaction.objects.get(locked_loan=loan).num_of_shares
+            fraction_guaranteed = float(amount/guaranteed_amount)
+            loan_guarantor = GuarantorRequest.objects.create(circle_member=CircleMember.objects.get(member=Member.objects.get(phone_number=phone_number),circle=circle),num_of_shares=amount,time_requested=datetime.datetime.today(),fraction_guaranteed=fraction_guaranteed,loan=loan)
+            loan_guarantors_serializer = LoanGuarantorsSerializer(loan_guarantor)
+            data={"status":1,"loan_guarantor":loan_guarantors_serializer.data}
+            return Response(data,status=status.HTTP_200_OK)
+        data = {"status":0,"message":serializer.errors}
+        return Response(data,status=status.HTTP_200_OK)
+
+@api_view(['POST'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
+def remove_loan_guarantor(request,*args,**kwargs):
+    serializer = CurrentLoanGuarantorSerializer(data=request.data)
+    if serializer.is_valid():
+        loan = loanapplication.objects.get(loan_code=serializer.validated_data['loan_code'])
+        phone_number = sms_utils.Sms().format_phone_number(serializer.validated_data['phone_number'])
+        circle_member = CircleMember.objects.get(member=Member.objects.get(phone_number=phone_number),circle=loan.circle_member.circle)
+        loan_guarantor = GuarantorRequest.objects.get(loan=loan,circle_member=circle_member)
+        loan_guarantor.delete()
+        data = {"status":1}
+        return Response(data,status=status.HTTP_200_OK)
+    data = {"status":0,"message":serializer.errors}
+    return Response(data,status=status.HTTP_200_OK)
+
+class AmortizationSchedule(APIView):
+    """
+    Retrieves the last amortization schedule
+    """
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = (IsAuthenticated,)
+    def post(self,request,*args,**kwargs):
+        serializer = LoanCodeSerializer(data=request.data)
+        if serializer.is_valid():
+            loan_code = serializer.validated_data['loan_code']
+            loan = loanapplication.objects.get(loan_code=loan_code)
+            if not loan.is_fully_repaid:
+                latest_amortize_data = LoanAmortizationSchedule.objects.filter(loan=loan).latest('id')
+                loan_amortization_serializer = LoanAmortizationSerializer(latest_amortize_data)
+                data = {"status":1,"amortization_schedule":loan_amortization_serializer.data}
+                return Response(data,status=status.HTTP_200_OK)
+            else:
+                data = {"status":1,"amortization_schedule":{}}
+                return Response(data,status=status.HTTP_200_OK)
+        data = {"status":0,"message":serializer.errors}
+        return Response(data,status=status.HTTP_200_OK)

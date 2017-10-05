@@ -30,6 +30,5 @@ class Fcm():
     def get_invited_circle_member_token(self,circle,member):
         circle_member = CircleMember.objects.get(circle=circle,member=member)
         invited_members = Member.objects.filter(phone_number__in = CircleInvitation.objects.filter(invited_by=circle_member,is_member=True).values_list('phone_number',flat=True))
-        registration_ids = [im.member.device_token for im in invited_members]
-        print registration_ids
+        registration_ids = [im.device_token for im in invited_members]
         return registration_ids

@@ -4,7 +4,7 @@ from requests.auth import HTTPBasicAuth
 import datetime
 import base64
 #from M2Crypto import RSA, X509
-from base64 import b64encode
+#from base64 import b64encode
 
 consumer_key = "tAEyfavNAtEi68QLD7j534XgVCYQkY1v"
 consumer_secret = "S7IQHLdo2epsV35O"
@@ -22,6 +22,7 @@ B2CResultURL = main_url + "wallet/mpesaB2CResultURL/"
 B2CQueueTimeOutURL = main_url + "wallet/mpesaB2CQueueTimeoutURL/"
 B2CPartyB = "254708374149"
 B2CPartyA = "600232"
+#B2CPartyA = "564433"
 INITIATOR_PASS  = "Safaricom232!"
 CERTIFICATE_FILE = "cert.cer"
 security_credential2 = "ju95cBXnjD1mkvo2auzEdvRTD0k3CpfvZes9GXzkcyEXRWzpKz6e3EutzXuM/odNhmttkRv8OxmkUDNwYYKzPyQ8Irrrzej0WU9x2t9Au0seJYmzMjpa/btlqGhmpon1xQ0TzWdBQdQWB3qMHOAixZIYUGqY26YLH8gAiCAOTvAVTLE5x7zhUZuvRbWr2OZ26rpYSreIchfIUEpugmm+cazx9PKOs8dFQHS1LQWOPfyCO1Cz0rL3t/7f1AwoOOWZRNcZAgysd76HRQqrBVyrs0vqfXb6i8MHu6WQ0yWa9yzGMhyxtARtF7VJAPfQSUSusc8E1ADUvdABymviwehV7w=="
@@ -36,6 +37,19 @@ class MpesaUtils():
         mpesa_reponse = json.loads(r.text)
         access_token = mpesa_reponse['access_token']
         return access_token
+
+    # generating security credentials
+    # def encryptInitiatorPassword(self):
+    #     cert_file = open(CERTIFICATE_FILE, 'r')
+    #     cert_data = cert_file.read()  # read certificate file
+    #     cert_file.close()
+    #     cert = X509.load_cert_string(cert_data)
+    #     # pub_key = X509.load_cert_string(cert_data)
+    #     pub_key = cert.get_pubkey()
+    #     rsa_key = pub_key.get_rsa()
+    #     cipher = rsa_key.public_encrypt(INITIATOR_PASS, RSA.pkcs1_padding)
+    #     return b64encode(cipher)
+
 
     def mpesa_online_checkout(self, amount, phone_number):
         access_token = self.get_access_token()
@@ -57,38 +71,31 @@ class MpesaUtils():
 
         response = requests.post(api_url, json = request, headers=headers)
         print(response.text)
+        result = response.json()
+        return result
 
     def mpesa_b2c_checkout(self, amount, phone_number):
         access_token = self.get_access_token()
-        api_url = "https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest"
-        headers = { "Authorization": "Bearer %s" % access_token }
+        api_url = "https://sandbox.safaricom.co.ke/mpesa/b2c/v1/paymentrequest"
+        headers = {"Authorization": "Bearer %s" % access_token}
         request = {
             "InitiatorName": "testapi0232",
             "SecurityCredential": security_credential2,
-            "CommandID": "BusinessPayment",
+            "CommandID": "SalaryPayment",
             "Amount": amount,
             "PartyA": B2CPartyA,
-            "PartyB": B2CPartyB,
+            "PartyB": phone_number,
             "Remarks": "Payment of business",
             "QueueTimeOutURL": B2CQueueTimeOutURL,
             "ResultURL": B2CResultURL,
-            "Occasion": " "
+            "Occasion": "sammieid30045358"
         }
 
         response = requests.post(api_url, json = request, headers=headers)
-        print(response.text)
+        result = response.json()
+        return  result
 
-    # generating security credentials
-    # def encryptInitiatorPassword(self):
-    #     cert_file = open(CERTIFICATE_FILE, 'r')
-    #     cert_data = cert_file.read()  # read certificate file
-    #     cert_file.close()
-    #     cert = X509.load_cert_string(cert_data)
-    #     # pub_key = X509.load_cert_string(cert_data)
-    #     pub_key = cert.get_pubkey()
-    #     rsa_key = pub_key.get_rsa()
-    #     cipher = rsa_key.public_encrypt(INITIATOR_PASS, RSA.pkcs1_padding)
-    #     return b64encode(cipher)
+
 
 
 

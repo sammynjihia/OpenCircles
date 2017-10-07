@@ -2,7 +2,7 @@ from django.db.models import Sum
 from member.models import Member
 from circle.models import Circle as CircleModel,CircleMember,CircleInvitation
 from shares.models import Shares,IntraCircleShareTransaction
-from loan.models import LoanTariff
+from loan.models import LoanTariff,GuarantorRequest
 
 import operator,re
 
@@ -60,6 +60,17 @@ class Circle():
         total_unlocked = 0 if unlocked['total'] is None else unlocked['total']
         available_shares = (total_deposits-total_transfers)-(total_locked-total_unlocked)
         return available_shares
+
+    def get_guarantor_available_shares(self,circle,member):
+        actual_available_shares = self.get_available_circle_member_shares(circle,member)
+        print actual_available_shares
+        circle_member = CircleMember.objects.get(circle=circle,member=member)
+        requests = GuarantorRequest.objects.filter(circle_member=circle_member,has_accepted=None)
+        if requests.exists():
+            amount = requests.aggregate(total=Sum('num_of_shares'))
+            print amount['total']
+            return actual_available_shares - amount['total']
+        return actual_available_shares
 
     def save_loan_tariff(self,circle,loan_data):
         loan_tariffs = [LoanTariff(max_amount=int(self.extract_amount(data["range"])[1]),min_amount=int(self.extract_amount(data["range"])[0]),num_of_months=data['months'],monthly_interest_rate=data['interest'],circle=circle) for data in loan_data]

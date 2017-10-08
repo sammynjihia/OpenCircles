@@ -49,13 +49,6 @@ class CircleInvitation(models.Model):
     class Meta:
         db_table = 'CircleInvitation'
 
-    def save(self,*args,**kwargs):
-        try:
-            Member.objects.get(phone_number=self.phone_number)
-            self.is_member = True
-        except Member.DoesNotExist:
-            self.is_member = False
-        return super(CircleInvitation,self).save()
 
 class CircleDirector(models.Model):
     circle_member = models.ForeignKey(CircleMember, null=False, blank=False)

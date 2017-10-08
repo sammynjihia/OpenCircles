@@ -1,3 +1,4 @@
+from __future__ import division
 from django.db import models
 from django.contrib.auth.models import User
 import urllib, os
@@ -95,8 +96,6 @@ class Beneficiary(models.Model):
         self.phone_number = instance.format_phone_number(self.phone_number)
         self.benefit = self.benefit/100
         return super(Beneficiary,self).save()
-
-
 
 class MemberBankAccount(models.Model):
     """

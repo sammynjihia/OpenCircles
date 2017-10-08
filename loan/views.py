@@ -1,3 +1,5 @@
+from __future__ import division
+
 from django.shortcuts import render
 from django.db.models import Q
 from django.conf import settings
@@ -11,7 +13,7 @@ from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view,authentication_classes,permission_classes
 from rest_framework.reverse import reverse
 
 from circle.models import Circle,CircleMember
@@ -20,7 +22,7 @@ from shares.models import LockedShares,IntraCircleShareTransaction
 from wallet.models import Transactions
 from loan.models import LoanApplication as loanapplication,GuarantorRequest,LoanAmortizationSchedule,LoanRepayment as loanrepayment,LoanGuarantor
 
-from app_utility import general_utils,fcm_utils,circle_utils,wallet_utils,loan_utils
+from app_utility import general_utils,fcm_utils,circle_utils,wallet_utils,loan_utils,sms_utils
 
 import datetime,json,math
 
@@ -95,7 +97,7 @@ class LoanApplication(APIView):
                                                                                     member=Member.objects.get(phone_number=guarantor["phone_number"]),circle=circle),
                                                                     num_of_shares=guarantor["amount"], time_requested=datetime.datetime.today(),fraction_guaranteed=guarantor["amount"]/guaranteed_loan
                                                                     ) for guarantor in guarantors]
-                                GuarantorRequest.objects.bulk_create(guarantor_objs)
+                                loan_guarantors = GuarantorRequest.objects.bulk_create(guarantor_objs)
                                 locked_shares = LockedShares.objects.create(shares = shares,num_of_shares=available_shares, transaction_description=shares_desc)
                                 created_objects.append(locked_shares)
                                 shares_transaction = IntraCircleShareTransaction.objects.create(shares=shares,transaction_type="LOCKED",num_of_shares=available_shares,transaction_desc=shares_desc,locked_loan=loan)
@@ -106,9 +108,24 @@ class LoanApplication(APIView):
                                 print(loan_limit)
                                 shares_transaction_serializer = SharesTransactionSerializer(shares_transaction)
                                 print(shares_transaction_serializer.data)
+                                print(loan_guarantors)
+                                loan_guarantors_serializer = LoanGuarantorsSerializer(loan_guarantors,many=True)
                                 loan_serializer = LoansSerializer(loan)
-                                data = {"status":1,"shares_transaction":shares_transaction_serializer.data,"message":"Loan application successfully received.Waiting for guarantors approval","loan":loan_serializer.data,"loan_limit":loan_limit}
+                                data = {"status":1,"shares_transaction":shares_transaction_serializer.data,"message":"Loan application successfully received.Waiting for guarantors approval","loan":loan_serializer.data,"loan_limit":loan_limit,"loan_guarantors":loan_guarantors_serializer.data}
                                 instance = fcm_utils.Fcm()
+                                for guarantor in loan_guarantors:
+                                    guarantor_member = guarantor.circle_member.member
+                                    guarantor_available_shares = circle_instance.get_guarantor_available_shares(circle,guarantor_member)
+                                    fcm_data = {"request_type":"UPDATE_AVAILABLE_SHARES","circle_acc_number":circle.circle_acc_number,"phone_number":guarantor_member.phone_number,"available_shares":guarantor_available_shares}
+                                    registration_ids = instance.get_circle_members_token(circle,guarantor_member)
+                                    instance.data_push("multiple",registration_ids,fcm_data)
+                                    fcm_data = {"request_type":"GUARANTEE_LOAN_REQUEST","phone_number":member.phone_number,"circle_acc_number":circle.circle_acc_number,"loan_code":loan.loan_code,"amount":guarantor.num_of_shares,"num_of_months":loan_tariff.num_of_months,"rating":30,"estimated_earning":500}
+                                    registration_id = guarantor_member.device_token
+                                    instance.data_push("single",registration_id,fcm_data)
+                                    title = circle.circle_name
+                                    adverb = "her" if member.gender == "F" or member.gender == "Female" else "him"
+                                    message = "%s %s has requested you to guarantee %s kes %s "%(member.user.first_name,member.user.last_name,adverb,guarantor.num_of_shares)
+                                    instance.notification_push("single",registration_id,title,message)
                                 fcm_data = {"request_type":"UPDATE_AVAILABLE_SHARES","circle_acc_number":circle.circle_acc_number,"phone_number":member.phone_number,"available_shares":available_shares}
                                 registration_id = instance.get_circle_members_token(circle,member)
                                 instance.data_push("multiple",registration_id,fcm_data)
@@ -193,8 +210,11 @@ class LoanRepayment(APIView):
                     valid,response = loan_instance.validate_repayment_amount(repayment_amount,latest_loan_amortize)
                     if valid:
                         circle = loan.circle_member.circle
+                        loan_repayment = loanrepayment.objects.filter(loan=loan)
                         loan_tariff = LoanTariff.objects.get(circle=circle,max_amount__gte=loan.amount,min_amount__lte=loan.amount)
-                        remaining_number_of_months = loan_tariff.num_of_months-loan_amortize.count()
+                        paid_months = loan_repayment.count() + 1 if loan_repayment.exists() else 1
+                        print(paid_months)
+                        remaining_number_of_months = loan_tariff.num_of_months - paid_months
                         annual_interest_rate = loan_tariff.monthly_interest_rate*12
                         if repayment_amount > latest_loan_amortize.total_repayment and remaining_number_of_months == 0:
                             data = {"status":0,"message":"The amount entered exceeds this month's loan repayment amount."}
@@ -235,6 +255,8 @@ class LoanRepayment(APIView):
                                 return Response(data,status=status.HTTP_200_OK)
                             else:
                                 ending_balance = latest_loan_amortize.ending_balance - extra_principal
+                                print ending_balance
+                                print remaining_number_of_months
                                 amortize_data = loan_instance.amortization_schedule(annual_interest_rate,ending_balance,remaining_number_of_months,latest_loan_amortize.repayment_date)
                                 amortize_data['loan'] = loan
                                 loan_amortization = LoanAmortizationSchedule(**amortize_data)
@@ -276,14 +298,26 @@ class LoanGuarantorResponse(APIView):
     def post(self,request,*args,**kwargs):
         serializer = GuarantorResponseSerializer(data=request.data)
         if serializer.is_valid():
+            has_accepted = serializer.validated_data['has_accepted']
             try:
-                has_accepted = serializer.validated_data['has_accepted']
-                loan = LoanApplication.objects.get(loan_code=serializer.validated_data['loan_code'])
-                circle,member = loan.circle_member.circle,request.user.member
+                loan = loanapplication.objects.get(loan_code=serializer.validated_data['loan_code'])
+            except loanapplication.DoesNotExist:
+                data = {"status":0,"message":"Loan does not exist"}
+                return Response(data,status=status.HTTP_200_OK)
+            circle,member = loan.circle_member.circle,request.user.member
+            try:
                 circle_member = CircleMember.objects.get(circle=circle,member=member)
+            except CircleMember.DoesNotExist:
+                data = {"status":0,"message":"The guarantor is not a member of this circle"}
+                return Response(data,status=status.HTTP_200_OK)
+            try:
                 guarantor = GuarantorRequest.objects.get(circle_member=circle_member,loan=loan)
+            except GuarantorRequest.DoesNotExist:
+                data = {"status":0,"message":"The guarantor request does not exist"}
+                return Response(data,status=status.HTTP_200_OK)
+            time_accepted = datetime.datetime.now()
+            try:
                 if has_accepted:
-                    time_accepted = datetime.datetime.now()
                     created_objects = []
                     shares = circle_member.shares.get()
                     shares_desc = "Kes {} locked to guarantee loan {} {}".format(guarantor.num_of_shares,member.user.first_name,member.user.last_name)
@@ -295,18 +329,22 @@ class LoanGuarantorResponse(APIView):
                     guarantor.time_accepted = time_accepted
                     shares_transaction_serializer = SharesTransactionSerializer(shares_transaction)
                     data = {"status":1,"shares_transaction":shares_transaction_serializer.data}
+                    guarantor.save()
                 else:
                     guarantor.has_accepted = False
                     guarantor.time_accepted = time_accepted
-                    data = {"status":1,"shares_transaction":{}}
-                guarantor.save()
-                available_shares = circle_utils.Circle().get_available_circle_member_shares(circle,member)
-                fcm_instance = fcm_utils.Fcm()
-                registration_ids = fcm_instance.get_circle_members_token(circle,member)
-                fcm_data = {"request_type":"UPDATE_AVAILABLE_SHARES","circle_acc_number":circle.circle_acc_number,"phone_number":member.phone_number,"available_shares":available_shares}
-                fcm_instance.data_push("multiple",registration_ids,fcm_data)
+                    guarantor.save()
+                    data = {"status":1}
+                    available_shares = circle_utils.Circle().get_guarantor_available_shares(circle,member)
+                    fcm_instance = fcm_utils.Fcm()
+                    registration_ids = fcm_instance.get_circle_members_token(circle,member)
+                    fcm_data = {"request_type":"UPDATE_AVAILABLE_SHARES","circle_acc_number":circle.circle_acc_number,"phone_number":member.phone_number,"available_shares":available_shares}
+                    fcm_instance.data_push("multiple",registration_ids,fcm_data)
                 return Response(data,status=status.HTTP_200_OK)
             except Exception as exp:
+                guarantor.has_accepted = None
+                guarantor.time_accepted = None
+                guarantor.save()
                 print(str(exp))
                 data = {"status":0,"message":"Unable process response."}
                 return Response(data,status=status.HTTP_200_OK)
@@ -336,3 +374,138 @@ class Loans(APIView):
             return Response(data,status=status.HTTP_200_OK)
         data = {"status": 0, "message": serializers.errors}
         return Response(data, status=status.HTTP_200_OK)
+
+class LoanGuarantors(APIView):
+    """
+    Retrieves all guarantors for the loan
+    """
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = (IsAuthenticated,)
+    def post(self,request,*args,**kwargs):
+        serializer = LoanCodeSerializer(data=request.data)
+        if serializer.is_valid():
+            loan_code = serializer.validated_data['loan_code']
+            loan = loanapplication.objects.get(loan_code=loan_code)
+            loan_guarantors = GuarantorRequest.objects.filter(loan=loan)
+            loan_guarantors_serializer = LoanGuarantorsSerializer(loan_guarantors,many=True)
+            data={"status":1,"loan_guarantors":loan_guarantors_serializer.data}
+            return Response(data,status=status.HTTP_200_OK)
+        data = {"status":0,"message":serializer.errors}
+        return Response(data,status=status.HTTP_200_OK)
+
+class NewLoanGuarantor(APIView):
+    """
+    Adds new loan guarantor
+    """
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = (IsAuthenticated,)
+    def post(self,request,*args,**kwargs):
+        serializer = NewLoanGuarantorSerializer(data=request.data)
+        if serializer.is_valid():
+            loan_code,phone_number,amount = serializer.validated_data['loan_code'],sms_utils.Sms().format_phone_number(serializer.validated_data['phone_number']),serializer.validated_data['amount']
+            loan = loanapplication.objects.get(loan_code=loan_code)
+            circle = loan.circle_member.circle
+            guaranteed_amount = loan.amount - IntraCircleShareTransaction.objects.get(locked_loan=loan).num_of_shares
+            fraction_guaranteed = float(amount/guaranteed_amount)
+            try:
+                loan_guarantor = GuarantorRequest.objects.create(circle_member=CircleMember.objects.get(member=Member.objects.get(phone_number=phone_number),circle=circle),num_of_shares=amount,time_requested=datetime.datetime.today(),fraction_guaranteed=fraction_guaranteed,loan=loan)
+                loan_guarantors_serializer = LoanGuarantorsSerializer(loan_guarantor)
+                data={"status":1,"loan_guarantor":loan_guarantors_serializer.data}
+                circle_instance = circle_utils.Circle()
+                actual_shares = circle_instance.get_available_circle_member_shares(circle,loan_guarantor.circle_member.member)
+                available_shares = actual_shares - amount
+                fcm_instance = fcm_utils.Fcm()
+                fcm_data = {"request_type":"UPDATE_AVAILABLE_SHARES","circle_acc_number":circle.circle_acc_number,"phone_number":phone_number,"available_shares":available_shares}
+                registration_ids = fcm_instance.get_circle_members_token(circle,loan_guarantor.circle_member.member)
+                fcm_instance.data_push("multiple",registration_ids,fcm_data)
+                return Response(data,status=status.HTTP_200_OK)
+            except Exception as e:
+                print(str(e))
+                data={"status":0,"message":"The member already exists as your loan guarantor."}
+                return Response(data,status=status.HTTP_200_OK)
+
+        data = {"status":0,"message":serializer.errors}
+        return Response(data,status=status.HTTP_200_OK)
+
+@api_view(['POST'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
+def remove_loan_guarantor(request,*args,**kwargs):
+    serializer = CurrentLoanGuarantorSerializer(data=request.data)
+    if serializer.is_valid():
+        loan = loanapplication.objects.get(loan_code=serializer.validated_data['loan_code'])
+        phone_number = sms_utils.Sms().format_phone_number(serializer.validated_data['phone_number'])
+        circle_member = CircleMember.objects.get(member=Member.objects.get(phone_number=phone_number),circle=loan.circle_member.circle)
+        try:
+            loan_guarantor = GuarantorRequest.objects.get(loan=loan,circle_member=circle_member)
+        except GuarantorRequest.DoesNotExist:
+            data = {"status":0,"message":"Unable to delete guarantor"}
+            return Response(data,status=status.HTTP_200_OK)
+        if loan_guarantor.has_accepted is None or not loan_guarantor.has_accepted :
+            loan_guarantor.delete()
+            data = {"status":1}
+            circle_instance = circle_utils.Circle()
+            available_shares = circle_instance.get_available_circle_member_shares(circle_member.circle,circle_member.member)
+            fcm_instance = fcm_utils.Fcm()
+            fcm_data = {"request_type":"UPDATE_AVAILABLE_SHARES","circle_acc_number":circle_member.circle.circle_acc_number,"phone_number":circle_member.member.phone_number,"available_shares":available_shares}
+            registration_ids = fcm_instance.get_circle_members_token(circle_member.circle,circle_member.member)
+            fcm_instance.data_push("multiple",registration_ids,fcm_data)
+        else:
+            data = {"status":0,"message":"Unable to delete guarantor"}
+        return Response(data,status=status.HTTP_200_OK)
+    data = {"status":0,"message":serializer.errors}
+    return Response(data,status=status.HTTP_200_OK)
+
+class AmortizationSchedule(APIView):
+    """
+    Retrieves the last amortization schedule
+    """
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = (IsAuthenticated,)
+    def post(self,request,*args,**kwargs):
+        serializer = LoanCodeSerializer(data=request.data)
+        if serializer.is_valid():
+            loan_code = serializer.validated_data['loan_code']
+            loan = loanapplication.objects.get(loan_code=loan_code)
+            if not loan.is_fully_repaid:
+                loan_amortization = LoanAmortizationSchedule.objects.filter(loan=loan)
+                if loan_amortization.exists():
+                    loan_repayment = loanrepayment.objects.filter(loan=loan)
+                    actual_months = LoanTariff.objects.get(max_amount__gte=loan.amount,min_amount__lte=loan.amount,circle=loan.circle_member.circle).num_of_months
+                    paid_months = loan_repayment.count() if loan_repayment.exists() else 0
+                    remaining_number_of_months = actual_months - paid_months
+                    latest_amortize_data = loan_amortization.latest('id')
+                    total_repayable_amount = latest_amortize_data.total_repayment * remaining_number_of_months
+                    loan_amortization_serializer = LoanAmortizationSerializer(latest_amortize_data)
+                    data = {"status":1,"amortization_schedule":loan_amortization_serializer.data,"due_balance":total_repayable_amount,"remaining_num_of_months":remaining_number_of_months}
+                else:
+                    data = {"status":0,"message":"Unable to get the loan's next payment"}
+                return Response(data,status=status.HTTP_200_OK)
+            else:
+                data = {"status":0,"message":"Loan fully repaid can not retrieve next payment."}
+                return Response(data,status=status.HTTP_200_OK)
+        data = {"status":0,"message":serializer.errors}
+        return Response(data,status=status.HTTP_200_OK)
+
+class LoanRepaymentDetails(APIView):
+    """
+    Retrieves the loan repayment history
+    """
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = (IsAuthenticated,)
+    def post(self,request,*args,**kwargs):
+        serializer = LoanCodeSerializer(data=request.data)
+        if serializer.is_valid():
+            loan = loanapplication.objects.get(loan_code=serializer.validated_data['loan_code'])
+            if loan.is_approved and loan.is_disbursed:
+                loan_repayments = loanrepayment.objects.filter(loan=loan)
+                if loan_repayments.exists():
+                    loan_repayment_serializer = LoanRepaymentSerializer(loan_repayments,many=True)
+                    data = {"status":1,"loan_repayment":loan_repayment_serializer.data}
+                    return Response(data,status=status.HTTP_200_OK)
+                data = {"status":0,"message":"The loan's repayment history does not exist."}
+                return Response(data,status=status.HTTP_200_OK)
+            data = {"status":0,"message":"Loan not yet approved and disbursed."}
+            return Response(data,status=status.HTTP_200_OK)
+        data = {"status":0,"message":serializer.errors}
+        return Response(data,status=status.HTTP_200_OK)

@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from loan.models import LoanApplication,LoanTariff,LoanRepayment,LoanAmortizationSchedule
+from loan.models import LoanApplication,LoanTariff,LoanRepayment,LoanAmortizationSchedule,GuarantorRequest
 from circle.models import Circle
 
 
@@ -28,9 +28,10 @@ class LoansSerializer(serializers.ModelSerializer):
     time_approved = serializers.SerializerMethodField()
     time_disbursed = serializers.SerializerMethodField()
     time_of_last_payment = serializers.SerializerMethodField()
+    locked_shares = serializers.SerializerMethodField()
     class Meta:
         model = LoanApplication
-        fields = ['amount','loan_code','interest_rate','num_of_repayment_cycles','time_of_application', 'is_approved', 'time_approved','is_disbursed','time_disbursed','is_fully_repaid', 'time_of_last_payment']
+        fields = ['amount','loan_code','interest_rate','locked_shares','num_of_repayment_cycles','time_of_application', 'is_approved', 'time_approved','is_disbursed','time_disbursed','is_fully_repaid', 'time_of_last_payment']
 
     def get_time_of_application(self,loan):
         return loan.time_of_application.strftime("%Y-%m-%d %H:%M:%S")
@@ -49,6 +50,15 @@ class LoansSerializer(serializers.ModelSerializer):
         if loan.time_of_last_payment is None:
             return loan.time_of_last_payment
         return loan.time_of_last_payment.strftime("%Y-%m-%d %H:%M:%S")
+
+    def get_locked_shares(self,loan):
+        try:
+            ln = loan.loan.get()
+            print ln.num_of_shares
+            return ln.num_of_shares
+        except:
+            print 0
+            return 0
 
 class CircleAccNoSerializer(serializers.Serializer):
     """
@@ -110,3 +120,47 @@ class GuarantorResponseSerializer(serializers.Serializer):
     """
     loan_code = serializers.CharField()
     has_accepted = StrictBooleanField()
+
+class LoanCodeSerializer(serializers.Serializer):
+    """
+    Serializer for capturing loan code
+    """
+    loan_code = serializers.CharField()
+
+class LoanGuarantorsSerializer(serializers.ModelSerializer):
+    """
+    Serializer for loan guarantors endpoint
+    """
+    status = serializers.SerializerMethodField()
+    phone_number = serializers.SerializerMethodField()
+    amount = serializers.IntegerField(source='num_of_shares')
+
+    class Meta:
+        model = GuarantorRequest
+        fields = ['phone_number','status','amount']
+
+    def get_status(self,guarantor):
+        if guarantor.has_accepted is None:
+            return "pending"
+        elif guarantor.has_accepted is True:
+            return "accepted"
+        else:
+            return "declined"
+
+    def get_phone_number(self,guarantor):
+        return guarantor.circle_member.member.phone_number
+
+class NewLoanGuarantorSerializer(serializers.Serializer):
+    """
+    Serializer for new loan guarantor
+    """
+    amount = serializers.IntegerField()
+    phone_number = serializers.CharField()
+    loan_code = serializers.CharField()
+
+class CurrentLoanGuarantorSerializer(serializers.Serializer):
+    """
+    Serializer for current loan guarantor endpoint
+    """
+    phone_number = serializers.CharField()
+    loan_code = serializers.CharField()

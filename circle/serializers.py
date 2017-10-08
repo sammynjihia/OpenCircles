@@ -63,7 +63,8 @@ class CircleSerializer(serializers.HyperlinkedModelSerializer):
         return stat
 
     def get_date_created(self,circle):
-        return circle.time_initiated.date()
+        date =  circle.time_initiated
+        return date.strftime("%Y-%m-%d %H:%M:%S")
 
     def get_loan_tariff(self,circle):
         loan_tariff = LoanTariff.objects.filter(circle=circle)

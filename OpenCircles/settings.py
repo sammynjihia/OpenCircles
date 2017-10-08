@@ -29,8 +29,7 @@ SECRET_KEY = config('SECRET_KEY')
 DEBUG = config('DEBUG',cast=bool)
 
 ALLOWED_HOSTS = config('ALLOWED_HOSTS',cast=Csv())
-
-
+# ALLOWED_HOSTS = ['ezsllbiskm.localtunnel.me']
 
 # Application definition
 
@@ -143,6 +142,6 @@ MEDIA_URL = '/MEDIA/'
 MEDIA_ROOT = os.path.join(BASE_DIR,'MEDIA/')
 MININIMUM_CIRCLE_SHARES = 100
 MINIMUM_LOAN = 200
-LOAN_LIMIT = 500
+LOAN_LIMIT = 5000
 MINIMUM_GUARANTEED_AMOUNT = 50
 MAXIMUM_LOAN = 250000

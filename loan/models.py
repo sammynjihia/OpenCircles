@@ -43,6 +43,7 @@ class GuarantorRequest(models.Model):
 
     class Meta:
         db_table = 'GuarantorRequest'
+        unique_together = ('loan','circle_member')
 
 
 class LoanGuarantor(models.Model):

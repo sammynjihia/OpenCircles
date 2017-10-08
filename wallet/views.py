@@ -197,6 +197,7 @@ class MpesaCallbackURL(APIView):
             post_file.write("\n")
 
         result = json.loads(data)
+        print(json.dumps(result, indent=4, sort_keys=True))
 
         CheckoutRequestID = result["Body"]["stkCallback"]["CheckoutRequestID"]
         MerchantRequestID = result["Body"]["stkCallback"]["MerchantRequestID"]
@@ -355,5 +356,38 @@ class MpesaB2CQueueTimeoutURL(APIView):
 
         print ("Response from mpesa from the MpesaB2CQueueURL")
         print (result)
+
+        return Response(status=status.HTTP_200_OK)
+
+class MpesaC2BConfirmationURL(APIView):
+    """
+    URL to receive mpesa b2c comfirmation requests
+    """
+    def post(self, request):
+        data = request.body
+        with open('c2b_confirmationurl_post_file.txt', 'a') as post_file:
+            post_file.write(data)
+            post_file.write("\n")
+
+        result = json.loads(data)
+        print("*******************Response from mpesa from the MpesaC2BConfirmationURL*******************")
+        print(json.dumps(result, indent=4, sort_keys=True))
+
+        return Response(status=status.HTTP_200_OK)
+
+
+class MpesaC2BValidationURL(APIView):
+    """
+    URL to receive mpesa b2c validation requests
+    """
+    def post(self, request):
+        data = request.body
+        with open('c2b_validationurl_post_file.txt', 'a') as post_file:
+            post_file.write(data)
+            post_file.write("\n")
+
+        result = json.loads(data)
+        print("####################Response from mpesa from the MpesaValidationURL#############################")
+        print(json.dumps(result, indent=4, sort_keys=True))
 
         return Response(status=status.HTTP_200_OK)

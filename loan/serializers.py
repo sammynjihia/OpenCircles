@@ -164,3 +164,42 @@ class CurrentLoanGuarantorSerializer(serializers.Serializer):
     """
     phone_number = serializers.CharField()
     loan_code = serializers.CharField()
+
+class UnprocessedGuarantorRequestSerializer(serializers.ModelSerializer):
+    """
+    Serializer for unprocessed loan guarantor request_type
+    """
+    phone_number = serializers.SerializerMethodField()
+    circle_acc_number = serializers.SerializerMethodField()
+    loan_code = serializers.SerializerMethodField()
+    amount = serializers.IntegerField(source='num_of_shares')
+    num_of_months = serializers.SerializerMethodField()
+    rating = serializers.SerializerMethodField()
+    estimated_earning = serializers.SerializerMethodField()
+
+    class Meta:
+        model = GuarantorRequest
+        fields = ['phone_number','circle_acc_number','loan_code','amount','num_of_months','rating','estimated_earning']
+
+    def get_phone_number(self,guarantor):
+        return guarantor.loan.circle_member.member.phone_number
+
+    def get_circle_acc_number(self,guarantor):
+        return guarantor.circle_member.circle.circle_acc_number
+
+    def get_loan_code(self,guarantor):
+        return guarantor.loan.loan_code
+
+    def get_num_of_months(self,guarantor):
+        amount = guarantor.loan.amount
+        try:
+            loan_tariff = LoanTariff.objects.get(circle=guarantor.circle_member.circle,max_amount__gte=amount,min_amount__lte=amount)
+            return loan_tariff.num_of_months
+        except LoanTariff.DoesNotExist:
+            return 0
+
+    def get_rating(self,guarantor):
+        return 30
+
+    def get_estimated_earning(self,guarantor):
+        return 500

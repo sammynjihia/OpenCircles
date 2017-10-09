@@ -142,6 +142,7 @@ class Contacts(models.Model):
     phone_number = models.CharField(max_length=20)
     is_member = models.BooleanField(default=False)
     is_valid = models.BooleanField(default=False)
+    invitation_sent = models.BooleanField(default=False)
 
     class Meta():
         db_table = 'Contacts'

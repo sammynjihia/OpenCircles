@@ -317,29 +317,78 @@ class LoanGuarantorResponse(APIView):
                 return Response(data,status=status.HTTP_200_OK)
             time_accepted = datetime.datetime.now()
             try:
-                if has_accepted:
-                    created_objects = []
-                    shares = circle_member.shares.get()
-                    shares_desc = "Kes {} locked to guarantee loan {} {}".format(guarantor.num_of_shares,member.user.first_name,member.user.last_name)
-                    locked_shares = LockedShares.objects.create(shares=shares,num_of_shares=guarantor.num_of_shares,transaction_description=shares_desc)
-                    created_objects.append(locked_shares)
-                    shares_transaction = IntraCircleShareTransaction.objects.create(shares=shares,transaction_type="LOCKED",num_of_shares=guarantor.num_of_shares,transaction_desc=shares_desc,locked_loan=loan)
-                    created_objects.append(shares_transaction)
-                    guarantor.has_accepted = True
-                    guarantor.time_accepted = time_accepted
-                    shares_transaction_serializer = SharesTransactionSerializer(shares_transaction)
-                    data = {"status":1,"shares_transaction":shares_transaction_serializer.data}
-                    guarantor.save()
-                else:
-                    guarantor.has_accepted = False
-                    guarantor.time_accepted = time_accepted
-                    guarantor.save()
-                    data = {"status":1}
-                    available_shares = circle_utils.Circle().get_guarantor_available_shares(circle,member)
-                    fcm_instance = fcm_utils.Fcm()
-                    registration_ids = fcm_instance.get_circle_members_token(circle,member)
-                    fcm_data = {"request_type":"UPDATE_AVAILABLE_SHARES","circle_acc_number":circle.circle_acc_number,"phone_number":member.phone_number,"available_shares":available_shares}
-                    fcm_instance.data_push("multiple",registration_ids,fcm_data)
+                if guarantor.has_accepted is None:
+                    if has_accepted:
+                        created_objects = []
+                        loan_instance = loan_utils.Loan()
+                        shares = circle_member.shares.get()
+                        shares_desc = "Kes {} locked to guarantee loan {} {}".format(guarantor.num_of_shares,member.user.first_name,member.user.last_name)
+                        locked_shares = LockedShares.objects.create(shares=shares,num_of_shares=guarantor.num_of_shares,transaction_description=shares_desc)
+                        created_objects.append(locked_shares)
+                        shares_transaction = IntraCircleShareTransaction.objects.create(shares=shares,transaction_type="LOCKED",num_of_shares=guarantor.num_of_shares,transaction_desc=shares_desc,locked_loan=loan)
+                        created_objects.append(shares_transaction)
+                        guarantor.has_accepted = True
+                        guarantor.time_accepted = time_accepted
+                        guarantor.save()
+                        unguaranteed_amount = loan_instance.get_remaining_guaranteed_amount(loan)
+                        fcm_instance = fcm_utils.Fcm()
+                        if unguaranteed_amount == 0:
+                            time_processed = datetime.datetime.now()
+                            loan_member = loan.circle_member.member
+                            wallet_desc = "Credited wallet with loan worth {} {}".format(loan_member.currency,loan.amount)
+                            wallet_transaction = Transactions.objects.create(wallet= loan_member.wallet, transaction_type='CREDIT', transaction_time = time_processed,transaction_desc=wallet_desc, transaction_amount= loan.amount, transacted_by = circle.circle_name)
+                            created_objects.append(wallet_transaction)
+                            loan.is_approved = True
+                            loan.is_disbursed = True
+                            loan.time_disbursed = time_processed
+                            loan.time_approved = time_processed
+                            loan.save()
+                            wallet_transaction_serializer = WalletTransactionsSerializer(wallet_transaction)
+                            loan_serializer = LoansSerializer(loan)
+                            loan_tariff = LoanTariff.objects.get(circle=circle,max_amount__gte=loan.amount,min_amount__lte=loan_amount)
+                            annual_interest,date_approved,num_of_months,amount = loan_tariff.monthly_interest_rate * 12,time_processed.date(),loan_tariff.num_of_months,loan.amount
+                            loan_amortization = loan_instance.AmortizationSchedule(annual_interest,amount,num_of_months,date_approved)
+                            loan_amortization['loan']=loan
+                            loan_amortization_schedule = LoanAmortizationSchedule(**loan_amortization)
+                            loan_amortization_schedule.save()
+                            created_objects.append(loan_amortization_schedule)
+                            loan_amortization_serializer = LoanAmortizationSerializer(loan_amortization_schedule)
+                            registration_id = loan_member.device_token
+                            fcm_data = {"request_type":"PROCESS_APPROVED_LOAN","wallet_transaction":wallet_transaction_serializer.data,"loan":loan_serializer.data,"amortization_schedule":loan_amortization_serializer.data}
+                            fcm_instance.data_push("single",registration_id,fcm_data)
+                            title = "Circle %s"%(circle.circle_name)
+                            message = "Your loan of %s %s has been successfully processed"%(loan_member.currency,loan.amount)
+                            fcm_instance.notification_push("single",registration_id,title,message)
+                        loan_limit = circle_utils.Circle().get_available_circle_member_shares(circle,member) + settings.LOAN_LIMIT
+                        shares_transaction_serializer = SharesTransactionSerializer(shares_transaction)
+                        data = {"status":1,"shares_transaction":shares_transaction_serializer.data,"loan_limit":loan_limit}
+                        registration_id = loan.circle_member.member.device_token
+                        title = "Circle %s loan guarantor request"%(circle.circle_name)
+                        message = "%s %s has accepted to guaranteed you %s %s"%(guarantor.circle_member.member.user.first_name,guarantor.circle_member.member.user.last_name,guarantor.circle_member.member.currency,guarantor.num_of_shares)
+                        fcm_instance.notification_push("single",registration_id,title,message)
+                        fcm_data = {"request_type":"UPDATE_GUARANTOR_REQUEST_STATUS","loan_code":loan.loan_code,"circle_acc_number":circle.circle_acc_number,"phone_number":member.phone_number,"has_accepted":True}
+                        registration_id = loan.circle_member.member.device_token
+                        fcm_instance.data_push("single",registration_id,fcm_data)
+                    else:
+                        guarantor.has_accepted = False
+                        guarantor.time_accepted = time_accepted
+                        guarantor.save()
+                        data = {"status":1}
+                        available_shares = circle_utils.Circle().get_guarantor_available_shares(circle,member)
+                        fcm_instance = fcm_utils.Fcm()
+                        registration_ids = fcm_instance.get_circle_members_token(circle,member)
+                        fcm_data = {"request_type":"UPDATE_AVAILABLE_SHARES","circle_acc_number":circle.circle_acc_number,"phone_number":member.phone_number,"available_shares":available_shares}
+                        fcm_instance.data_push("multiple",registration_ids,fcm_data)
+                        guarantor.save()
+                        registration_id = loan.circle_member.member.device_token
+                        title = "Circle %s loan guarantor request"%(loan.circle_member.circle.circle_name)
+                        message = "%s %s has declined to guarantee you %s %s"%(guarantor.circle_member.member.user.first_name,guarantor.circle_member.member.user.last_name,guarantor.circle_member.member.currency,guarantor.num_of_shares)
+                        fcm_instance.notification_push("single",registration_id,title,message)
+                        fcm_data = {"request_type":"UPDATE_GUARANTOR_REQUEST_STATUS","loan_code":loan.loan_code,"circle_acc_number":circle.circle_acc_number,"phone_number":member.phone_number,"has_accepted":True}
+                        registration_id = loan.circle_member.member.device_token
+                        fcm_instance.data_push("single",registration_id,fcm_data)
+                    return Response(data,status=status.HTTP_200_OK)
+                data = {"status":0,"message":"Guarantor loan request has already been processed"}
                 return Response(data,status=status.HTTP_200_OK)
             except Exception as exp:
                 guarantor.has_accepted = None
@@ -508,4 +557,19 @@ class LoanRepaymentDetails(APIView):
             data = {"status":0,"message":"Loan not yet approved and disbursed."}
             return Response(data,status=status.HTTP_200_OK)
         data = {"status":0,"message":serializer.errors}
+        return Response(data,status=status.HTTP_200_OK)
+
+class UnprocessedLoanGuarantorRequest(APIView):
+    """
+    Retrieves all unprocessed loan guarantor request
+    """
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = (IsAuthenticated,)
+    def post(self,request,*args,**kwargs):
+        circle_members = CircleMember.objects.filter(member=request.user.member)
+        print circle_members
+        unprocessed_requests = GuarantorRequest.objects.filter(has_accepted = None, circle_member__in=circle_members)
+        print unprocessed_requests
+        unprocessed_requests_serializer = UnprocessedGuarantorRequestSerializer(unprocessed_requests,many=True)
+        data = {"status":1,"unprocessed_requests":unprocessed_requests_serializer.data}
         return Response(data,status=status.HTTP_200_OK)

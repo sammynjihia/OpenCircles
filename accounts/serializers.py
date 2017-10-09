@@ -64,3 +64,16 @@ class RegistrationTokenSerializer(serializers.Serializer):
     Serializer for device registration token
     """
     app_token = serializers.CharField()
+
+class ResetPinSerializer(serializers.Serializer):
+    """
+    Serializer for reseting pin
+    """
+    phone_number = serializers.CharField()
+    pin = serializers.CharField()
+
+class PhoneSerializer(serializers.Serializer):
+    """
+    serializer for phone number
+    """
+    phone_number = serializers.CharField()

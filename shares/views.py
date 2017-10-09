@@ -115,3 +115,5 @@ class MemberSharesTransactions(APIView):
             return Response(data,status=status.HTTP_200_OK)
         data = {"status":0,"message":serializer.errors}
         return Response(data,status=status.HTTP_200_OK)
+
+            

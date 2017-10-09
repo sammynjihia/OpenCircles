@@ -199,3 +199,47 @@ class UpdateDeviceToken(APIView):
             return Response(data,status=status.HTTP_200_OK)
         data = {"status":0,"message":serializer.errors}
         return Response(data,status=status.HTTP_200_OK)
+
+@api_view(['POST'])
+def send_short_code(request,*args,**kwargs):
+    serializer = PhoneSerializer(data=request.data)
+    if serializer.is_valid():
+        phone_number = serializer.validated_data['phone_number']
+        instance = sms_utils.Sms()
+        code = random.randint(11111,99999)
+        message = "Pin reset short code is {}".format(code)
+        response = instance.sendsms(phone_number,message)
+        if response:
+            data = {"status":1,"short_code":code}
+            return Response(data,status = status.HTTP_200_OK)
+        data = {"status":0,"message":"Unable to send pin rest short code"}
+        return Response(data,status=status.HTTP_200_OK)
+    data = {"status":0,"message":serializer.errors}
+    return Response(data,status=status.HTTP_200_OK)
+
+
+class ResetPin(APIView):
+    """
+    Reset user's password
+    """
+    def post(self,request,*args,**kwargs):
+        serializer = ResetPinSerializer(data=request.data)
+        if serializer.is_valid():
+            try:
+                try:
+                    phone_number = sms_utils.Sms().format_phone_number(serializer.validated_data['phone_number'])
+                    member = Member.objects.get(phone_number=phone_number)
+                except Member.DoesNotExist:
+                    data = {"status":0,"message":"Unable to reset pin.User is not a member."}
+                    return Response(data,status=status.HTTP_200_OK)
+                user = member.user
+                user.set_password(serializer.validated_data['pin'])
+                user.save()
+                data = {"status":1,"message":"Successful pin reset."}
+                return Response(data,status=status.HTTP_200_OK)
+            except Exception as e:
+                print(str(e))
+                data = {"status":0,"message":"Unable to reset pin"}
+                return Response(data,status=status.HTTP_200_OK)
+        data = {"status":0,"message":serializer.errors}
+        return Response(data,status=status.HTTP_200_OK)

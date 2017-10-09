@@ -4,6 +4,10 @@ import math
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from django.conf import settings
+from django.db.models import Sum
+
+from loan.models import LoanApplication,GuarantorRequest
+from shares.models import IntraCircleShareTransaction
 
 from app_utility import circle_utils
 
@@ -65,3 +69,16 @@ class Loan():
         total_repayment = math.ceil(float(format(repayment,'.2f')))
         data = {"repayment_date":repayment_date,"starting_balance":float(format(starting_balance,'.2f')),"principal":float(format(principal,'.2f')),"interest":float(format(interest,'.2f')),"total_repayment":total_repayment,"ending_balance":float(format(ending_balance,'.2f'))}
         return data
+
+    def get_total_guaranteed_amount(self,loan):
+        # loan = LoanApplication.objects.get(loan_code=loan_code)
+        locked_shares = IntraCircleShareTransaction.objects.get(locked_loan=loan)
+        guaranteed_amount = loan.amount - locked_shares.num_of_shares
+        return guaranteed_amount
+
+    def get_remaining_guaranteed_amount(self,loan):
+        total_guaranteed_amount = self.get_total_guaranteed_amount(loan)
+        accepted_guaranteed_amount = GuarantorRequest.objects.filter(loan=loan,has_accepted=True).aggregate(total=Sum('num_of_shares'))
+        guaranteed_amount = 0 if accepted_guaranteed_amount['total'] is None else accepted_guaranteed_amount['total']
+        remaining_amount = total_guaranteed_amount - guaranteed_amount
+        return remaining_amount

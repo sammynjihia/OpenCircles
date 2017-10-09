@@ -48,6 +48,7 @@ class CircleInvitation(models.Model):
 
     class Meta:
         db_table = 'CircleInvitation'
+        unique_together= ("invited_by","phone_number")
 
 
 class CircleDirector(models.Model):

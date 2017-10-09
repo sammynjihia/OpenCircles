@@ -59,3 +59,11 @@ class SharesTransactionSerializer(serializers.ModelSerializer):
 
     def get_circle_acc_number(self,transaction):
         return transaction.shares.circle_member.circle.circle_acc_number
+
+class SharesWithdrawalSerializer(serializers.Serializer):
+    """
+    serializer for shares withdrawal endpoint
+    """
+    circle_acc_number = serializers.CharField()
+    amount = serializers.IntegerField()
+    pin = serializers.CharField()

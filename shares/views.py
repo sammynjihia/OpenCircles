@@ -13,9 +13,10 @@ from app_utility import wallet_utils,circle_utils,fcm_utils
 
 from .serializers import *
 from wallet.serializers import WalletTransactionsSerializer
+from shares.serializers import SharesTransactionSerializer
 
 from wallet.models import Transactions
-from shares.models import IntraCircleShareTransaction,Shares
+from shares.models import IntraCircleShareTransaction,Shares,SharesWithdrawalTariff
 from circle.models import Circle,CircleMember
 
 import datetime
@@ -116,4 +117,46 @@ class MemberSharesTransactions(APIView):
         data = {"status":0,"message":serializer.errors}
         return Response(data,status=status.HTTP_200_OK)
 
-            
+class SharesWithdrawal(APIView):
+    """
+    Withdraw shares
+    """
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = (IsAuthenticated,)
+
+    def post(self,request,*args,**kwargs):
+        serializer = SharesWithdrawalSerializer(data=request.data)
+        if serializer.is_valid():
+            pin,circle = serializer.validated_data['pin'],Circle.objects.get(circle_acc_number=serializer.validated_data['circle_acc_number'])
+            member = request.user.member
+            created_objects = []
+            if request.user.check_password(pin):
+                amount = serializer.validated_data['amount']
+                if amount <= settings.MAXIMUM_CIRCLE_SHARES:
+                    shares_tariff = SharesWithdrawalTariff.objects.get(max_amount_gte=amount,min_amount__lte=amount)
+                    total_amount = amount + shares_tariff.amount
+                    circle_instance = circle_utils.Circle()
+                    available_shares = circle_instance.get_available_circle_member_shares(circle,member)
+                    if amount <= available_shares:
+                        if total_amount <= available_shares:
+                            try:
+                                circle_member = CircleMember.objects.get(circle=circle,member=member)
+                                shares = circle_member.shares.get()
+                                time_processed = datetime.datetime.now()
+                                shares_desc = "Shares worth %s %s withdrawn.Transaction cost %s %s"%(member.currency,amount,member.currency,shares_tariff.amount)
+                                shares_transaction =  IntraCircleShareTransaction.objects.create(shares=shares,transaction_type="WITHDRAW",num_of_shares=total_loan,transaction_desc=shares_desc)
+                                created_objects.append(shares_transaction)
+                                wallet_desc = "Credited wallet with {} {} from {} shares withdrawal".format(member.currency,amount,circle.circle_name)
+                                wallet_transaction = Transactions.objects.create(wallet= member.wallet, transaction_type='CREDIT', transaction_time = time_processed,transaction_desc=wallet_desc, transaction_amount= amount)
+                                created_objects.append(wallet_transaction)
+                            except Exception as e:
+                                print(str(e))
+                        data = {"status":0,"message":"Insufficient shares balance to cover cost of shares withdrawal"}
+                        return Response(data,status=status.HTTP_200_OK)
+                    data = {"status":0,"message":"Amount entered exceeds your available shares"}
+                    return Response(data,status=status.HTTP_200_OK)
+                msg = "Maximum shares that can be withdrawn is %s %s"%(member.currency,settings.MAXIMUM_CIRCLE_SHARES)
+                data = {"status":0,"message":msg}
+                return Response(data,status=status.HTTP_200_OK)
+            data = {"status":0,"message":"Invalid pin"}
+            return Response(data,status=status.HTTP_200_OK)

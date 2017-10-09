@@ -70,14 +70,14 @@ class Loan():
         data = {"repayment_date":repayment_date,"starting_balance":float(format(starting_balance,'.2f')),"principal":float(format(principal,'.2f')),"interest":float(format(interest,'.2f')),"total_repayment":total_repayment,"ending_balance":float(format(ending_balance,'.2f'))}
         return data
 
-    def get_total_guaranteed_amount(self,loan):
+    def get_total_guaranteed_amount(self,loan,shares):
         # loan = LoanApplication.objects.get(loan_code=loan_code)
-        locked_shares = IntraCircleShareTransaction.objects.get(locked_loan=loan)
+        locked_shares = IntraCircleShareTransaction.objects.get(locked_loan=loan,shares=shares)
         guaranteed_amount = loan.amount - locked_shares.num_of_shares
         return guaranteed_amount
 
-    def get_remaining_guaranteed_amount(self,loan):
-        total_guaranteed_amount = self.get_total_guaranteed_amount(loan)
+    def get_remaining_guaranteed_amount(self,loan,shares):
+        total_guaranteed_amount = self.get_total_guaranteed_amount(loan,shares)
         accepted_guaranteed_amount = GuarantorRequest.objects.filter(loan=loan,has_accepted=True).aggregate(total=Sum('num_of_shares'))
         guaranteed_amount = 0 if accepted_guaranteed_amount['total'] is None else accepted_guaranteed_amount['total']
         remaining_amount = total_guaranteed_amount - guaranteed_amount

@@ -330,7 +330,7 @@ class LoanGuarantorResponse(APIView):
                         guarantor.has_accepted = True
                         guarantor.time_accepted = time_accepted
                         guarantor.save()
-                        unguaranteed_amount = loan_instance.get_remaining_guaranteed_amount(loan)
+                        unguaranteed_amount = loan_instance.get_remaining_guaranteed_amount(loan,loan.circle_member.shares.get())
                         fcm_instance = fcm_utils.Fcm()
                         if unguaranteed_amount == 0:
                             time_processed = datetime.datetime.now()
@@ -345,9 +345,9 @@ class LoanGuarantorResponse(APIView):
                             loan.save()
                             wallet_transaction_serializer = WalletTransactionsSerializer(wallet_transaction)
                             loan_serializer = LoansSerializer(loan)
-                            loan_tariff = LoanTariff.objects.get(circle=circle,max_amount__gte=loan.amount,min_amount__lte=loan_amount)
+                            loan_tariff = LoanTariff.objects.get(circle=circle,max_amount__gte=loan.amount,min_amount__lte=loan.amount)
                             annual_interest,date_approved,num_of_months,amount = loan_tariff.monthly_interest_rate * 12,time_processed.date(),loan_tariff.num_of_months,loan.amount
-                            loan_amortization = loan_instance.AmortizationSchedule(annual_interest,amount,num_of_months,date_approved)
+                            loan_amortization = loan_instance.amortization_schedule(annual_interest,amount,num_of_months,date_approved)
                             loan_amortization['loan']=loan
                             loan_amortization_schedule = LoanAmortizationSchedule(**loan_amortization)
                             loan_amortization_schedule.save()

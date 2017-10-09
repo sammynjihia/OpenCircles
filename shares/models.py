@@ -10,7 +10,7 @@ class Shares(models.Model):
         db_table = 'Shares'
 
 class IntraCircleShareTransaction(models.Model):
-    TRANSACTION_TYPE = [('deposit','DEPOSIT'),('transfer','TRANSFER'),('locked','LOCKED'),('unlocked','UNLOCKED')]
+    TRANSACTION_TYPE = [('deposit','DEPOSIT'),('transfer','TRANSFER'),('locked','LOCKED'),('unlocked','UNLOCKED'),('withdraw','WITHDRAW')]
     shares = models.ForeignKey(Shares,related_name='shares_transaction')
     transaction_type = models.CharField(choices=TRANSACTION_TYPE,max_length=8)
     recipient = models.ForeignKey(CircleMember, null=True,related_name='recipient')
@@ -44,3 +44,11 @@ class UnlockedShares(models.Model):
 
     class Meta:
         db_table = 'UnlockedShares'
+
+class SharesWithdrawalTariff(models.Model):
+    min_amount = models.IntegerField()
+    max_amount = models.IntegerField()
+    amount = models.IntegerField()
+
+    class Meta:
+        db_table = 'SharesWithdrawalTariff'

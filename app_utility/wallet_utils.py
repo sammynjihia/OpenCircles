@@ -36,3 +36,18 @@ class Wallet():
         debit = debit['total'] if debit['total'] is not None else 0
         balance = credit-debit
         return balance
+
+    def save_transaction_code(self,transaction):
+        code = "WT{}".format(transaction.wallet.member.national_id)
+        trans = Transactions.objects.filter(transaction_code__startswith = code)
+        if trans.exists():
+            latest_transaction = trans.latest('id')
+            value = int(latest_transaction.transaction_code[len(code):])
+            new_value = value + 1
+            new_value = str(new_value)
+            value = new_value if len(new_value)>1 else new_value.zfill(2)
+            transaction.transaction_code = code + value
+        else:
+            transaction.transaction_code = code + "01"
+        transaction.save()
+        return transaction

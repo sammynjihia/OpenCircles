@@ -25,7 +25,7 @@ from rest_framework.authtoken.models import Token
 
 from app_utility import circle_utils,wallet_utils,sms_utils,general_utils,fcm_utils,member_utils
 
-import datetime,json
+import datetime,json,uuid
 
 # Create your views here.
 class CircleCreation(APIView):
@@ -66,10 +66,12 @@ class CircleCreation(APIView):
                     circle_member = CircleMember.objects.create(member=member,circle=circle)
                     wallet_desc = "Purchased shares worth {} {} in circle {}".format(member.currency,minimum_share,circle.circle_name)
                     shares_desc = "Bought shares worth {} from wallet".format(minimum_share)
-                    wallet_transaction = Transactions.objects.create(wallet=member.wallet,transaction_type="DEBIT",transaction_time=datetime.datetime.now(),transaction_amount=minimum_share,transaction_desc=wallet_desc,recipient=circle.circle_acc_number)
+                    wallet_transaction = Transactions.objects.create(wallet=member.wallet,transaction_type="DEBIT",transaction_time=datetime.datetime.now(),transaction_amount=minimum_share,transaction_desc=wallet_desc,recipient=circle.circle_acc_number,transaction_code="WT"+uuid.uuid1().hex[:10].upper())
+                    # wallet_transaction = wallet_utils.Wallet().save_transaction_code(wallet_transaction)
+                    print wallet_transaction
                     created_objects.append(wallet_transaction)
                     shares = Shares.objects.create(circle_member=circle_member,num_of_shares=minimum_share)
-                    shares_transaction = IntraCircleShareTransaction.objects.create(shares=shares,transaction_type="DEPOSIT",num_of_shares=minimum_share,transaction_desc=shares_desc,recipient=circle_member)
+                    shares_transaction = IntraCircleShareTransaction.objects.create(shares=shares,transaction_type="DEPOSIT",num_of_shares=minimum_share,transaction_desc=shares_desc,recipient=circle_member,transaction_code="ST"+uuid.uuid1().hex[:10].upper())
                     if len(contacts):
                         instance = sms_utils.Sms()
                         member_instance = member_utils.OpenCircleMember()
@@ -339,19 +341,28 @@ class JoinCircle(APIView):
                     instance = circle_utils.Circle()
                     circle_member = CircleMember.objects.create(circle=circle,member=member)
                     created_objects.append(circle_member)
-                    wallet_transaction = Transactions.objects.create(wallet=request.user.member.wallet,transaction_type="DEBIT",transaction_time=datetime.datetime.now(),transaction_amount=amount,transaction_desc=wallet_desc,recipient=circle.circle_acc_number)
+                    wallet_transaction = Transactions.objects.create(wallet=request.user.member.wallet,transaction_type="DEBIT",transaction_time=datetime.datetime.now(),transaction_amount=amount,transaction_desc=wallet_desc,recipient=circle.circle_acc_number,transaction_code="WT"+uuid.uuid1().hex[:10].upper())
                     created_objects.append(wallet_transaction)
                     shares = Shares.objects.create(circle_member=circle_member,num_of_shares=amount)
-                    shares_transaction =IntraCircleShareTransaction.objects.create(shares=shares,transaction_type="DEPOSIT",recipient=circle_member,transaction_time=datetime.datetime.now(),transaction_desc=shares_desc,num_of_shares=amount)
-                    instance.check_update_circle_status(circle)
+                    shares_transaction =IntraCircleShareTransaction.objects.create(shares=shares,transaction_type="DEPOSIT",recipient=circle_member,transaction_time=datetime.datetime.now(),transaction_desc=shares_desc,num_of_shares=amount,transaction_code="ST"+uuid.uuid1().hex[:10].upper())
                     CircleInvitation.objects.filter(phone_number=request.user.member.phone_number,invited_by__in=CircleMember.objects.filter(circle=circle).values_list('id',flat=True)).delete()
                     wallet_serializer = WalletTransactionsSerializer(wallet_transaction)
                     shares_serializer = SharesTransactionSerializer(shares_transaction)
-                    instance = fcm_utils.Fcm()
-                    registration_ids = instance.get_circle_members_token(circle,member)
                     circle_member_serializer = UnloggedCircleMemberSerializer(member,context={"circle":circle})
+                    fcm_instance = fcm_utils.Fcm()
+                    old_circle_status = circle.is_active
+                    if not old_circle_status:
+                        new_circle_status = instance.check_update_circle_status(circle)
+                        if new_circle_status:
+                            fcm_data = {"request_type":"UPDATE_CIRCLE_STATUS","circle_acc_number":circle.circle_acc_number,"is_active":True}
+                            registration_ids = fcm_instance.get_circle_members_token(circle,None)
+                            fcm_instance.data_push("mutiple",registration_ids,fcm_data)
+                            title = "Circle {}".format(circle.circle_name)
+                            message = "Circle {} has been activated.You can now purchase shares,apply for loan and earn interest on loan repayments.".format(circle.circle_name)
+                            fcm_instance.notification_push("multiple",registration_ids,title,message)
                     fcm_data = {"request_type":"NEW_CIRCLE_MEMBERSHIP","circle_acc_number":circle.circle_acc_number,"circle_member":circle_member_serializer.data}
-                    instance.data_push("mutiple",registration_ids,fcm_data)
+                    registration_ids = fcm_instance.get_circle_members_token(circle,member)
+                    fcm_instance.data_push("mutiple",registration_ids,fcm_data)
                     data = {"status":1,"wallet_transaction":wallet_serializer.data,"shares_transaction":shares_serializer.data}
                     return Response(data,status=status.HTTP_200_OK)
                 except Exception,e:

@@ -31,7 +31,7 @@ class Loan():
             if amount <= max_repaid_amount:
                 return True,""
             return False,"Amount entered exceeds the current total repayable loan amount of kes {}".format(max_repaid_amount)
-        return False,"The amount entered is less than this month allowed minimun repayment amount"
+        return False,"The amount entered is less than this month allowed minimun repayment amount of kes{}".format(min_repaid_amount)
 
     def full_amortization_schedule(self,annual_interest,balance,num_of_months,date_time_approved):
         monthly_interest = annual_interest/(12*100)

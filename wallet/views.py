@@ -20,7 +20,7 @@ from member.models import Member
 from app_utility import wallet_utils,general_utils,fcm_utils, mpesa_api_utils, sms_utils
 
 import datetime,json
-import pytz
+import pytz,uuid
 
 # Create your views here.
 @api_view(['GET'])
@@ -60,7 +60,7 @@ class WallettoWalletTranfer(APIView):
                 try:
                     sender_transaction = Transactions.objects.create(wallet= sender_wallet,transaction_type="DEBIT",transaction_desc=sender_desc,transaction_amount=amount,transaction_time=datetime.datetime.now(),recipient=account)
                     created_objects.append(sender_transaction)
-                    recipient_transaction = Transactions.objects.create(wallet = recipient_wallet,transaction_type="CREDIT",transaction_desc=recipient_desc,transacted_by=sender_wallet.acc_no,transaction_amount=amount,transaction_time=datetime.datetime.now())
+                    recipient_transaction = Transactions.objects.create(wallet = recipient_wallet,transaction_type="CREDIT",transaction_desc=recipient_desc,transacted_by=sender_wallet.acc_no,transaction_amount=amount,transaction_time=datetime.datetime.now(),transaction_code="WT"+uuid.uuid1().hex[:10].upper())
                     created_objects.append(recipient_transaction)
                     instance = fcm_utils.Fcm()
                     registration_id,title,message = recipient.device_token,"Wallet","%s %s has credited your wallet with %s %s"%(request.user.first_name,request.user.last_name,request.user.member.currency,amount)
@@ -229,7 +229,7 @@ class MpesaCallbackURL(APIView):
 
                 mpesa_transactions = Transactions(wallet=wallet, transaction_type="CREDIT",
                                                   transaction_desc=transaction_desc,
-                                                  transacted_by=wallet.acc_no, transaction_amount=amount)
+                                                  transacted_by=wallet.acc_no, transaction_amount=amount,transaction_code="WT"+uuid.uuid1().hex[:10].upper())
                 mpesa_transactions.save()
                 with open('db_file.txt', 'a') as db_file:
                     db_file.write("Transaction {}, saved successfully ".format(transaction_code))

@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Shares,LockedShares,IntraCircleShareTransaction
+from .models import Shares,LockedShares,IntraCircleShareTransaction,SharesWithdrawalTariff
 from django.db.models import Sum
 
 class PurchaseSharesSerializer(serializers.Serializer):
@@ -67,3 +67,12 @@ class SharesWithdrawalSerializer(serializers.Serializer):
     circle_acc_number = serializers.CharField()
     amount = serializers.IntegerField()
     pin = serializers.CharField()
+
+class SharesTariffSerializer(serializers.ModelSerializer):
+    """
+    serializer for shares tariff
+    """
+    charges = serializers.IntegerField(source='amount')
+    class Meta:
+        model = SharesWithdrawalTariff
+        fields = ['min_amount','max_amount','charges']

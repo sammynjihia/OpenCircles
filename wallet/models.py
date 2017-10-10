@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 
 from django.db import models
 from member.models import Member
+import uuid
 
 # Create your models here.
 
@@ -25,6 +26,7 @@ class Transactions(models.Model):
     transaction_amount = models.IntegerField()
     transacted_by = models.CharField(max_length=100,default="SELF")
     recipient = models.CharField(max_length=100,default="SELF")
+    transaction_code = models.CharField(max_length=100,unique=True)
 
     class Meta():
         db_table = "Transactions"

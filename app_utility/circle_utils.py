@@ -21,6 +21,9 @@ class Circle():
             if CircleMember.objects.filter(circle=circle).count() >= 5:
                 circle.is_active=True
                 circle.save()
+                return True
+            return False
+        return True
 
     def get_invited_circles(self,request,unjoined_circles):
         circle_members = CircleInvitation.objects.filter(phone_number=request.user.member.phone_number).values_list("invited_by",flat=True)
@@ -67,12 +70,10 @@ class Circle():
 
     def get_guarantor_available_shares(self,circle,member):
         actual_available_shares = self.get_available_circle_member_shares(circle,member)
-        print actual_available_shares
         circle_member = CircleMember.objects.get(circle=circle,member=member)
         requests = GuarantorRequest.objects.filter(circle_member=circle_member,has_accepted=None)
         if requests.exists():
             amount = requests.aggregate(total=Sum('num_of_shares'))
-            print amount['total']
             return actual_available_shares - amount['total']
         return actual_available_shares
 

@@ -23,7 +23,7 @@ from member.models import Member
 from wallet.models import Wallet
 
 import random,datetime,json
-from accounts import tasks
+from accounts.tasks import save_member_contacts
 
 
 class MemberRegistration(APIView):
@@ -86,7 +86,7 @@ class MemberRegistration(APIView):
                 Wallet.objects.create(member=new_member,acc_no=new_member.national_id)
                 print("hapa")
                 #instance.save_contacts(new_member,contacts)
-                tasks.save_member_contacts().apply_async((new_member, contacts), countdown=1)
+                save_member_contacts.delay(new_member, contacts)
 
                 login(request,new_member.user)
             except Exception as e:

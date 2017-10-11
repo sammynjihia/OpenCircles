@@ -23,6 +23,7 @@ from member.models import Member
 from wallet.models import Wallet
 
 import random,datetime,json
+from accounts import tasks
 
 
 class MemberRegistration(APIView):
@@ -62,7 +63,11 @@ class MemberRegistration(APIView):
                         created_objects.append(new_member.user)
                         token = Token.objects.create(user=new_member.user)
                         wallet = Wallet.objects.create(member=new_member,acc_no=new_member.national_id)
-                        instance.save_contacts(new_member,contacts)
+                        #instance.save_contacts(new_member,contacts)
+                        contact_save = tasks.save_member_contacts(new_member,contacts)
+                        contact_save.delay()
+
+
                     except Exception as e:
                         print(str(e))
                         instance = general_utils.General()

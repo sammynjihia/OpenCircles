@@ -86,7 +86,7 @@ class MemberRegistration(APIView):
                 Wallet.objects.create(member=new_member,acc_no=new_member.national_id)
                 print("hapa")
                 #instance.save_contacts(new_member,contacts)
-                save_member_contacts.delay(new_member, contacts)
+                save_member_contacts.delay(new_member.id, contacts)
 
                 login(request,new_member.user)
             except Exception as e:

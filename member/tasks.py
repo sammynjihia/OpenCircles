@@ -2,7 +2,7 @@
 from __future__ import absolute_import, unicode_literals
 from celery import shared_task
 from member.models import Contacts
-from app_utility import sms_utils
+from app_utility import sms_utils, loan_utils
 
 
 @shared_task
@@ -39,6 +39,10 @@ def send_frequent_invitations():
             contacts.save()
     else:
         print("No contacts in this table")
+
+    loans = loan_utils.Loan()
+    #send loan reminders from this function
+    loans.loan_repayment_reminder()
 
     log_message = "{} contacts will receive a message in production mode".format(invitees)
     return log_message

@@ -84,21 +84,24 @@ class Loan():
         return remaining_amount
 
     def loan_repayment_reminder(self):
-        today = datetime.datetime.now().date()
+        today = datetime.now().date()
         loans = LoanApplication.objects.filter(is_fully_repaid=False)
         fcm_instance = fcm_utils.Fcm()
         for loan in loans:
             member,circle = loan.circle_member.member,loan.circle_member.circle
             days_to_send = [0,1,3,7]
-            latest_schedule = loan.loan_amortization.filter().latest(id)
-            diff = today - amortize_schedule.repayment_date.date()
-            delta = diff.days
-            if delta in days_to_send:
-                fcm_instance = fcm_utils.Fcm()
-                title = "Circle {} loan repayment".format(circle.circle_name)
-                if delta == 0:
-                    message = "You loan repayment of {} {} in circle {} is due today.Kindly make the payments before end of today to avoid penalties.".format(member.currency,latest_schedule.total_repayment,circle.circle_name)
-                else:
-                    message = "Remember to make your loan repayment of {} {} in circle {} before {}".format(member.currency,latest_schedule.total_repayment,circle.circle_name,latest_schedule.repayment_date)
-                registration_id = member.device_token
-                fcm_instance.notification_push("single",registration_id,title,message)
+            amortize_loan = loan.loan_amortization.filter()
+            print(amortize_loan)
+            if amortize_loan.exists():
+                latest_schedule = amortize_loan.latest('id')
+                diff = today - latest_schedule.repayment_date
+                delta = diff.days
+                if delta in days_to_send:
+                    fcm_instance = fcm_utils.Fcm()
+                    title = "Circle {} loan repayment".format(circle.circle_name)
+                    if delta == 0:
+                        message = "You loan repayment of {} {} in circle {} is due today.Kindly make the payments before end of today to avoid penalties.".format(member.currency,latest_schedule.total_repayment,circle.circle_name)
+                    else:
+                        message = "Remember to make your loan repayment of {} {} in circle {} before {}".format(member.currency,latest_schedule.total_repayment,circle.circle_name,latest_schedule.repayment_date)
+                    registration_id = member.device_token
+                    fcm_instance.notification_push("single",registration_id,title,message)

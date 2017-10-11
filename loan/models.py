@@ -56,7 +56,7 @@ class LoanGuarantor(models.Model):
         db_table = 'LoanGuarantor'
 
 class LoanAmortizationSchedule(models.Model):
-    loan = models.ForeignKey(LoanApplication,on_delete=models.CASCADE,null=False)
+    loan = models.ForeignKey(LoanApplication,on_delete=models.CASCADE,null=False,related_name="loan_amortization")
     starting_balance = models.FloatField(null=False,default=0.0)
     principal = models.FloatField(null=False,default=0.0)
     interest = models.FloatField(null=False,default=0.0)
@@ -68,8 +68,7 @@ class LoanAmortizationSchedule(models.Model):
         db_table = 'LoanAmortizationSchedule'
 
 class LoanRepayment(models.Model):
-    loan = models.ForeignKey(LoanApplication,on_delete=models.CASCADE)
-    amortization_schedule = models.ForeignKey(LoanAmortizationSchedule,null=False,on_delete=models.CASCADE)
+    amortization_schedule = models.ForeignKey(LoanAmortizationSchedule,null=False,on_delete=models.CASCADE,related_name="loan_repayment")
     amount = models.IntegerField(null=False, blank=False, default=0)
     time_of_repayment = models.DateTimeField(null=False)
     time_created = models.DateTimeField(auto_now=True)

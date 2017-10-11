@@ -48,6 +48,25 @@ class Circle():
         available_shares = (total_deposits-total_transfers-total_withdraws)-(total_locked-total_unlocked)
         return available_shares
 
+    def get_total_circle_member_shares(self,circle,member):
+        try:
+            circle_member = CircleMember.objects.get(circle=circle,member=member)
+        except CircleMember.DoesNotExist:
+            return 0
+        share = circle_member.shares.get()
+        transactions = IntraCircleShareTransaction.objects.filter(shares=share)
+        deposits = transactions.filter(transaction_type="DEPOSIT").aggregate(total=Sum('num_of_shares'))
+        total_deposits = 0 if deposits['total'] is None else deposits['total']
+        print(total_deposits)
+        transfers = transactions.filter(transaction_type="TRANSFER").aggregate(total=Sum('num_of_shares'))
+        total_transfers = 0 if transfers['total'] is None else transfers['total']
+        print(total_transfers)
+        withdraws = transactions.filter(transaction_type="WITHDRAW").aggregate(total=Sum('num_of_shares'))
+        total_withdraws = 0 if withdraws['total'] is None else withdraws['total']
+        print(total_withdraws)
+        total_shares = (total_deposits-total_transfers-total_withdraws)
+        return total_shares
+
     def get_available_circle_member_shares(self,circle,member):
         try:
             circle_member = CircleMember.objects.get(circle=circle,member=member)
@@ -57,14 +76,19 @@ class Circle():
         transactions = IntraCircleShareTransaction.objects.filter(shares=share)
         deposits = transactions.filter(transaction_type="DEPOSIT").aggregate(total=Sum('num_of_shares'))
         total_deposits = 0 if deposits['total'] is None else deposits['total']
+        print(total_deposits)
         transfers = transactions.filter(transaction_type="TRANSFER").aggregate(total=Sum('num_of_shares'))
         total_transfers = 0 if transfers['total'] is None else transfers['total']
+        print(total_transfers)
         withdraws = transactions.filter(transaction_type="WITHDRAW").aggregate(total=Sum('num_of_shares'))
         total_withdraws = 0 if withdraws['total'] is None else withdraws['total']
+        print(total_withdraws)
         locked = transactions.filter(transaction_type="LOCKED").aggregate(total=Sum('num_of_shares'))
         total_locked = 0 if locked['total'] is None else locked['total']
+        print(total_locked)
         unlocked = transactions.filter(transaction_type="UNLOCKED").aggregate(total=Sum('num_of_shares'))
         total_unlocked = 0 if unlocked['total'] is None else unlocked['total']
+        print(total_unlocked)
         available_shares = (total_deposits-total_transfers-total_withdraws)-(total_locked-total_unlocked)
         return available_shares
 

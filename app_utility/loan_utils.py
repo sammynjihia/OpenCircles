@@ -9,7 +9,7 @@ from django.db.models import Sum
 from loan.models import LoanApplication,GuarantorRequest
 from shares.models import IntraCircleShareTransaction
 
-from app_utility import circle_utils
+from app_utility import circle_utils,fcm_utils
 
 class Loan():
     def validate_loan_amount(self,request,loan_amount,circle):
@@ -82,3 +82,23 @@ class Loan():
         guaranteed_amount = 0 if accepted_guaranteed_amount['total'] is None else accepted_guaranteed_amount['total']
         remaining_amount = total_guaranteed_amount - guaranteed_amount
         return remaining_amount
+
+    def loan_repayment_reminder(self):
+        today = datetime.datetime.now().date()
+        loans = LoanApplication.objects.filter(is_fully_repaid=False)
+        fcm_instance = fcm_utils.Fcm()
+        for loan in loans:
+            member,circle = loan.circle_member.member,loan.circle_member.circle
+            days_to_send = [0,1,3,7]
+            latest_schedule = loan.loan_amortization.filter().latest(id)
+            diff = today - amortize_schedule.repayment_date.date()
+            delta = diff.days
+            if delta in days_to_send:
+                fcm_instance = fcm_utils.Fcm()
+                title = "Circle {} loan repayment".format(circle.circle_name)
+                if delta == 0:
+                    message = "You loan repayment of {} {} in circle {} is due today.Kindly make the payments before end of today to avoid penalties.".format(member.currency,latest_schedule.total_repayment,circle.circle_name)
+                else:
+                    message = "Remember to make your loan repayment of {} {} in circle {} before {}".format(member.currency,latest_schedule.total_repayment,circle.circle_name,latest_schedule.repayment_date)
+                registration_id = member.device_token
+                fcm_instance.notification_push("single",registration_id,title,message)

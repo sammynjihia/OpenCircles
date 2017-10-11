@@ -92,7 +92,7 @@ class LoanRepaymentSerializer(serializers.ModelSerializer):
     Serializer for loan repayment endpoint
     """
     is_fully_repaid = serializers.SerializerMethodField()
-    loan_code = serializers.CharField(source="loan.loan_code")
+    loan_code = serializers.SerializerMethodField()
     time_of_repayment = serializers.SerializerMethodField()
     class Meta:
         model = LoanRepayment
@@ -105,6 +105,9 @@ class LoanRepaymentSerializer(serializers.ModelSerializer):
         if "is_fully_repaid" in self.context:
             return self.context.get("is_fully_repaid")
         return False
+
+    def get_loan_code(self,loan_repayment):
+        return loan_repayment.amortization_schedule.loan.loan_code
 
 class StrictBooleanField(serializers.BooleanField):
     def from_native(self, value):

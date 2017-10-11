@@ -209,10 +209,15 @@ class LoanRepayment(APIView):
                     valid,response = loan_instance.validate_repayment_amount(repayment_amount,latest_loan_amortize)
                     if valid:
                         circle = loan.circle_member.circle
-                        loan_repayment = loanrepayment.objects.filter(loan=loan)
+                        loan_repayment = loan_amortize.filter(~Q(loan_repayment=None)).count()
+                        print(loan_amortize.filter().values_list('loan_repayment'))
                         loan_tariff = LoanTariff.objects.get(circle=circle,max_amount__gte=loan.amount,min_amount__lte=loan.amount)
-                        paid_months = loan_repayment.count() + 1 if loan_repayment.exists() else 1
+                        paid_months = loan_repayment + 1
+                        print("paid months")
+                        print(paid_months)
                         remaining_number_of_months = loan_tariff.num_of_months - paid_months
+                        print("remaining months")
+                        print(remaining_number_of_months)
                         annual_interest_rate = loan_tariff.monthly_interest_rate * 12
                         if repayment_amount > latest_loan_amortize.total_repayment and remaining_number_of_months == 0:
                             msg = "The amount entered exceeds this month's loan repayment amount of kes {}".format(latest_loan_amortize.total_repayment)
@@ -220,9 +225,10 @@ class LoanRepayment(APIView):
                             return Response(data,status=status.HTTP_200_OK)
                         try:
                             wallet_desc = "Kes {} sent to circle {} for loan repayment".format(repayment_amount,circle.circle_name)
-                            wallet_transaction = Transactions.objects.create(wallet = user.member.wallet,transaction_type="DEBIT",transaction_desc=wallet_desc,recipient=circle.circle_acc_number,transaction_amount=repayment_amount,transaction_time=datetime.datetime.now(),transaction_code="WT"+uuid.uuid1().hex[:10].upper())
+                            time_processed = datetime.datetime.now()
+                            wallet_transaction = Transactions.objects.create(wallet = user.member.wallet,transaction_type="DEBIT",transaction_desc=wallet_desc,recipient=circle.circle_acc_number,transaction_amount=repayment_amount,transaction_time=time_processed,transaction_code="WT"+uuid.uuid1().hex[:10].upper())
                             created_objects.append(wallet_transaction)
-                            loan_repayment = loanrepayment.objects.create(amount=repayment_amount,time_of_repayment=datetime.datetime.now(),loan=loan,amortization_schedule=latest_loan_amortize)
+                            loan_repayment = loanrepayment.objects.create(amount=repayment_amount,time_of_repayment=time_processed,amortization_schedule=latest_loan_amortize)
                             created_objects.append(loan_repayment)
                             guarantors = LoanGuarantor.objects.filter(circle_member=loan.circle_member)
                             extra_principal = repayment_amount - latest_loan_amortize.total_repayment
@@ -242,6 +248,7 @@ class LoanRepayment(APIView):
                                 loan_repayment_serializer = LoanRepaymentSerializer(loan_repayment,context={"is_fully_repaid":True})
                                 available_shares = circle_instance.get_available_circle_member_shares(circle,user.member)
                                 loan_limit = available_shares + settings.LOAN_LIMIT
+                                print("loan_limit")
                                 print(loan_limit)
                                 data = {"status":1,"message":"You have completed your loan.","wallet_transaction":wallet_transaction_serializer.data,"shares_transaction":shares_transaction_serializer.data,"loan_repayment":loan_repayment_serializer.data,'loan_limit':loan_limit}
                                 fcm_instance = fcm_utils.Fcm()
@@ -254,6 +261,8 @@ class LoanRepayment(APIView):
                                 return Response(data,status=status.HTTP_200_OK)
                             else:
                                 ending_balance = latest_loan_amortize.ending_balance - extra_principal
+                                print("Loan bado,balance to be amortized")
+                                print(ending_balance)
                                 amortize_data = loan_instance.amortization_schedule(annual_interest_rate,ending_balance,remaining_number_of_months,latest_loan_amortize.repayment_date)
                                 amortize_data['loan'] = loan
                                 loan_amortization = LoanAmortizationSchedule(**amortize_data)
@@ -516,9 +525,11 @@ class AmortizationSchedule(APIView):
             if not loan.is_fully_repaid:
                 loan_amortization = LoanAmortizationSchedule.objects.filter(loan=loan)
                 if loan_amortization.exists():
-                    loan_repayment = loanrepayment.objects.filter(loan=loan)
+                    loan_repayment = loan_amortization.filter(~Q(loan_repayment=None)).count()
                     actual_months = LoanTariff.objects.get(max_amount__gte=loan.amount,min_amount__lte=loan.amount,circle=loan.circle_member.circle).num_of_months
-                    paid_months = loan_repayment.count() if loan_repayment.exists() else 0
+                    paid_months = loan_repayment
+                    print("paid months")
+                    print(paid_months)
                     remaining_number_of_months = actual_months - paid_months
                     latest_amortize_data = loan_amortization.latest('id')
                     total_repayable_amount = latest_amortize_data.total_repayment * remaining_number_of_months
@@ -544,7 +555,7 @@ class LoanRepaymentDetails(APIView):
         if serializer.is_valid():
             loan = loanapplication.objects.get(loan_code=serializer.validated_data['loan_code'])
             if loan.is_approved and loan.is_disbursed:
-                loan_repayments = loanrepayment.objects.filter(loan=loan)
+                loan_repayments = loanrepayment.objects.filter(id__in=loan.loan_amortization.filter().values_list('loan_repayment'))
                 if loan_repayments.exists():
                     loan_repayment_serializer = LoanRepaymentSerializer(loan_repayments,many=True)
                     data = {"status":1,"loan_repayment":loan_repayment_serializer.data}

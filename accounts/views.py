@@ -86,8 +86,8 @@ class MemberRegistration(APIView):
                 Wallet.objects.create(member=new_member,acc_no=new_member.national_id)
                 print("hapa")
                 #instance.save_contacts(new_member,contacts)
-                contact_save = tasks.save_member_contacts(new_member, contacts)
-                contact_save.delay()
+                tasks.save_member_contacts().apply_async((new_member, contacts), countdown=1)
+
                 login(request,new_member.user)
             except Exception as e:
                 print(str(e))

@@ -185,8 +185,9 @@ class PhoneNumberConfirmation(APIView):
                 return Response(data,status = status.HTTP_200_OK)
             data = {"status":0,"message":"Unable to send confirmation code"}
             return Response(data,status=status.HTTP_200_OK)
-        data = {"status": 0,"message":serializer.errors['phone']}
-        return Response(data,status = status.HTTP_400_BAD_REQUEST)
+        error = "".join(serializer.errors['phone'])
+        data = {"status": 0,"message":error}
+        return Response(data,status = status.HTTP_200_OK)
 
 class UpdateDeviceToken(APIView):
     """

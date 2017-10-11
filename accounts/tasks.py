@@ -13,7 +13,9 @@ def save_member_contacts(user,contacts):
     message = "Saved contacts successfully"
 
     with open('celery_save_contacts_worker_file.txt', 'a') as post_file:
-        post_file.write(message)
+        post_file.write(user)
+        post_file.write("\n")
+        post_file.write(contacts)
         post_file.write("\n")
 
     return message

@@ -45,6 +45,7 @@ class CircleInvitation(models.Model):
     phone_number = models.CharField(max_length=20, blank=True)
     time_invited = models.DateTimeField(auto_now=True)
     status = models.CharField(max_length=10,default='Pending',choices=INVITE_STATUS)
+    is_sent = models.BooleanField(default=False)
 
     class Meta:
         db_table = 'CircleInvitation'

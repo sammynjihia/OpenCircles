@@ -58,7 +58,7 @@ class WallettoWalletTranfer(APIView):
                 sender_desc = "kes {} sent to {} {}".format(amount,recipient.user.first_name,recipient.user.last_name)
                 recipient_desc = "Received kes {} from {} {}".format(amount,request.user.first_name,request.user.last_name)
                 try:
-                    sender_transaction = Transactions.objects.create(wallet= sender_wallet,transaction_type="DEBIT",transaction_desc=sender_desc,transaction_amount=amount,transaction_time=datetime.datetime.now(),recipient=account)
+                    sender_transaction = Transactions.objects.create(wallet= sender_wallet,transaction_type="DEBIT",transaction_desc=sender_desc,transaction_amount=amount,transaction_time=datetime.datetime.now(),recipient=account,transaction_code="WT"+uuid.uuid1().hex[:10].upper())
                     created_objects.append(sender_transaction)
                     recipient_transaction = Transactions.objects.create(wallet = recipient_wallet,transaction_type="CREDIT",transaction_desc=recipient_desc,transacted_by=sender_wallet.acc_no,transaction_amount=amount,transaction_time=datetime.datetime.now(),transaction_code="WT"+uuid.uuid1().hex[:10].upper())
                     created_objects.append(recipient_transaction)

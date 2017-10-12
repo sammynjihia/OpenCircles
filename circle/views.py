@@ -77,6 +77,7 @@ class CircleCreation(APIView):
                         member_instance = member_utils.OpenCircleMember()
                         circle_invites = [CircleInvitation(invited_by=circle_member,phone_number=phone,is_member=member_instance.get_is_member(phone)) for phone in contacts]
                         invites = CircleInvitation.objects.bulk_create(circle_invites)
+                        # send invites
                     wallet_serializer = WalletTransactionsSerializer(wallet_transaction)
                     shares_serializer = SharesTransactionSerializer(shares_transaction)
                     serializer = CircleSerializer(circle,context={'request':request})

@@ -85,7 +85,7 @@ class Loan():
 
     def loan_repayment_reminder(self):
         today = datetime.now().date()
-        loans = LoanApplication.objects.filter(is_fully_repaid=False)
+        loans = LoanApplication.objects.filter(is_fully_repaid=False,is_disbursed=True,is_approved=True)
         fcm_instance = fcm_utils.Fcm()
         for loan in loans:
             member,circle = loan.circle_member.member,loan.circle_member.circle

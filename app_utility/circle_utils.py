@@ -3,6 +3,7 @@ from member.models import Member
 from circle.models import Circle as CircleModel,CircleMember,CircleInvitation
 from shares.models import Shares,IntraCircleShareTransaction
 from loan.models import LoanTariff,GuarantorRequest
+from app_utility import fcm_utils,sms_utils
 
 import operator,re
 
@@ -109,3 +110,25 @@ class Circle():
     def extract_amount(self,loan_range):
         new_range = re.findall(r'\d+',loan_range)
         return new_range
+
+    def send_circle_invitation(self, circle_invitations):
+        for invite in circle_invitations:
+            circle, member = invite.invited_by.circle, invite.invited_by.member
+            if invite.is_member:
+                invited_member = Member.objects.get(phone_number=invite.phone_number)
+                fcm_instance, sms_instance = fcm_utils.Fcm(), sms_utils.Sms()
+                title = "Circle {}".format(circle.circle_name)
+                message = "{} has invited you to join this circle.".format(member.user.first_name)
+                registration_id = invited_member.device_token
+                if len(registration_id):
+                    fcm_instance.notification_push("single",registration_id,title,message)
+                else:
+                    #send sms
+                    message =  "{} has invited you to join circle {}".format(member.user.first_name,circle.circle_name)
+                    # sms_instance.sendsms(invite.phone_number,message)
+            else:
+                #send sms
+                message =  ""
+                # sms_instance.sendsms(invite.phone_number,message)
+            invite.is_sent = True
+            invite.save()

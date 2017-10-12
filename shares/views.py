@@ -66,6 +66,7 @@ class PurchaseShares(APIView):
                         wallet_serializer = WalletTransactionsSerializer(wallet_transaction)
                         shares_serializer = SharesTransactionSerializer(shares_transaction)
                         loan_limit = available_shares + settings.LOAN_LIMIT
+                        print(loan_limit)
                         data = {"status":1,"wallet_transaction":wallet_serializer.data,"shares_transaction":shares_serializer.data,"loan_limit":loan_limit}
                         instance = fcm_utils.Fcm()
                         fcm_data = {"request_type":"UPDATE_AVAILABLE_SHARES","circle_acc_number":circle.circle_acc_number,"phone_number":member.phone_number,"available_shares":fcm_available_shares}

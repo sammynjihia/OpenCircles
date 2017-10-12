@@ -9,7 +9,6 @@ import json
 @shared_task
 def send_circle_invites(circle_invitations):
     instance = circle_utils.Circle()
-    circle_invitations = json.loads(circle_invitations)
     instance.send_circle_invitation(circle_invitations)
     message = "Saved contacts successfully"
 

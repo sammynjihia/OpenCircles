@@ -153,8 +153,7 @@ class CircleInvitationSerializer(serializers.Serializer):
     """
     Serializer for circle invitation response
     """
-    invite_id = serializers.CharField()
-    invite_response = serializers.ChoiceField(choices=['A','D'])
+    circle_acc_number = serializers.CharField()
 
 class AllowedGuaranteeSerializer(serializers.Serializer):
     """
@@ -314,3 +313,11 @@ class CircleMemberGuaranteeSerializer(serializers.Serializer):
     Serializer for circle member guarantee list
     """
     circle_acc_number = serializers.CharField()
+
+class CircleNameSerializer(serializers.ModelSerializer):
+    """
+    Serializer for circle name endpoint
+    """
+    class Meta:
+        model = Circle
+        fields = ['circle_name']

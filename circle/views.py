@@ -1,5 +1,6 @@
 from django.shortcuts import render
 from django.http import Http404
+from django.db import IntegrityError
 from django.db.models import Q
 from django.contrib.auth import login
 from django.core.exceptions import ObjectDoesNotExist
@@ -68,7 +69,6 @@ class CircleCreation(APIView):
                     shares_desc = "Bought shares worth {} from wallet".format(minimum_share)
                     wallet_transaction = Transactions.objects.create(wallet=member.wallet,transaction_type="DEBIT",transaction_time=datetime.datetime.now(),transaction_amount=minimum_share,transaction_desc=wallet_desc,recipient=circle.circle_acc_number,transaction_code="WT"+uuid.uuid1().hex[:10].upper())
                     # wallet_transaction = wallet_utils.Wallet().save_transaction_code(wallet_transaction)
-                    print wallet_transaction
                     created_objects.append(wallet_transaction)
                     shares = Shares.objects.create(circle_member=circle_member,num_of_shares=minimum_share)
                     shares_transaction = IntraCircleShareTransaction.objects.create(shares=shares,transaction_type="DEPOSIT",num_of_shares=minimum_share,transaction_desc=shares_desc,recipient=circle_member,transaction_code="ST"+uuid.uuid1().hex[:10].upper())
@@ -192,24 +192,12 @@ class CircleInvitationResponse(APIView):
     def post(self,request,*args,**kwargs):
         serializer = CircleInvitationSerializer(data=request.data)
         if serializer.is_valid():
-            pk = int(serializer.data.get('invite_id'))
-            response = serializer.data.get('invite_response')
-            circle_invite = CircleInvitation.objects.get(pk=pk)
-            if response is 'D':
-                circle_invite.delete()
-                return Response(status=status.HTTP_200_OK)
-            else:
-                circle = Circle.objects.get(id = circle_invite.invited_by.circle_id)
-                circle_member = CircleMember.objects.create(circle=circle,member=request.user.member)
-                if not circle.is_active:
-                    count = CircleMember.objects.filter(circle_id=circle.id).count()
-                    if count >= 5:
-                        circle.is_active=True
-                        circle.save()
-                serializer = CircleSerializer(circle,context={"request":request})
-                return Response(serializer.data,status=status.HTTP_200_OK)
-        else:
-            return Response(serializer.errors,status=status.HTTP_200_OK)
+            circle = Circle.objects.get(circle_acc_number = serializer.validated_data['circle_acc_number'])
+            CircleInvitation.objects.filter(invited_by__in = CircleMember.objects.filter(circle=circle)).delete()
+            data = {"status":1}
+            return Response(data,status=status.HTTP_200_OK)
+        data = {"status":0,"message":serializer.errors}
+        return Response(data,status=status.HTTP_200_OK)
 
 class AllowedGuaranteeRegistration(APIView):
     """
@@ -345,7 +333,7 @@ class JoinCircle(APIView):
                     created_objects.append(wallet_transaction)
                     shares = Shares.objects.create(circle_member=circle_member,num_of_shares=amount)
                     shares_transaction =IntraCircleShareTransaction.objects.create(shares=shares,transaction_type="DEPOSIT",recipient=circle_member,transaction_time=datetime.datetime.now(),transaction_desc=shares_desc,num_of_shares=amount,transaction_code="ST"+uuid.uuid1().hex[:10].upper())
-                    CircleInvitation.objects.filter(phone_number=request.user.member.phone_number,invited_by__in=CircleMember.objects.filter(circle=circle).values_list('id',flat=True)).delete()
+                    CircleInvitation.objects.filter(phone_number=request.user.member.phone_number,invited_by__in=CircleMember.objects.filter(circle=circle)).delete()
                     wallet_serializer = WalletTransactionsSerializer(wallet_transaction)
                     shares_serializer = SharesTransactionSerializer(shares_transaction)
                     circle_member_serializer = UnloggedCircleMemberSerializer(member,context={"circle":circle})
@@ -392,13 +380,49 @@ class CircleInvite(APIView):
             phone = instance.format_phone_number(serializer.validated_data['phone_number'])
             circle_member = CircleMember.objects.get(member=request.user.member,circle=circle)
             try:
-                CircleMember.objects.get(circle=circle,member=Member.objects.get(phone_number=phone))
+                invited_circle_member = CircleMember.objects.get(circle=circle,member=Member.objects.get(phone_number=phone))
+                data = {"status":0,"message":"The user invited already a member of the circle."}
             except ObjectDoesNotExist:
-                CircleInvitation.objects.create(phone_number=phone,invited_by=circle_member)
-                ms ="Invitation to {} has been sent".format(phone)
-                data = {"status":1,"message":ms}
+                invites = CircleInvitation.objects.filter(invited_by__in = CircleMember.objects.filter(circle=circle),phone_number=phone)
+                if invites.exists():
+                    data = {"status":0,"message":"Unable to send invitation.Member has already been invited to join this circle."}
+                else:
+                    member_instance = member_utils.OpenCircleMember()
+                    circle_invite = CircleInvitation.objects.create(phone_number=phone,invited_by=circle_member,is_member=member_instance.get_is_member(phone))
+                    sms_instance = sms_utils.Sms()
+                    if circle_invite.is_member:
+                        fcm_instance = fcm_utils.Fcm()
+                        title = "Circle {}".format(circle.circle_name)
+                        message = "{} has invited you to join this circle.".format(request.user.first_name)
+                        registration_id = invited_circle_member.member.device_token
+                        if len(registration_id):
+                            fcm_instance.notification_push("single",registration_id,title,message)
+                        else:
+                            #send sms
+                            message = "{} has invited you to join circle {}.".format(request.user.first_name,circle.circle_name)
+                            # sms_instance.sendsms(to,message)
+                    else:
+                        #send sms
+                        message = ""
+                        #sms_instance.sendsms(to,message)
+                    ms ="Invitation to {} has been sent.".format(phone)
+                    data = {"status":1,"message":ms}
                 return Response(data,status=status.HTTP_200_OK)
-            data = {"status":0,"message":"Already exists as a circle member"}
             return Response(data,status=status.HTTP_200_OK)
         data = {"status":0,"message":serializer.erors}
         return Response(data,status=status.HTTP_200_OK)
+
+@api_view(['POST'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
+def check_circle_name(request,*args,**kwargs):
+    mutable = request.data._mutable
+    request.data._mutable = True
+    request.data["circle_name"] = request.data["circle_name"].lower()
+    serializer = CircleNameSerializer(data=request.data)
+    if serializer.is_valid():
+        data = {"status":1}
+        return Response(data,status=status.HTTP_200_OK)
+    message = "".join(serializer.errors["circle_name"])
+    data = {"status":0,"message":message}
+    return Response(data,status=status.HTTP_200_OK)

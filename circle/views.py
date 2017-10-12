@@ -81,9 +81,7 @@ class CircleCreation(APIView):
                         invites = CircleInvitation.objects.bulk_create(circle_invites)
                         # send invites
                         id_list = [invite.id for invite in invites]
-                        print id_list
-                        invites = json.dumps(invites)
-                        send_circle_invites.delay(invites)
+                        send_circle_invites.delay(id_list)
                     wallet_serializer = WalletTransactionsSerializer(wallet_transaction)
                     shares_serializer = SharesTransactionSerializer(shares_transaction)
                     serializer = CircleSerializer(circle,context={'request':request})

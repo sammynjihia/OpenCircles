@@ -80,7 +80,8 @@ class CircleCreation(APIView):
                         circle_invites = [CircleInvitation(invited_by=circle_member,phone_number=phone,is_member=member_instance.get_is_member(phone)) for phone in contacts]
                         invites = CircleInvitation.objects.bulk_create(circle_invites)
                         # send invites
-
+                        id_list = [invite.id for invite in invites]
+                        print id_list
                         invites = json.dumps(invites)
                         send_circle_invites.delay(invites)
                     wallet_serializer = WalletTransactionsSerializer(wallet_transaction)

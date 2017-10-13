@@ -338,10 +338,14 @@ class JoinCircle(APIView):
                     created_objects.append(wallet_transaction)
                     shares = Shares.objects.create(circle_member=circle_member,num_of_shares=amount)
                     shares_transaction =IntraCircleShareTransaction.objects.create(shares=shares,transaction_type="DEPOSIT",recipient=circle_member,transaction_time=datetime.datetime.now(),transaction_desc=shares_desc,num_of_shares=amount,transaction_code="ST"+uuid.uuid1().hex[:10].upper())
+                    available_shares = circle_utils.Circle().get_available_circle_member_shares(circle,member)
                     CircleInvitation.objects.filter(phone_number=request.user.member.phone_number,invited_by__in=CircleMember.objects.filter(circle=circle)).delete()
                     wallet_serializer = WalletTransactionsSerializer(wallet_transaction)
                     shares_serializer = SharesTransactionSerializer(shares_transaction)
                     circle_member_serializer = UnloggedCircleMemberSerializer(member,context={"circle":circle})
+                    print(available_shares)
+                    loan_limit = available_shares + settings.LOAN_LIMIT
+                    print(loan_limit)
                     fcm_instance = fcm_utils.Fcm()
                     old_circle_status = circle.is_active
                     if not old_circle_status:
@@ -356,7 +360,7 @@ class JoinCircle(APIView):
                     fcm_data = {"request_type":"NEW_CIRCLE_MEMBERSHIP","circle_acc_number":circle.circle_acc_number,"circle_member":circle_member_serializer.data}
                     registration_ids = fcm_instance.get_circle_members_token(circle,member)
                     fcm_instance.data_push("mutiple",registration_ids,fcm_data)
-                    data = {"status":1,"wallet_transaction":wallet_serializer.data,"shares_transaction":shares_serializer.data}
+                    data = {"status":1,"wallet_transaction":wallet_serializer.data,"shares_transaction":shares_serializer.data,"loan_limit":loan_limit}
                     return Response(data,status=status.HTTP_200_OK)
                 except Exception,e:
                     print(str(e))

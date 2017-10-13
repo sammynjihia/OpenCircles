@@ -10,21 +10,6 @@ import json
 def send_circle_invites(id_list):
     circle_invitations = CircleInvitation.objects.filter(id__in = id_list)
     instance = circle_utils.Circle()
-    print ("Started celery task")
-
-    try:
-        instance.send_circle_invitation(circle_invitations)
-
-    except Exception as e:
-        print(e)
-
+    instance.send_circle_invitation(circle_invitations)
     message = "Saved contacts successfully"
-
-    print ("Celery task completed successfully")
-
-    with open('celery_save_contacts_worker_file.txt', 'a') as post_file:
-        post_file.write(str(circle_invitations))
-        post_file.write("\n")
-
-
     return message

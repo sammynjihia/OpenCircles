@@ -37,6 +37,9 @@ def send_frequent_invitations():
     #send loan reminders from this function
     loans.loan_repayment_reminder()
 
+    #Delete loans that have expired I.E have exceeded the 1 week time span without all the guarantors accepting
+    loans.delete_expired_loan()
+
     #Don't use the below
     invitees = invite_contacts.count()
     list_of_numbers = ['254712388212', '254714642293', '254713189107']

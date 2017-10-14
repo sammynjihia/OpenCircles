@@ -124,9 +124,13 @@ class Loan():
                 unlocked_shares = UnlockedShares.objects.create(locked_shares=locked_shares, shares_transaction=shares_transaction)
                 created_objects.append(unlocked_shares)
                 shares_transaction_serializer = SharesTransactionSerializer(shares_transaction)
+                available_shares = circle_instance.get_available_circle_member_shares(circle, member)
+                loan_limit = available_shares + settings.LOAN_LIMIT
+                guarantor.unlocked = True
+                guarantor.save()
                 instance = fcm_utils.Fcm()
                 # updates available shares to other circle members
-                fcm_data = {"request_type":"UNLOCK_SHARES","shares_transaction":shares_transaction_serializer.data}
+                fcm_data = {"request_type":"UNLOCK_SHARES","shares_transaction":shares_transaction_serializer.data,"loan_limit":loan_limit}
                 title = "Circle {} Loan Guarantee".format(circle.circle_name)
                 message = "Shares worth {} {} that were locked to guarantee {} loan have been unlocked.".format(member.currency,guarantor.num_of_shares)
                 registration_id = member.device_token
@@ -187,3 +191,14 @@ class Loan():
                     except Exception as e:
                         print(str(e))
                         general_utils.General().delete_created_objects(created_objects)
+
+    def calculate_total_paid_principal(self,loan):
+        guaranteed = GuarantorRequest.objects.filter(loan=loan).aggregate(total=Sum('num_of_shares'))
+        total_amortized = loan.loan_amortization.filter()
+        interest = total_amortized.aggregate(total=Sum('interest'))
+        total_paid = total_amortized.aggregate(total=Sum('loan_repayment__amount'))
+        total_paid = 0 if total_paid['total'] is None else total_paid['total']
+        principal = total_paid - interest['total']
+        if principal >= guaranteed['total']:
+            return True
+        return False

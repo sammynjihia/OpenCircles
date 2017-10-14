@@ -143,7 +143,7 @@ class Loan():
     def delete_expired_loan(self):
         today = datetime.now().date()
         loans = LoanApplication.objects.filter(is_approved=False, is_disbursed=False)
-        expiry_days = [0]
+        expiry_days = [1,0]
         for loan in loans:
             loan_expiry_date = loan.time_of_application.date() + relativedelta(weeks=1)
             print(loan_expiry_date)

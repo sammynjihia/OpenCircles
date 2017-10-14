@@ -10,7 +10,7 @@ from .models import Circle,CircleMember,AllowedGuarantorRequest,CircleInvitation
 from member.serializers import MemberSerializer
 from member.models import Member,Contacts
 
-from shares.models import LockedShares,Shares,IntraCircleShareTransaction
+from shares.models import Shares,IntraCircleShareTransaction
 from app_utility import circle_utils
 
 from loan.serializers import LoanTariffSerializer

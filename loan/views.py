@@ -23,7 +23,7 @@ from wallet.models import Transactions
 from loan.models import LoanApplication as loanapplication,GuarantorRequest,LoanAmortizationSchedule,LoanRepayment as loanrepayment,LoanGuarantor
 
 from app_utility import general_utils,fcm_utils,circle_utils,wallet_utils,loan_utils,sms_utils
-
+from loan.tasks import unlocking_guarantors_shares
 import datetime,json,math,uuid
 
 # Create your views here.
@@ -235,9 +235,11 @@ class LoanRepayment(APIView):
                             ending_balance = math.ceil(latest_loan_amortize.ending_balance) - extra_principal
                             if guarantors.exists():
                                 unlockable = loan_instance.calculate_total_paid_principal(loan)
+                                guarantors_id = guarantors.values_list('id')
                                 if unlockable:
                                     #unblock unlock guarantor shares
-                                    loan_instance.unlock_guarantors_shares(guarantors)
+                                    #loan_instance.unlock_guarantors_shares(guarantors, "")
+                                    unlocking_guarantors_shares.delay(guarantors_id, "")
                             wallet_transaction_serializer = WalletTransactionsSerializer(wallet_transaction)
                             circle_instance = circle_utils.Circle()
                             if remaining_number_of_months == 0 or ending_balance == 0:

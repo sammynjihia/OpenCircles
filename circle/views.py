@@ -72,7 +72,7 @@ class CircleCreation(APIView):
                     wallet_transaction = Transactions.objects.create(wallet=member.wallet,transaction_type="DEBIT",transaction_time=datetime.datetime.now(),transaction_amount=minimum_share,transaction_desc=wallet_desc,recipient=circle.circle_acc_number,transaction_code="WT"+uuid.uuid1().hex[:10].upper())
                     # wallet_transaction = wallet_utils.Wallet().save_transaction_code(wallet_transaction)
                     created_objects.append(wallet_transaction)
-                    shares = Shares.objects.create(circle_member=circle_member,num_of_shares=minimum_share)
+                    shares = Shares.objects.create(circle_member=circle_member)
                     shares_transaction = IntraCircleShareTransaction.objects.create(shares=shares,transaction_type="DEPOSIT",num_of_shares=minimum_share,transaction_desc=shares_desc,recipient=circle_member,transaction_code="ST"+uuid.uuid1().hex[:10].upper())
                     if len(contacts):
                         instance = sms_utils.Sms()
@@ -336,7 +336,7 @@ class JoinCircle(APIView):
                     created_objects.append(circle_member)
                     wallet_transaction = Transactions.objects.create(wallet=request.user.member.wallet,transaction_type="DEBIT",transaction_time=datetime.datetime.now(),transaction_amount=amount,transaction_desc=wallet_desc,recipient=circle.circle_acc_number,transaction_code="WT"+uuid.uuid1().hex[:10].upper())
                     created_objects.append(wallet_transaction)
-                    shares = Shares.objects.create(circle_member=circle_member,num_of_shares=amount)
+                    shares = Shares.objects.create(circle_member=circle_member)
                     shares_transaction =IntraCircleShareTransaction.objects.create(shares=shares,transaction_type="DEPOSIT",recipient=circle_member,transaction_time=datetime.datetime.now(),transaction_desc=shares_desc,num_of_shares=amount,transaction_code="ST"+uuid.uuid1().hex[:10].upper())
                     available_shares = circle_utils.Circle().get_available_circle_member_shares(circle,member)
                     CircleInvitation.objects.filter(phone_number=request.user.member.phone_number,invited_by__in=CircleMember.objects.filter(circle=circle)).delete()

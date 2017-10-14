@@ -230,18 +230,20 @@ class LoanRepayment(APIView):
                             created_objects.append(wallet_transaction)
                             loan_repayment = loanrepayment.objects.create(amount=repayment_amount,time_of_repayment=time_processed,amortization_schedule=latest_loan_amortize)
                             created_objects.append(loan_repayment)
-                            guarantors = LoanGuarantor.objects.filter(circle_member=loan.circle_member)
+                            guarantors = GuarantorRequest.objects.filter(loan=loan,unlocked=False)
                             extra_principal = repayment_amount - latest_loan_amortize.total_repayment
                             ending_balance = math.ceil(latest_loan_amortize.ending_balance) - extra_principal
                             if guarantors.exists():
-                                #if any guarantors exist unlock there shares according to the fraction of money they have guaranteed
-                                pass
+                                unlockable = loan_instance.calculate_total_paid_principal(loan)
+                                if unlockable:
+                                    #unblock unlock guarantor shares
+                                    loan_instance.unlock_guarantors_shares(guarantors)
                             wallet_transaction_serializer = WalletTransactionsSerializer(wallet_transaction)
                             circle_instance = circle_utils.Circle()
                             if remaining_number_of_months == 0 or ending_balance == 0:
                                 shares_desc = "Shares worth {} {} unlocked".format(user.member.currency,loan.amount)
                                 shares = loan.circle_member.shares.get()
-                                locked_shares = LockedShares.objects.get(loan=loan)
+                                locked_shares = LockedShares.objects.get(loan=loan,shares_transaction__shares=shares)
                                 shares_transaction = IntraCircleShareTransaction.objects.create(shares=shares,transaction_type="UNLOCKED",num_of_shares=locked_shares.shares_transaction.num_of_shares,transaction_desc=shares_desc,transaction_code="ST"+uuid.uuid1().hex[:10].upper())
                                 created_objects.append(shares_transaction)
                                 unlocked_shares = UnlockedShares.objects.create(locked_shares=locked_shares,shares_transaction=shares_transaction)

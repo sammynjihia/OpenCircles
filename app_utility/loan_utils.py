@@ -121,20 +121,25 @@ class Loan():
                 locked_shares = LockedShares.objects.filter(loan=guarantor.loan).get(shares_transaction__shares=shares)
                 shares_transaction = IntraCircleShareTransaction.objects.create(shares=shares,transaction_type="UNLOCKED",num_of_shares=guarantor.num_of_shares,transaction_desc=shares_desc,transaction_code="ST"+uuid.uuid1().hex[:10].upper())
                 created_objects.append(shares_transaction)
+                print(shares_transaction)
                 unlocked_shares = UnlockedShares.objects.create(locked_shares=locked_shares, shares_transaction=shares_transaction)
                 created_objects.append(unlocked_shares)
                 shares_transaction_serializer = SharesTransactionSerializer(shares_transaction)
                 available_shares = circle_instance.get_available_circle_member_shares(circle, member)
                 loan_limit = available_shares + settings.LOAN_LIMIT
+                print("l")
+                print(loan_limit)
                 guarantor.unlocked = True
                 guarantor.save()
                 instance = fcm_utils.Fcm()
                 # updates available shares to other circle members
                 fcm_data = {"request_type":"UNLOCK_SHARES","shares_transaction":shares_transaction_serializer.data,"loan_limit":loan_limit}
-                title = "Circle {} Loan Guarantee".format(circle.circle_name)
-                message = "Shares worth {} {} that were locked to guarantee {} loan have been unlocked.".format(member.currency,guarantor.num_of_shares)
+                print(fcm_data)
                 registration_id = member.device_token
+                print(registration_id)
                 instance.data_push("single",registration_id,fcm_data)
+                title = "Circle {} Loan Guarantee".format(circle.circle_name)
+                message = "Shares worth {} {} that were locked to guarantee {}'s loan have been unlocked.".format(member.currency,guarantor.num_of_shares,guarantor.loan.circle_member.member.user.first_name)
                 instance.notification_push("single",registration_id,title,message)
                 fcm_available_shares = circle_instance.get_guarantor_available_shares(circle, member)
                 fcm_data = {"request_type":"UPDATE_AVAILABLE_SHARES","circle_acc_number":circle.circle_acc_number,"phone_number":member.phone_number,"available_shares":fcm_available_shares}

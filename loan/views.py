@@ -236,8 +236,9 @@ class LoanRepayment(APIView):
                             if guarantors.exists():
                                 unlockable = loan_instance.calculate_total_paid_principal(loan)
                                 if unlockable:
+                                    print(guarantors)
                                     #unblock unlock guarantor shares
-                                    loan_instance.unlock_guarantors_shares(guarantors)
+                                    loan_instance.unlock_guarantors_shares(guarantors,"")
                             wallet_transaction_serializer = WalletTransactionsSerializer(wallet_transaction)
                             circle_instance = circle_utils.Circle()
                             if remaining_number_of_months == 0 or ending_balance == 0:

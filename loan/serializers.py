@@ -31,7 +31,7 @@ class LoansSerializer(serializers.ModelSerializer):
     locked_shares = serializers.SerializerMethodField()
     class Meta:
         model = LoanApplication
-        fields = ['amount','loan_code','interest_rate','locked_shares','num_of_repayment_cycles','time_of_application', 'is_approved', 'time_approved','is_disbursed','time_disbursed','is_fully_repaid', 'time_of_last_payment']
+        fields = ['amount','loan_code','locked_shares','num_of_repayment_cycles','time_of_application', 'is_approved', 'time_approved','is_disbursed','time_disbursed','is_fully_repaid', 'time_of_last_payment']
 
     def get_time_of_application(self,loan):
         return loan.time_of_application.strftime("%Y-%m-%d %H:%M:%S")
@@ -54,10 +54,8 @@ class LoansSerializer(serializers.ModelSerializer):
     def get_locked_shares(self,loan):
         try:
             ln = loan.loan.get()
-            print ln.num_of_shares
             return ln.num_of_shares
         except:
-            print 0
             return 0
 
 class CircleAccNoSerializer(serializers.Serializer):

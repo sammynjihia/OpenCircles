@@ -33,7 +33,7 @@ class GuarantorRequest(models.Model):
         (True, "Accepted to guarantee applicant"),
         (False, "Denied to guarantee applicant")
     )
-    loan = models.ForeignKey(LoanApplication, null=False,on_delete=models.CASCADE)
+    loan = models.ForeignKey(LoanApplication, null=False,on_delete=models.CASCADE,related_name="guarantor")
     circle_member = models.ForeignKey(CircleMember, null=False)
     num_of_shares = models.IntegerField(blank=False, null=False, default=0)
     time_requested = models.DateTimeField(auto_now=True)

@@ -95,7 +95,6 @@ class Loan():
             member,circle = loan.circle_member.member,loan.circle_member.circle
             days_to_send = [0,1,3,7]
             amortize_loan = loan.loan_amortization.filter()
-            print(amortize_loan)
             if amortize_loan.exists():
                 latest_schedule = amortize_loan.latest('id')
                 diff = today - latest_schedule.repayment_date
@@ -113,30 +112,26 @@ class Loan():
     def unlock_guarantors_shares(self, guarantors, shares_desc):
         for guarantor in guarantors:
             try:
+                general_instance = general_utils.General()
                 created_objects = []
                 circle_instance = circle_utils.Circle()
                 circle, member = guarantor.circle_member.circle, guarantor.circle_member.member
                 shares = guarantor.circle_member.shares.get()
                 shares_desc = "Shares worth {} {} have been unlocked.{}".format(member.currency, guarantor.num_of_shares, shares_desc)
                 locked_shares = LockedShares.objects.filter(loan=guarantor.loan).get(shares_transaction__shares=shares)
-                shares_transaction = IntraCircleShareTransaction.objects.create(shares=shares,transaction_type="UNLOCKED",num_of_shares=guarantor.num_of_shares,transaction_desc=shares_desc,transaction_code="ST"+uuid.uuid1().hex[:10].upper())
+                shares_transaction = IntraCircleShareTransaction.objects.create(shares=shares,transaction_type="UNLOCKED",num_of_shares=guarantor.num_of_shares,transaction_desc=shares_desc,transaction_code=general_instance.generate_unique_identifier('ST'))
                 created_objects.append(shares_transaction)
-                print(shares_transaction)
                 unlocked_shares = UnlockedShares.objects.create(locked_shares=locked_shares, shares_transaction=shares_transaction)
                 created_objects.append(unlocked_shares)
                 shares_transaction_serializer = SharesTransactionSerializer(shares_transaction)
                 available_shares = circle_instance.get_available_circle_member_shares(circle, member)
                 loan_limit = available_shares + settings.LOAN_LIMIT
-                print("l")
-                print(loan_limit)
                 guarantor.unlocked = True
                 guarantor.save()
                 instance = fcm_utils.Fcm()
                 # updates available shares to other circle members
                 fcm_data = {"request_type":"UNLOCK_SHARES","shares_transaction":shares_transaction_serializer.data,"loan_limit":loan_limit}
-                print(fcm_data)
                 registration_id = member.device_token
-                print(registration_id)
                 instance.data_push("single",registration_id,fcm_data)
                 title = "Circle {} Loan Guarantee".format(circle.circle_name)
                 message = "Shares worth {} {} that were locked to guarantee {}'s loan have been unlocked.".format(member.currency,guarantor.num_of_shares,guarantor.loan.circle_member.member.user.first_name)
@@ -155,13 +150,9 @@ class Loan():
         expiry_days = [1,0]
         for loan in loans:
             loan_expiry_date = loan.time_of_application.date() + relativedelta(weeks=1)
-            print(loan_expiry_date)
-            print(today)
             diff = loan_expiry_date - today
             delta = diff.days
-            print(delta)
             if delta in expiry_days:
-                print loan.loan_code
                 circle, member = loan.circle_member.circle, loan.circle_member.member
                 fcm_instance = fcm_utils.Fcm()
                 if delta == 1:
@@ -172,6 +163,7 @@ class Loan():
                 else:
                     created_objects = []
                     try:
+                        general_instance = general_utils.General()
                         amount = loan.amount
                         guarantors = loan.guarantor.filter(has_accepted=True)
                         shares_desc = "The loan the shares had guaranteed has been cancelled."
@@ -180,7 +172,7 @@ class Loan():
                         locked_shares = LockedShares.objects.filter(loan=loan).get(shares_transaction__shares=shares)
                         num_of_shares = locked_shares.shares_transaction.num_of_shares
                         shares_desc = "Shares worth {} {} have been unlocked after loan declination in circle {}".format(member.currency, num_of_shares, circle.circle_name)
-                        shares_transaction = IntraCircleShareTransaction.objects.create(shares=shares, transaction_type="UNLOCKED", num_of_shares=num_of_shares, transaction_desc=shares_desc, transaction_code="ST"+uuid.uuid1().hex[:10].upper())
+                        shares_transaction = IntraCircleShareTransaction.objects.create(shares=shares, transaction_type="UNLOCKED", num_of_shares=num_of_shares, transaction_desc=shares_desc, transaction_code=general_instance.generate_unique_identifier('ST'))
                         created_objects.append(shares_transaction)
                         unlocked_shares = UnlockedShares.objects.create(locked_shares=locked_shares,shares_transaction=shares_transaction)
                         created_objects.append(unlocked_shares)

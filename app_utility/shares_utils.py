@@ -35,5 +35,4 @@ class Shares():
                 transaction.transaction_code = code + value
             else:
                 transaction.transaction_code = code + "01"
-            print(transaction.transaction_code)
             transaction.save()

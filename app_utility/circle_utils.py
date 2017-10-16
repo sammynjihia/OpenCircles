@@ -8,13 +8,19 @@ from app_utility import fcm_utils,sms_utils
 import operator,re
 
 class Circle():
-    def get_suggested_circles(self,unjoined_circles,contacts):
+    def get_suggested_circles(self,unjoined_circles,contacts,request,suggested_num):
         suggested_circles={}
         unjoined_circles = unjoined_circles.filter(circle_type="OPEN")
-        for circle in unjoined_circles:
-            circle_count = CircleMember.objects.filter(circle=circle,member_id__in=Member.objects.filter(phone_number__in=contacts).values_list('id',flat=True)).count()
-            suggested_circles[circle]=circle_count
-        suggested_circles = sorted(suggested_circles.items(),key=operator.itemgetter(1),reverse=True)[0:5]
+        circle_invites_ids = CircleInvitation.objects.filter(phone_number=request.user.member.phone_number).values_list("invited_by__circle",flat=True)
+        invited_circles = CircleModel.objects.filter(id__in = circle_invites_ids)
+        unjoined_circles = [ circle for circle in unjoined_circles if circle not in invited_circles]
+        suggested_circles = {}
+        if len(unjoined_circles):
+            suggested_num = suggested_num if(len(unjoined_circles)) > suggested_num else len(unjoined_circles)
+            for circle in unjoined_circles:
+                circle_count = CircleMember.objects.filter(circle=circle,member_id__in=Member.objects.filter(phone_number__in=contacts).values_list('id',flat=True)).count()
+                suggested_circles[circle]=circle_count
+            suggested_circles = sorted(suggested_circles.items(),key=operator.itemgetter(1),reverse=True)[0:suggested_num]
         return suggested_circles
 
     def check_update_circle_status(self,circle):
@@ -27,10 +33,9 @@ class Circle():
         return True
 
     def get_invited_circles(self,request,unjoined_circles):
-        circle_members = CircleInvitation.objects.filter(phone_number=request.user.member.phone_number).values_list("invited_by",flat=True)
-        circles_ids = CircleMember.objects.filter(id__in=circle_members).values_list('circle',flat=True)
-        circles = CircleModel.objects.filter(id__in = circles_ids).order_by('id').distinct('id')
-        invited_circles = [circle for circle in circles if circle in unjoined_circles]
+        circles_ids = CircleInvitation.objects.filter(phone_number=request.user.member.phone_number,status="Pending").values_list("invited_by__circle",flat=True)
+        invited_circles = CircleModel.objects.filter(id__in = circles_ids)
+        # invited_circles = [circle for circle in circles if circle in unjoined_circles]
         return invited_circles
 
     def get_available_circle_shares(self,circle):

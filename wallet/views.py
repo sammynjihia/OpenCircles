@@ -58,9 +58,10 @@ class WallettoWalletTranfer(APIView):
                 sender_desc = "kes {} sent to {} {}".format(amount,recipient.user.first_name,recipient.user.last_name)
                 recipient_desc = "Received kes {} from {} {}".format(amount,request.user.first_name,request.user.last_name)
                 try:
-                    sender_transaction = Transactions.objects.create(wallet= sender_wallet,transaction_type="DEBIT",transaction_desc=sender_desc,transaction_amount=amount,transaction_time=datetime.datetime.now(),recipient=account,transaction_code="WT"+uuid.uuid1().hex[:10].upper())
+                    general_instance = general_utils.General()
+                    sender_transaction = Transactions.objects.create(wallet= sender_wallet,transaction_type="DEBIT",transaction_desc=sender_desc,transaction_amount=amount,transaction_time=datetime.datetime.now(),recipient=account,transaction_code=general_instance.generate_unique_identifier('WTD'))
                     created_objects.append(sender_transaction)
-                    recipient_transaction = Transactions.objects.create(wallet = recipient_wallet,transaction_type="CREDIT",transaction_desc=recipient_desc,transacted_by=sender_wallet.acc_no,transaction_amount=amount,transaction_time=datetime.datetime.now(),transaction_code="WT"+uuid.uuid1().hex[:10].upper())
+                    recipient_transaction = Transactions.objects.create(wallet = recipient_wallet,transaction_type="CREDIT",transaction_desc=recipient_desc,transacted_by=sender_wallet.acc_no,transaction_amount=amount,transaction_time=datetime.datetime.now(),transaction_code=general_instance.generate_unique_identifier('WTC'))
                     created_objects.append(recipient_transaction)
                     instance = fcm_utils.Fcm()
                     registration_id,title,message = recipient.device_token,"Wallet","%s %s has credited your wallet with %s %s"%(request.user.first_name,request.user.last_name,request.user.member.currency,amount)
@@ -223,13 +224,14 @@ class MpesaCallbackURL(APIView):
                         result_file.write(str(exp))
                         result_file.write("\n")
 
+                general_instance = general_utils.General()
                 wallet = member.wallet
                 transaction_desc = "{} confirmed, kes {} has been credited to your wallet by {} " \
                     .format(transaction_code, amount, phone_number)
 
                 mpesa_transactions = Transactions(wallet=wallet, transaction_type="CREDIT",
                                                   transaction_desc=transaction_desc,
-                                                  transacted_by=wallet.acc_no, transaction_amount=amount,transaction_code="WT"+uuid.uuid1().hex[:10].upper())
+                                                  transacted_by=wallet.acc_no, transaction_amount=amount,transaction_code=general_instance.generate_unique_identifier('WTC'))
                 mpesa_transactions.save()
                 with open('db_file.txt', 'a') as db_file:
                     db_file.write("Transaction {}, saved successfully ".format(transaction_code))
@@ -303,14 +305,14 @@ class MpesaB2CResultURL(APIView):
                     with open('member_fetched_failed.txt', 'a') as result_file:
                         result_file.write(str(exp))
                         result_file.write("\n")
-
+                general_instance = general_utils.General()
                 wallet = member.wallet
                 transaction_desc = "{} confirmed, kes {} has been sent to {} from your wallet at {} " \
                     .format(transactionReceipt, transactionAmount, receiverPartyPublicName, transactionDateTime)
 
                 mpesa_transactions = Transactions(wallet=wallet, transaction_type="DEBIT",
                                                   transaction_desc=transaction_desc,
-                                                  transacted_by=wallet.acc_no, transaction_amount=transactionAmount)
+                                                  transacted_by=wallet.acc_no, transaction_amount=transactionAmount,transation_code=general_instance.generate_unique_identifier('WTD'))
                 mpesa_transactions.save()
                 with open('db_file.txt', 'a') as db_file:
                     db_file.write("Transaction {}, saved successfully ".format(transactionReceipt))

@@ -1,3 +1,4 @@
+import string,random
 class General():
     def delete_sessions(self,request,keys):
         if type(keys) is not list:
@@ -12,3 +13,8 @@ class General():
                     ob.delete()
             else:
                 obj.delete()
+
+    def generate_unique_identifier(self,prefix):
+        random_string = ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(8))
+        code = prefix + random_string
+        return code

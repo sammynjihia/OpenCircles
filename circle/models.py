@@ -70,3 +70,12 @@ class AllowedGuarantorRequest(models.Model):
     class Meta:
         db_table = 'AllowedGuarantorRequest'
         unique_together = ['circle_member','allows_request_from']
+
+class DeclinedCircles(models.Model):
+    circle = models.ForeignKey(Circle,null=False,on_delete=models.CASCADE)
+    member = models.ForeignKey(Member,null=False,on_delete=models.CASCADE)
+    time_declined = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "DeclinedCircles"
+        unique_together = ['circle','member']

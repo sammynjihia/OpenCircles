@@ -51,16 +51,17 @@ class PurchaseShares(APIView):
                 created_objects = []
                 if valid:
                     try:
+                        general_instance = general_utils.General()
                         circle_member = CircleMember.objects.get(circle=circle, member=member)
                         wallet = member.wallet
                         desc = "Bought shares worth {}{} in circle {}".format(member.currency, amount, circle.circle_name)
-                        wallet_transaction = Transactions.objects.create(wallet=wallet, transaction_type="DEBIT", transaction_time=datetime.datetime.now(), transaction_desc=desc,transaction_amount=amount, recipient=circle_acc_number, transaction_code="WT"+uuid.uuid1().hex[:10].upper())
+                        wallet_transaction = Transactions.objects.create(wallet=wallet, transaction_type="DEBIT", transaction_time=datetime.datetime.now(), transaction_desc=desc,transaction_amount=amount, recipient=circle_acc_number, transaction_code=general_instance.generate_unique_identifier('WTD'))
                         created_objects.append(wallet_transaction)
                         print("wallet transaction")
                         print(wallet_transaction.transaction_amount)
                         shares,created = Shares.objects.get_or_create(circle_member=circle_member)
                         desc = "Purchased shares worth {} from your wallet".format(amount)
-                        shares_transaction = IntraCircleShareTransaction.objects.create(shares=shares,transaction_type="DEPOSIT",sender=circle_member, recipient= circle_member, num_of_shares=amount, transaction_desc=desc, transaction_code="ST"+uuid.uuid1().hex[:10].upper())
+                        shares_transaction = IntraCircleShareTransaction.objects.create(shares=shares,transaction_type="DEPOSIT",sender=circle_member, recipient= circle_member, num_of_shares=amount, transaction_desc=desc, transaction_code=general_instance.generate_unique_identifier('STD'))
                         created_objects.append(shares_transaction)
                         print("shares transaction")
                         print(shares_transaction.num_of_shares)
@@ -160,14 +161,15 @@ class SharesWithdrawal(APIView):
                         if total_amount <= available_shares:
                             if total_amount <= fcm_available_shares:
                                 try:
+                                    general_instance = general_utils.General()
                                     circle_member = CircleMember.objects.get(circle=circle, member=member)
                                     shares = circle_member.shares.get()
                                     time_processed = datetime.datetime.now()
                                     shares_desc = "Shares worth %s %s withdrawn.Transaction cost %s %s"%(member.currency, amount, member.currency, shares_tariff.amount)
-                                    shares_transaction =  IntraCircleShareTransaction.objects.create(shares=shares, transaction_type="WITHDRAW", num_of_shares=total_amount, transaction_desc=shares_desc, transaction_code="ST"+uuid.uuid1().hex[:10].upper())
+                                    shares_transaction =  IntraCircleShareTransaction.objects.create(shares=shares, transaction_type="WITHDRAW", num_of_shares=total_amount, transaction_desc=shares_desc, transaction_code=general_instance.generate_unique_identifier('STW'))
                                     created_objects.append(shares_transaction)
                                     wallet_desc = "Credited wallet with {} {} from {} shares withdrawal".format(member.currency, amount, circle.circle_name)
-                                    wallet_transaction = Transactions.objects.create(wallet= member.wallet, transaction_type='CREDIT', transaction_time = time_processed, transaction_desc=wallet_desc, transaction_amount= amount, transaction_code="WT"+uuid.uuid1().hex[:10].upper())
+                                    wallet_transaction = Transactions.objects.create(wallet= member.wallet, transaction_type='CREDIT', transaction_time = time_processed, transaction_desc=wallet_desc, transaction_amount= amount, transaction_code=general_instance.generate_unique_identifier('WTC'))
                                     created_objects.append(wallet_transaction)
                                     shares_transaction_serializer = SharesTransactionSerializer(shares_transaction)
                                     wallet_transaction_serializer = WalletTransactionsSerializer(wallet_transaction)

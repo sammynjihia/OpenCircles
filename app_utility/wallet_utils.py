@@ -25,10 +25,6 @@ class Wallet():
             return False,"Invalid amount"
         return False,"Incorrect pin"
 
-    def deduct_wallet_funds(self,wallet,amount):
-        transaction = Transactions.objects.create(wallet=wallet,transaction_type="DEBIT",transaction_time=datetime.datetime.now(),transaction_amount=amount)
-        return transaction
-
     def calculate_wallet_balance(self,wallet):
         credit = Transactions.objects.filter(wallet=wallet,transaction_type="CREDIT").aggregate(total=Sum("transaction_amount"))
         debit = Transactions.objects.filter(wallet=wallet,transaction_type="DEBIT").aggregate(total=Sum("transaction_amount"))

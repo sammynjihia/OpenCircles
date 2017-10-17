@@ -4,7 +4,7 @@ from django.http import Http404
 
 from rest_framework.decorators import detail_route
 from rest_framework.views import APIView
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view,authentication_classes,permission_classes
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
 from rest_framework import status
@@ -13,9 +13,9 @@ from rest_framework.authentication import TokenAuthentication
 from rest_framework import viewsets
 from rest_framework.parsers import FileUploadParser,FormParser
 
-from .serializers import MemberSerializer,BeneficiarySerializer,MemberBeneficiarySerializer
-from member.models import Member,Beneficiary
-from app_utility import sms_utils,member_utils
+from .serializers import MemberSerializer,BeneficiarySerializer,MemberBeneficiarySerializer,NewContactSerializer
+from member.models import Member,Beneficiary,Contacts
+from app_utility import sms_utils,member_utils,accounts_utils,general_utils
 from accounts.serializers import PhoneNumberSerializer
 
 import random
@@ -101,3 +101,26 @@ class MemberBeneficiary(APIView):
         member_serializer = MemberBeneficiarySerializer(beneficiaries,many=True)
         data = {"status":1,"beneficiaries":member_serializer.data}
         return Response(data,status=status.HTTP_200_OK)
+
+@api_view(['POST'])
+# @authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
+def save_new_contact(request):
+    serializer = NewContactSerializer(data=request.data)
+    if serializer.is_valid():
+        contact = serializer.validated_data['contacts']
+        sms_instance, account_instance, member_instance = sms_utils.Sms(), accounts_utils.Account(), member_utils.OpenCircleMember()
+        contact = account_instance.format_contacts(contact, sms_instance)
+        created_objects = []
+        try:
+            new_contact,created = Contacts.objects.get_or_create(phone_number=contact['phone'], is_member=member_instance.get_is_member(contact['phone']), name=contact['name'], member=request.user.member, is_valid=contact['is_valid'])
+            if created:
+                created_objects.append(new_contact)
+            data = {"status":1}
+        except Exception as e:
+            print(str(e))
+            general_utils.General().delete_created_objects(created_objects)
+            data = {"status":0}
+        return Response(data,status=status.HTTP_200_OK)
+    data = {"status":0,"message":serializer.errors}
+    return Response(data,status=status.HTTP_200_OK)

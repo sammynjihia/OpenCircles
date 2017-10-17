@@ -10,6 +10,8 @@ from app_utility import sms_utils
 GENDER_CHOICES = (('Male', 'Male'), ('Female', 'Female'))
 upload_path ='MEDIA/MEMBER_PASSPORT_PICS'
 
+User._meta.get_field('email')._unique = True
+
 class PendingRegistration(models.Model):
     national_id = models.CharField(max_length=20, blank=False, unique=True)
     first_name = models.CharField(max_length=20, blank=False)
@@ -42,28 +44,29 @@ class Member(models.Model):
     nationality = models.CharField(max_length=20, blank=True)
     country = models.CharField(max_length=20)
     date_of_birth = models.DateField(null=True)
-    iprs_image_url = models.URLField(null=True, blank=True)
-    iprs_image = models.ImageField(upload_to=upload_path, null=True, blank=True)
-    image = models.ImageField(upload_to="MEMBER_PROFILE_PICS",null=True,blank=True)
+    # iprs_image_url = models.URLField(null=True, blank=True)
+    # iprs_image = models.ImageField(upload_to=upload_path, null=True, blank=True)
+    passport_image = models.ImageField(upload_to="MEMBER_PROFILE_PICS",null=True,blank=True)
     registered_device = models.TextField(max_length=1000, blank=True)
     currency = models.CharField(max_length=10,default="KES")
     occupation = models.CharField(max_length=100, blank=True)
     time_registered = models.DateTimeField(auto_now_add=True)
     is_validated = models.BooleanField(default = False)
     device_token = models.CharField(max_length=300,default='')
+    imei_number = models.CharField(max_length=50,unique=True)
 
     class Meta:
         db_table = 'Member'
 
-    def save(self, *args, **kwargs):
-        if self.iprs_image_url:
-            file_save_dir = upload_path
-            file_path = 'MEMBER_PASSPORT_PICS'
-            filename = urlparse(self.iprs_image_url).path.split('/')[-1]
-            urllib.urlretrieve(self.iprs_image_url, os.path.join(file_save_dir, filename))
-            self.iprs_image = os.path.join(file_path, filename)
-            self.iprs_image_url = ''
-        return super(Member, self).save()
+    # def save(self, *args, **kwargs):
+    #     if self.iprs_image_url:
+    #         file_save_dir = upload_path
+    #         file_path = 'MEMBER_PASSPORT_PICS'
+    #         filename = urlparse(self.iprs_image_url).path.split('/')[-1]
+    #         urllib.urlretrieve(self.iprs_image_url, os.path.join(file_save_dir, filename))
+    #         self.iprs_image = os.path.join(file_path, filename)
+    #         self.iprs_image_url = ''
+    #     return super(Member, self).save()
 
 class Beneficiary(models.Model):
     """
@@ -146,11 +149,4 @@ class Contacts(models.Model):
 
     class Meta():
         db_table = 'Contacts'
-
-    def save(self,*args,**kwargs):
-        try:
-            Member.objects.get(phone_number=self.phone_number)
-            self.is_member = True
-        except Member.DoesNotExist:
-            self.is_member = False
-        return super(Contacts,self).save()
+        unique_together = ['phone_number','member']

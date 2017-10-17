@@ -6,6 +6,8 @@ from django.contrib.auth.models import User
 
 from app_utility import sms_utils
 
+from drf_extra_fields.fields import Base64ImageField
+
 
 
 class MemberRegistrationSerializer(serializers.ModelSerializer):
@@ -20,14 +22,13 @@ class MemberRegistrationSerializer(serializers.ModelSerializer):
     phone = serializers.CharField(source='phone_number')
     country_name = serializers.CharField(source='country')
     app_token = serializers.CharField(source='device_token')
+    passport_image = Base64ImageField()
 
     class Meta:
         model = Member
-        fields = ['first_name','surname','other_name','gender','date_of_birth','image','email','pin','national_id','phone','country_name','contact_list','app_token']
+        fields = ['first_name','surname','other_name','gender','date_of_birth','email','pin','national_id','phone','country_name','contact_list','app_token','passport_image','imei_number']
 
     def create(self,validated_data):
-        if 'image' in validated_data:
-            validated_data.pop('image')
         user_data = validated_data.pop('user')
         username = sms_utils.Sms().format_phone_number(validated_data.get('phone_number'))
         validated_data['phone_number'] = username
@@ -58,6 +59,7 @@ class AuthenticateUserSerializer(serializers.Serializer):
     username = serializers.CharField()
     pin = serializers.CharField()
     app_token = serializers.CharField()
+    imei_number = serializers.CharField()
 
 class RegistrationTokenSerializer(serializers.Serializer):
     """
@@ -71,6 +73,7 @@ class ResetPinSerializer(serializers.Serializer):
     """
     phone_number = serializers.CharField()
     pin = serializers.CharField()
+    imei_number = serializers.CharField()
 
 class PhoneSerializer(serializers.Serializer):
     """

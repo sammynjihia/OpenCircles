@@ -20,11 +20,18 @@ class Account():
             Contacts.objects.bulk_create(contacts_objs)
 
     def format_contacts(self,contact,instance):
-        if len(contact['phone'])>=10 and contact['phone'][0:4] == "+254":
-            contact['phone'] = instance.format_phone_number(contact['phone'])
-            contact['is_valid'] = True
+        if len(contact['phone'])>=10:
+            rep_chars = [" ","(",")","-"]
+            for rep in rep_chars:
+                if rep in contact['phone']:
+                    contact['phone'] = contact['phone'].replace(rep,"")
+            if contact['phone'][0:4] == "+254" or contact['phone'][0:2] == "07":
+                contact['phone'] = instance.format_phone_number(contact['phone'])
+                contact['is_valid'] = True
+            else:
+                contact['is_valid'] = False
         else:
-            rep_chars = [" ","(",")","-","\xa0","0xa0"]
+            rep_chars = [" ","(",")","-"]
             for rep in rep_chars:
                 if rep in contact['phone']:
                     contact['phone'] = contact['phone'].replace(rep,"")

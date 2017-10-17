@@ -16,8 +16,10 @@ class Account():
         if len(contacts):
             instance = sms_utils.Sms()
             contacts = map(dict,set(tuple(self.format_contacts(contact,instance).items()) for contact in contacts))
-            contacts_objs = [Contacts(name=contact['name'],phone_number=contact['phone'],member=user,is_member =self.check_membership_status(contact['phone']),is_valid=contact['is_valid']) for contact in contacts]
-            Contacts.objects.bulk_create(contacts_objs)
+            for contact in contacts:
+                obj = Contacts.objects.filter(phone_number=contact['phone'],member=user)
+                if not obj.exists():
+                     Contacts.objects.get_or_create(name=contact['name'],phone_number=contact['phone'],member=user,is_member =self.check_membership_status(contact['phone']),is_valid=contact['is_valid'])
 
     def format_contacts(self,contact,instance):
         if len(contact['phone'])>=10:

@@ -40,7 +40,6 @@ class MemberRegistration(APIView):
             request.data["contact_list"] = json.loads(contact_list)
             contacts = request.data["contact_list"]
             request.data._mutable = mutable
-        print(request.data)
         serializer = MemberRegistrationSerializer(data=request.data)
         if serializer.is_valid():
             try:

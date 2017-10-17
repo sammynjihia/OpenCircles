@@ -44,7 +44,6 @@ class CircleSerializer(serializers.HyperlinkedModelSerializer):
     members = serializers.SerializerMethodField()
     phonebook_member_count = serializers.SerializerMethodField()
     is_member = serializers.SerializerMethodField()
-    is_active = serializers.SerializerMethodField()
     is_invited = serializers.SerializerMethodField()
     loan_limit = serializers.SerializerMethodField()
     loan_tariff = serializers.SerializerMethodField()
@@ -57,10 +56,6 @@ class CircleSerializer(serializers.HyperlinkedModelSerializer):
 
     def get_initiated_by(self,circle):
         return Member.objects.get(id=circle.initiated_by_id).user.email
-
-    def get_is_active(self,circle):
-        stat = 1 if circle.is_active else 0
-        return stat
 
     def get_date_created(self,circle):
         date =  circle.time_initiated
@@ -107,7 +102,7 @@ class CircleSerializer(serializers.HyperlinkedModelSerializer):
         available_shares =instance.get_available_circle_member_shares(circle,member)+settings.LOAN_LIMIT
         return available_shares
 
-class InvitedCircleSerializer(serializers.HyperlinkedModelSerializer):
+class InvitedCircleSerializer(serializers.ModelSerializer):
     """
     Serializer for circle listing endpoint
     """
@@ -116,21 +111,17 @@ class InvitedCircleSerializer(serializers.HyperlinkedModelSerializer):
     date_created = serializers.SerializerMethodField()
     members = serializers.SerializerMethodField()
     is_member = serializers.SerializerMethodField()
-    is_active = serializers.SerializerMethodField()
     is_invited = serializers.SerializerMethodField()
+    loan_tariff = serializers.SerializerMethodField()
     class Meta:
         model = Circle
-        fields = ['circle_name','circle_type','circle_acc_number','is_active','is_member','is_invited','members','initiated_by','date_created','minimum_share','annual_interest_rate','member_count']
+        fields = ['circle_name','circle_type','circle_acc_number','is_active','is_member','is_invited','members','initiated_by','date_created','minimum_share','loan_tariff','member_count']
 
     def get_member_count(self,circle):
         return CircleMember.objects.filter(circle_id=circle.id).count()
 
     def get_initiated_by(self,circle):
         return Member.objects.get(id=circle.initiated_by_id).user.email
-
-    def get_is_active(self,circle):
-        stat = True if circle.is_active else False
-        return stat
 
     def get_date_created(self,circle):
         return circle.time_initiated.date()
@@ -146,6 +137,13 @@ class InvitedCircleSerializer(serializers.HyperlinkedModelSerializer):
 
     def get_is_invited(self,circle):
         return True
+
+    def get_loan_tariff(self,circle):
+        loan_tariff = LoanTariff.objects.filter(circle=circle)
+        if loan_tariff.exists():
+            loan_tariff_serializer = LoanTariffSerializer(loan_tariff,many=True)
+            return loan_tariff_serializer.data
+        return []
 
 
 

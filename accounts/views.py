@@ -76,7 +76,6 @@ class LoginIn(APIView):
     Authenticates user,requires username and pin to be provided
     """
     def post(self, request, *args, **kwargs):
-        print(request.data)
         serializer = AuthenticateUserSerializer(data=request.data)
         if serializer.is_valid():
             username = serializer.validated_data.get("username")
@@ -93,7 +92,6 @@ class LoginIn(APIView):
                     user.member.save()
                     token, created = Token.objects.get_or_create(user=user)
                     serializer = MemberSerializer(request.user.member)
-                    print(serializer.data)
                     data = {"status":1, "token":token.key, "member":serializer.data}
                     return Response(data, status=status.HTTP_200_OK)
                 else:
@@ -151,7 +149,6 @@ class PhoneNumberConfirmation(APIView):
         instance = sms_utils.Sms()
         request.data["phone"] = instance.format_phone_number(request.data["phone"])
         request.data._mutable = mutable
-        print(request.data)
         serializer = PhoneNumberSerializer(data=request.data)
         if serializer.is_valid():
             phone_number = serializer.validated_data.get("phone_number")

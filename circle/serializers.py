@@ -44,6 +44,7 @@ class CircleSerializer(serializers.HyperlinkedModelSerializer):
     members = serializers.SerializerMethodField()
     phonebook_member_count = serializers.SerializerMethodField()
     is_member = serializers.SerializerMethodField()
+    is_active = serializers.SerializerMethodField()
     is_invited = serializers.SerializerMethodField()
     loan_limit = serializers.SerializerMethodField()
     loan_tariff = serializers.SerializerMethodField()
@@ -56,6 +57,10 @@ class CircleSerializer(serializers.HyperlinkedModelSerializer):
 
     def get_initiated_by(self,circle):
         return Member.objects.get(id=circle.initiated_by_id).user.email
+
+    def get_is_active(self,circle):
+        stat = 1 if circle.is_active else 0
+        return stat
 
     def get_date_created(self,circle):
         date =  circle.time_initiated

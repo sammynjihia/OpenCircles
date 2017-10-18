@@ -15,6 +15,7 @@ from app_utility import circle_utils
 
 from loan.serializers import LoanTariffSerializer
 from loan.models import LoanTariff
+import base64
 class CircleCreationSerializer(serializers.ModelSerializer):
     """
     Serializer for circle registration endpoint
@@ -42,14 +43,14 @@ class CircleSerializer(serializers.HyperlinkedModelSerializer):
     member_count = serializers.SerializerMethodField()
     date_created = serializers.SerializerMethodField()
     members = serializers.SerializerMethodField()
-    phonebook_member_count = serializers.SerializerMethodField()
     is_member = serializers.SerializerMethodField()
     is_invited = serializers.SerializerMethodField()
+    invited_by = serializers.SerializerMethodField()
     loan_limit = serializers.SerializerMethodField()
     loan_tariff = serializers.SerializerMethodField()
     class Meta:
         model = Circle
-        fields = ['circle_name','circle_type','circle_acc_number','is_active','is_member','is_invited','members','initiated_by','date_created','minimum_share','loan_limit','member_count','phonebook_member_count','loan_tariff']
+        fields = ['circle_name','circle_type','circle_acc_number','is_active','is_member','is_invited','invited_by','members','initiated_by','date_created','minimum_share','loan_limit','member_count','loan_tariff']
 
     def get_member_count(self,circle):
         return CircleMember.objects.filter(circle_id=circle.id).count()
@@ -74,14 +75,6 @@ class CircleSerializer(serializers.HyperlinkedModelSerializer):
         serializer = CircleMemberSerializer(members,many=True,context={"request":self.context.get('request'),"circle":circle})
         return serializer.data
 
-    def get_phonebook_member_count(self,circle):
-        member = self.context.get('request').user.member
-        contacts = Contacts.objects.filter(member=member,is_member=True).values_list('phone_number',flat=True)
-        count = 0
-        if contacts.count() > 0:
-            count = CircleMember.objects.filter(circle=circle,member_id__in=Member.objects.filter(phone_number__in=contacts).values_list('id',flat=True)).count()
-        return count
-
     def get_is_member(self,circle):
         try:
             CircleMember.objects.get(circle=circle,member=self.context.get('request').user.member)
@@ -90,11 +83,20 @@ class CircleSerializer(serializers.HyperlinkedModelSerializer):
             return False
 
     def get_is_invited(self,circle):
-        ids = CircleMember.objects.filter(circle=circle).values_list('id',flat=True)
-        if CircleInvitation.objects.filter(phone_number=self.context.get('request').user.member.phone_number,invited_by__in=ids).exists():
-            return 1
+        # ids = CircleMember.objects.filter(circle=circle).values_list('id',flat=True)
+        if CircleInvitation.objects.filter(phone_number=self.context.get('request').user.member.phone_number,invited_by__circle=circle).exists():
+            return True
         else:
-            return 0
+            return False
+
+    def get_invited_by(self,circle):
+        try:
+            circle_invite = CircleInvitation.objects.get(phone_number=self.context.get('request').user.member.phone_number,invited_by__circle=circle)
+            user = circle_invite.invited_by.member.user
+            invited_by = "{} {}".format(user.first_name,user.last_name)
+            return invited_by
+        except CircleInvitation.DoesNotExist:
+            return ''
 
     def get_loan_limit(self,circle):
         member = self.context.get('request').user.member
@@ -112,10 +114,11 @@ class InvitedCircleSerializer(serializers.ModelSerializer):
     members = serializers.SerializerMethodField()
     is_member = serializers.SerializerMethodField()
     is_invited = serializers.SerializerMethodField()
+    invited_by = serializers.SerializerMethodField()
     loan_tariff = serializers.SerializerMethodField()
     class Meta:
         model = Circle
-        fields = ['circle_name','circle_type','circle_acc_number','is_active','is_member','is_invited','members','initiated_by','date_created','minimum_share','loan_tariff','member_count']
+        fields = ['circle_name','circle_type','circle_acc_number','is_active','is_member','is_invited','invited_by','members','initiated_by','date_created','minimum_share','loan_tariff','member_count']
 
     def get_member_count(self,circle):
         return CircleMember.objects.filter(circle_id=circle.id).count()
@@ -124,7 +127,8 @@ class InvitedCircleSerializer(serializers.ModelSerializer):
         return Member.objects.get(id=circle.initiated_by_id).user.email
 
     def get_date_created(self,circle):
-        return circle.time_initiated.date()
+        date =  circle.time_initiated
+        return date.strftime("%Y-%m-%d %H:%M:%S")
 
     def get_members(self,circle):
         members_ids = CircleMember.objects.filter(circle_id=circle.id).values_list('member',flat=True)
@@ -137,6 +141,9 @@ class InvitedCircleSerializer(serializers.ModelSerializer):
 
     def get_is_invited(self,circle):
         return True
+
+    def get_invited_by(self,circle):
+        return self.context.get('invited_by')
 
     def get_loan_tariff(self,circle):
         loan_tariff = LoanTariff.objects.filter(circle=circle)
@@ -188,7 +195,7 @@ class CircleMemberSerializer(serializers.ModelSerializer):
     first_name = serializers.CharField(source='user.first_name')
     surname = serializers.CharField(source='user.last_name')
     email = serializers.EmailField(source='user.email')
-    # passport_url = serializers.ImageField(source='iprs_image')
+    passport_image = serializers.SerializerMethodField()
     # date_of_birth = serializers.SerializerMethodField()
     time_registered = serializers.SerializerMethodField()
     is_self = serializers.SerializerMethodField()
@@ -198,7 +205,7 @@ class CircleMemberSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Member
-        fields = ['first_name','surname','other_name','email','gender','country','phone_number','national_id','currency','date_of_birth','time_registered','is_self','available_shares','allow_guarantor_request','allow_public_guarantees_request']
+        fields = ['first_name','surname','other_name','email','gender','country','phone_number','national_id','currency','date_of_birth','time_registered','is_self','available_shares','passport_image','allow_guarantor_request','allow_public_guarantees_request']
 
     def get_time_registered(self,member):
          date = member.time_registered
@@ -235,6 +242,20 @@ class CircleMemberSerializer(serializers.ModelSerializer):
         circle_member = CircleMember.objects.get(circle=circle,member=member)
         return circle_member.allow_public_guarantees_request
 
+    def get_passport_image(self,member):
+        if member.passport_image:
+            # f = open(member.passport_image.path, 'rb')
+            # image = File(f)
+            # data = base64.b64encode(image.read())
+            # f.close()
+            with open(member.passport_image.path, "rb") as image_file:
+                encoded_string = base64.b64encode(image_file.read())
+            with open('image_file.txt', 'w') as post_file:
+                post_file.write(str(encoded_string))
+            print(encoded_string)
+            return encoded_string
+        else:
+            return ''
     # def get_guarantees(self,member):
     #     value = self.get_allow_public_guarantees_request(member)
     #     circle = self.context.get('circle')
@@ -250,7 +271,7 @@ class UnloggedCircleMemberSerializer(serializers.ModelSerializer):
     first_name = serializers.CharField(source='user.first_name')
     surname = serializers.CharField(source='user.last_name')
     email = serializers.EmailField(source='user.email')
-    # passport_url = serializers.ImageField(source='iprs_image')
+    passport_image = serializers.SerializerMethodField()
     # date_of_birth = serializers.SerializerMethodField()
     time_registered = serializers.SerializerMethodField()
     is_self = serializers.SerializerMethodField()
@@ -259,7 +280,7 @@ class UnloggedCircleMemberSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Member
-        fields = ['first_name','surname','other_name','email','gender','country','phone_number','national_id','currency','date_of_birth','time_registered','is_self','available_shares','allow_public_guarantees_request']
+        fields = ['first_name','surname','other_name','email','gender','country','phone_number','national_id','currency','date_of_birth','time_registered','is_self','available_shares','passport_image','allow_public_guarantees_request']
 
 
     def get_time_registered(self,member):
@@ -281,6 +302,20 @@ class UnloggedCircleMemberSerializer(serializers.ModelSerializer):
         circle_member = CircleMember.objects.get(circle=circle,member=member)
         return circle_member.allow_public_guarantees_request
 
+    def get_passport_image(self,member):
+        if member.passport_image:
+            # f = open(member.passport_image.path, 'rb')
+            # image = File(f)
+            # data = base64.b64encode(image.read())
+            # f.close()
+            with open(member.passport_image.path, "rb") as image_file:
+                encoded_string = base64.b64encode(image_file.read())
+            with open('image_file.txt', 'w') as post_file:
+                post_file.write(str(encoded_string))
+            print(encoded_string)
+            return encoded_string
+        else:
+            return ''
     # def get_guarantees(self,member):
     #     value = self.get_allow_public_guarantees_request(member)
     #     circle = self.context.get('circle')

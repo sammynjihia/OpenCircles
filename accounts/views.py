@@ -56,6 +56,7 @@ class MemberRegistration(APIView):
                 new_member.save()
                 wallet = Wallet.objects.create(member=new_member, acc_no=new_member.national_id)
                 save_member_contacts.delay(new_member.id, contacts)
+                accounts_utils.Account().save_contacts(new_member,contacts)
                 login(request, new_member.user)
                 data = {"status":1, "token":token.key}
                 return Response(data, status=status.HTTP_201_CREATED)
@@ -92,6 +93,7 @@ class LoginIn(APIView):
                     user.member.save()
                     token, created = Token.objects.get_or_create(user=user)
                     serializer = MemberSerializer(request.user.member)
+                    print(serializer.data)
                     data = {"status":1, "token":token.key, "member":serializer.data}
                     return Response(data, status=status.HTTP_200_OK)
                 else:

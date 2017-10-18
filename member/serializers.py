@@ -29,12 +29,16 @@ class MemberSerializer(serializers.ModelSerializer):
 
     def get_passport_image(self,member):
         if member.passport_image:
-            f = open(member.passport_image.path, 'rb')
-            print(f)
-            image = File(f)
-            data = base64.b64encode(image.read())
-            f.close()
-            return data
+            # f = open(member.passport_image.path, 'rb')
+            # image = File(f)
+            # data = base64.b64encode(image.read())
+            # f.close()
+            with open(member.passport_image.path, "rb") as image_file:
+                encoded_string = base64.b64encode(image_file.read())
+            with open('image_file.txt', 'w') as post_file:
+                post_file.write(str(encoded_string))
+            print(encoded_string)
+            return encoded_string
         else:
             return ''
 

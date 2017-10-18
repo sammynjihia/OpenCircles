@@ -94,8 +94,10 @@ class CircleCreation(APIView):
                         title = circle.circle_name
                         message = "{} {} invited you to join circle {}.".format(member.user.first_name,member.user.last_name,title)
                         device =  "multiple"
-                        inivited_serializer = InvitedCircleSerializer(circle)
-                        fcm_data = {"request_type":"INVITED_CIRCLE","circle":serializer.data}
+                        invited_by = "{} {}".format(request.user.first_name,request.user.last_name)
+                        invited_serializer = InvitedCircleSerializer(circle,context={"invited_by":invited_by})
+                        print(invited_serializer.data)
+                        fcm_data = {"request_type":"INVITED_CIRCLE","circle":invited_serializer.data}
                         instance.notification_push(device,registration_ids,title,message)
                         instance.data_push(device,registration_ids,fcm_data)
                     data={"status":1,"circle":serializer.data,"wallet_transaction":wallet_serializer.data,"shares_transaction":shares_serializer.data,"message":"Circle created successfully.Circle will be activated when members join."}
@@ -399,7 +401,6 @@ class CircleInvite(APIView):
             phone = instance.format_phone_number(serializer.validated_data['phone_number'])
             circle_member = CircleMember.objects.get(member=request.user.member,circle=circle)
             try:
-
                 invited_circle_member = CircleMember.objects.get(circle=circle,member=Member.objects.filter(phone_number=phone))
                 data = {"status":0,"message":"The user is already a member of the circle."}
             except CircleMember.DoesNotExist:
@@ -420,10 +421,15 @@ class CircleInvite(APIView):
                             invited_member = Member.objects.get(phone_number=phone)
                             DeclinedCircles.objects.filter(circle=circle,member=invited_member).delete()
                             fcm_instance = fcm_utils.Fcm()
+                            invited_by = "{} {}".format(request.user.first_name,request.user.last_name)
+                            invited_serializer = InvitedCircleSerializer(circle,context={"invited_by":invited_by})
+                            print(invited_serializer.data)
+                            fcm_data = {"request_type":"INVITED_CIRCLE","circle":invited_serializer.data}
                             title = "Circle {}".format(circle.circle_name)
                             message = "{} has invited you to join this circle.".format(request.user.first_name)
                             registration_id = invited_member.device_token
                             if len(registration_id):
+                                fcm_instance.data_push("single",registration_id,fcm_data)
                                 fcm_instance.notification_push("single",registration_id,title,message)
                             else:
                                 #send sms

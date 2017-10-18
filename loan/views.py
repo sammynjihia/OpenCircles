@@ -242,8 +242,8 @@ class LoanRepayment(APIView):
                                 if unlockable:
                                     print(guarantors)
                                     #unblock unlock guarantor shares
-                                    loan_instance.unlock_guarantors_shares(guarantors, "")
-                                    # unlocking_guarantors_shares.delay(guarantors_id, "")
+                                    # loan_instance.unlock_guarantors_shares(guarantors, "")
+                                    unlocking_guarantors_shares.delay(guarantors_id, "")
                             wallet_transaction_serializer = WalletTransactionsSerializer(wallet_transaction)
                             circle_instance = circle_utils.Circle()
                             if remaining_number_of_months == 0 or ending_balance == 0:

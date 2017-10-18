@@ -238,7 +238,7 @@ class LoanRepayment(APIView):
                             ending_balance = math.ceil(latest_loan_amortize.ending_balance) - extra_principal
                             if guarantors.exists():
                                 unlockable = loan_instance.calculate_total_paid_principal(loan)
-                                guarantors_id = guarantors.values_list('id')
+                                guarantors_id = guarantors.values_list('id',flat=True)
                                 if unlockable:
                                     print(guarantors)
                                     #unblock unlock guarantor shares

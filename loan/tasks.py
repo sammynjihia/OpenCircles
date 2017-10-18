@@ -8,7 +8,7 @@ from loan.models import GuarantorRequest
 @shared_task
 def unlocking_guarantors_shares(guarantors_id, shares_desc):
     instance = loan_utils.Loan()
-    guarantors = GuarantorRequest.objects.filter(id=guarantors_id)
+    guarantors = GuarantorRequest.objects.filter(id__in=guarantors_id)
     instance.unlock_guarantors_shares(guarantors, shares_desc)
     message = "unlocked shares successfully"
 

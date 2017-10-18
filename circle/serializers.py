@@ -195,7 +195,7 @@ class CircleMemberSerializer(serializers.ModelSerializer):
     first_name = serializers.CharField(source='user.first_name')
     surname = serializers.CharField(source='user.last_name')
     email = serializers.EmailField(source='user.email')
-    passport_image = serializers.SerializerMethodField()
+    # passport_image = serializers.SerializerMethodField()
     # date_of_birth = serializers.SerializerMethodField()
     time_registered = serializers.SerializerMethodField()
     is_self = serializers.SerializerMethodField()
@@ -205,7 +205,7 @@ class CircleMemberSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Member
-        fields = ['first_name','surname','other_name','email','gender','country','phone_number','national_id','currency','date_of_birth','time_registered','is_self','available_shares','passport_image','allow_guarantor_request','allow_public_guarantees_request']
+        fields = ['first_name','surname','other_name','email','gender','country','phone_number','national_id','currency','date_of_birth','time_registered','is_self','available_shares','allow_guarantor_request','allow_public_guarantees_request']
 
     def get_time_registered(self,member):
          date = member.time_registered
@@ -242,20 +242,20 @@ class CircleMemberSerializer(serializers.ModelSerializer):
         circle_member = CircleMember.objects.get(circle=circle,member=member)
         return circle_member.allow_public_guarantees_request
 
-    def get_passport_image(self,member):
-        if member.passport_image:
-            # f = open(member.passport_image.path, 'rb')
-            # image = File(f)
-            # data = base64.b64encode(image.read())
-            # f.close()
-            with open(member.passport_image.path, "rb") as image_file:
-                encoded_string = base64.b64encode(image_file.read())
-            with open('image_file.txt', 'w') as post_file:
-                post_file.write(str(encoded_string))
-            print(encoded_string)
-            return encoded_string
-        else:
-            return ''
+    # def get_passport_image(self,member):
+    #     if member.passport_image:
+    #         # f = open(member.passport_image.path, 'rb')
+    #         # image = File(f)
+    #         # data = base64.b64encode(image.read())
+    #         # f.close()
+    #         with open(member.passport_image.path, "rb") as image_file:
+    #             encoded_string = base64.b64encode(image_file.read())
+    #         with open('image_file.txt', 'w') as post_file:
+    #             post_file.write(str(encoded_string))
+    #         print(encoded_string)
+    #         return encoded_string
+    #     else:
+    #         return ''
     # def get_guarantees(self,member):
     #     value = self.get_allow_public_guarantees_request(member)
     #     circle = self.context.get('circle')
@@ -271,7 +271,7 @@ class UnloggedCircleMemberSerializer(serializers.ModelSerializer):
     first_name = serializers.CharField(source='user.first_name')
     surname = serializers.CharField(source='user.last_name')
     email = serializers.EmailField(source='user.email')
-    passport_image = serializers.SerializerMethodField()
+    # passport_image = serializers.SerializerMethodField()
     # date_of_birth = serializers.SerializerMethodField()
     time_registered = serializers.SerializerMethodField()
     is_self = serializers.SerializerMethodField()
@@ -280,7 +280,7 @@ class UnloggedCircleMemberSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Member
-        fields = ['first_name','surname','other_name','email','gender','country','phone_number','national_id','currency','date_of_birth','time_registered','is_self','available_shares','passport_image','allow_public_guarantees_request']
+        fields = ['first_name','surname','other_name','email','gender','country','phone_number','national_id','currency','date_of_birth','time_registered','is_self','available_shares','allow_public_guarantees_request']
 
 
     def get_time_registered(self,member):
@@ -302,20 +302,20 @@ class UnloggedCircleMemberSerializer(serializers.ModelSerializer):
         circle_member = CircleMember.objects.get(circle=circle,member=member)
         return circle_member.allow_public_guarantees_request
 
-    def get_passport_image(self,member):
-        if member.passport_image:
-            # f = open(member.passport_image.path, 'rb')
-            # image = File(f)
-            # data = base64.b64encode(image.read())
-            # f.close()
-            with open(member.passport_image.path, "rb") as image_file:
-                encoded_string = base64.b64encode(image_file.read())
-            with open('image_file.txt', 'w') as post_file:
-                post_file.write(str(encoded_string))
-            print(encoded_string)
-            return encoded_string
-        else:
-            return ''
+    # def get_passport_image(self,member):
+    #     if member.passport_image:
+    #         # f = open(member.passport_image.path, 'rb')
+    #         # image = File(f)
+    #         # data = base64.b64encode(image.read())
+    #         # f.close()
+    #         with open(member.passport_image.path, "rb") as image_file:
+    #             encoded_string = base64.b64encode(image_file.read())
+    #         with open('image_file.txt', 'w') as post_file:
+    #             post_file.write(str(encoded_string))
+    #         print(encoded_string)
+    #         return encoded_string
+    #     else:
+    #         return ''
     # def get_guarantees(self,member):
     #     value = self.get_allow_public_guarantees_request(member)
     #     circle = self.context.get('circle')

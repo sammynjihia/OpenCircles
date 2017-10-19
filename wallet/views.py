@@ -433,7 +433,15 @@ class MpesaC2BConfirmationURL(APIView):
                     result_file.write("\n")
 
             general_instance = general_utils.General()
-            wallet = member.wallet
+            ###########
+            try:
+                wallet = member.wallet
+            except Exception as e:
+                with open('c2b_wallet_exception_file.txt', 'a') as db_file:
+                    db_file.write(str(e))
+                    db_file.write("\n")
+
+            ##############
             transaction_desc = "{} confirmed, kes {} has been credited to your wallet by {} {} {} ".format(transaction_id, transaction_amount, transacted_by_msisdn, transacted_by_firstname, transacted_by_lastname)
 
             with open('c2b_transactions_file.txt', 'a') as db_file:

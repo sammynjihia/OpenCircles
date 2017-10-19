@@ -389,7 +389,7 @@ class MpesaC2BConfirmationURL(APIView):
             post_file.write("\n")
 
         result = json.loads(data)
-        
+
 
         transaction_id = result["TransID"]
         transaction_time = result["TransTime"]
@@ -419,6 +419,11 @@ class MpesaC2BConfirmationURL(APIView):
         try:
             try:
                 member = Member.objects.get(phone_number=wallet_account)
+                ##################
+                with open('c2b_member_fetched.txt', 'a') as result_file:
+                    result_file.write(str(member))
+                    result_file.write("\n")
+                ##################
 
             except Member.DoesNotExist as exp:
                 with open('c2b_member_fetched_failed.txt', 'a') as result_file:
@@ -453,6 +458,11 @@ class MpesaC2BConfirmationURL(APIView):
         except Exception as e:
             instance = general_utils.General()
             instance.delete_created_objects(created_objects)
+            ###################
+            with open('c2b_exception.txt', 'a') as result_file:
+                result_file.write(str(e))
+                result_file.write("\n")
+            ###################
             data = {"status": 0, "message": "Unable to process transaction"}
             return Response(data, status=status.HTTP_200_OK)
 

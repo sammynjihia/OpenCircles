@@ -6,15 +6,15 @@ import base64
 #from M2Crypto import RSA, X509
 #from base64 import b64encode
 
-consumer_key = "tAEyfavNAtEi68QLD7j534XgVCYQkY1v"
-consumer_secret = "S7IQHLdo2epsV35O"
-api_URL = "https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials"
+consumer_key = "iT4xDCEGuaAbQkcOVTvjm8vGl2K3jqcz"
+consumer_secret = "Wwyu7nOkNGGDom6V"
+api_URL = "https://api.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials"
 main_url = "https://opencircles-mpesa-test.teamnairobi.com/"
 lipaonline_callbackURL = main_url + "wallet/mpesaCallbackURL/"
-shortcode = "174379"
+shortcode = "564433"
 timestamp_raw = datetime.datetime.now()
 timestamp = timestamp_raw.strftime('%Y%m%d%I%M%S')
-passkey = "bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919"
+passkey = "068807038af3ff41280527fc8f6f034a17d334b997403e46798d0fb8a171a99e"
 password_raw = bytes(shortcode + passkey + timestamp)
 password = base64.b64encode(password_raw )
 
@@ -53,7 +53,7 @@ class MpesaUtils():
 
     def mpesa_online_checkout(self, amount, phone_number):
         access_token = self.get_access_token()
-        api_url = "https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest"
+        api_url = "https://api.safaricom.co.ke/mpesa/stkpush/v1/processrequest"
         headers = { "Authorization": "Bearer %s" % access_token }
         request = {
           "BusinessShortCode": shortcode,
@@ -66,7 +66,7 @@ class MpesaUtils():
           "PhoneNumber": phone_number,
           "CallBackURL": lipaonline_callbackURL,
           "AccountReference": phone_number,
-          "TransactionDesc": "Transfer cash"
+          "TransactionDesc": "Credit my opencircles wallet"
         }
 
         response = requests.post(api_url, json = request, headers=headers)

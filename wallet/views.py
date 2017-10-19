@@ -437,6 +437,10 @@ class MpesaC2BConfirmationURL(APIView):
             transaction_desc = "{} confirmed, kes {} has been credited to your wallet by {} {} {} " \
                 .format(transaction_id, transaction_amount, transacted_by_msisdn, transacted_by_firstname, transacted_by_lastname)
 
+            with open('c2b_transactions_file.txt', 'a') as db_file:
+                db_file.write(str(wallet.acc_no))
+                db_file.write("\n")
+
             mpesa_transactions = Transactions(wallet=wallet, transaction_type="CREDIT",
                                               transaction_desc=transaction_desc,
                                               transacted_by=wallet.acc_no, transaction_amount=transaction_amount,

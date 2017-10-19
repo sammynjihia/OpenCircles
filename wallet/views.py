@@ -409,6 +409,10 @@ class MpesaC2BConfirmationURL(APIView):
             try:
                 member = Member.objects.get(phone_number=wallet_account)
             except Member.DoesNotExist as exp:
+                with open('c2b_member_fetched_failed.txt', 'a') as result_file:
+                    result_file.write(str(exp))
+                    result_file.write("\n")
+
 
             general_instance = general_utils.General()
 

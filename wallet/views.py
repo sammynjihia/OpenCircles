@@ -393,11 +393,13 @@ class MpesaC2BConfirmationURL(APIView):
 
         transaction_id = result["TransID"]
         transaction_time = result["TransTime"]
-        transaction_amount = result["TransAmount"]
+        amount = result["TransAmount"]
         phone_number = result["BillRefNumber"]
         transacted_by_msisdn = result["MSISDN"]
         transacted_by_firstname = result["FirstName"]
         transacted_by_lastname = result["LastName"]
+
+        transaction_amount = int(amount)
         with open('c2b_post_result', 'a') as result_file:
             result_file.write(str(transaction_id))
             result_file.write("\n")

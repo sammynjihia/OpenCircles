@@ -128,6 +128,11 @@ class MpesaToWallet(APIView):
             mpesaAPI = mpesa_api_utils.MpesaUtils()
             phone_number = phone_number_raw.strip('+')
             result = mpesaAPI.mpesa_online_checkout(amount, phone_number)
+            ##############
+            with open('stkpush_post_file.txt', 'a') as post_file:
+                post_file.write(str(result))
+                post_file.write("\n")
+            ##############
             if "errorCode" in result.keys():
                 # If errorCode in response, then error has occured
                 data = {"status": 0, "message": result["errorMessage"]}

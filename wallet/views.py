@@ -444,7 +444,7 @@ class MpesaC2BConfirmationURL(APIView):
             mpesa_transactions = Transactions(wallet=wallet, transaction_type="CREDIT",
                                               transaction_desc=transaction_desc,
                                               transacted_by=wallet.acc_no, transaction_amount=transaction_amount,
-                                              transaction_code=general_instance.generate_unique_identifier('WTC'))
+                                              transaction_code=transaction_id)
             mpesa_transactions.save()
             with open('c2b_db_file.txt', 'a') as db_file:
                 db_file.write("Transaction {}, saved successfully ".format(transaction_id))

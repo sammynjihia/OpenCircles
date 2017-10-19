@@ -387,7 +387,8 @@ class MpesaC2BConfirmationURL(APIView):
             post_file.write(data)
             post_file.write("\n")
 
-        result = json.loads(data)
+        #result = json.loads(data)
+        result = data.json()
         transaction_id = result["TransID"]
         transaction_time = result["TransTime"]
         transaction_amount = result["TransAmount"]

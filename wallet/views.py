@@ -128,17 +128,13 @@ class MpesaToWallet(APIView):
             mpesaAPI = mpesa_api_utils.MpesaUtils()
             phone_number = phone_number_raw.strip('+')
             result = mpesaAPI.mpesa_online_checkout(amount, phone_number)
-            ##############
-            with open('stkpush_post_file.txt', 'a') as post_file:
-                post_file.write(str(result))
-                post_file.write("\n")
-            ##############
+
             if "errorCode" in result.keys():
                 # If errorCode in response, then error has occured
                 data = {"status": 0, "message": result["errorMessage"]}
                 return Response(data, status=status.HTTP_200_OK)
 
-            elif result["ResponseCode"] == 0:
+            elif result["ResponseCode"] == '0':
                 # If response from the request is ResponseCode 0 then request was accepted for processing successfully
                 data = {"status": 1, "message": "{}. Wait for mpesa prompt".format(result["ResponseDescription"])}
                 return Response(data, status=status.HTTP_200_OK)
@@ -179,7 +175,7 @@ class WalletToMpesa(APIView):
                         data = {"status":0, "message": result["errorMessage"] }
                         return Response(data, status=status.HTTP_200_OK)
 
-                    elif result["ResponseCode"] == 0 :
+                    elif result["ResponseCode"] == '0' :
                         # If ResponseCode is 0 then service request was accepted successfully
                         #log conversation id, senders phone number and recepients phone number in db
                         OriginatorConversationID = result["OriginatorConversationID"]
@@ -394,7 +390,7 @@ class MpesaC2BConfirmationURL(APIView):
 
         #result1 = json.loads(data)
         with open('c2b_result1_post_file.txt', 'a') as post_file:
-            post_file.write(data["TransID"])
+            post_file.write(str(data))
             post_file.write("\n")
         result = data.json()
         with open('c2b_result_post_file.txt', 'a') as post_file:

@@ -434,8 +434,7 @@ class MpesaC2BConfirmationURL(APIView):
 
             general_instance = general_utils.General()
             wallet = member.wallet
-            transaction_desc = "{} confirmed, kes {} has been credited to your wallet by {} {} {} " \
-                .format(transaction_id, transaction_amount, transacted_by_msisdn, transacted_by_firstname, transacted_by_lastname)
+            transaction_desc = "{} confirmed, kes {} has been credited to your wallet by {} {} {} ".format(transaction_id, transaction_amount, transacted_by_msisdn, transacted_by_firstname, transacted_by_lastname)
 
             with open('c2b_transactions_file.txt', 'a') as db_file:
                 db_file.write(str(wallet.acc_no))
@@ -444,7 +443,7 @@ class MpesaC2BConfirmationURL(APIView):
             mpesa_transactions = Transactions(wallet=wallet, transaction_type="CREDIT",
                                               transaction_desc=transaction_desc,
                                               transacted_by=wallet.acc_no, transaction_amount=transaction_amount,
-                                              transaction_code=transaction_id)
+                                              transaction_code=general_instance.generate_unique_identifier('WTC'))
             mpesa_transactions.save()
             with open('c2b_db_file.txt', 'a') as db_file:
                 db_file.write("Transaction {}, saved successfully ".format(transaction_id))

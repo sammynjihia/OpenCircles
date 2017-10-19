@@ -388,9 +388,9 @@ class MpesaC2BConfirmationURL(APIView):
             post_file.write(data)
             post_file.write("\n")
 
-        #result1 = json.loads(data)
+        result1 = json.loads(data)
         with open('c2b_result1_post_file.txt', 'a') as post_file:
-            post_file.write(str(type(data)))
+            post_file.write(str(type(result1)))
             post_file.write("\n")
         result = data.json()
         with open('c2b_result_post_file.txt', 'a') as post_file:

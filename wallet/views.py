@@ -395,9 +395,21 @@ class MpesaC2BConfirmationURL(APIView):
         transacted_by_msisdn = result["MSISDN"]
         transacted_by_firstname = result["FirstName"]
         transacted_by_lastname = result["LastName"]
+        with open('c2b_post_result', 'a') as result_file:
+            result_file.write(str(transaction_id))
+            result_file.write("\n")
+            result_file.write(str(transaction_amount))
+            result_file.write("\n")
+            result_file.write(str(phone_number))
+            result_file.write("\n")
+
 
         phonenumber = sms_utils.Sms()
         wallet_account = phonenumber.format_phone_number(phone_number)
+
+        with open('c2b_wallet_account_result', 'a') as result_file:
+            result_file.write(str(wallet_account))
+            result_file.write("\n")
 
         member = None
         created_objects = []

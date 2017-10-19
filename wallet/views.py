@@ -400,62 +400,27 @@ class MpesaC2BConfirmationURL(APIView):
         transacted_by_lastname = result["LastName"]
 
         transaction_amount = int(amount)
-        with open('c2b_post_result', 'a') as result_file:
-            result_file.write(str(transaction_id))
-            result_file.write("\n")
-            result_file.write(str(transaction_amount))
-            result_file.write("\n")
-            result_file.write(str(phone_number))
-            result_file.write("\n")
-
-
         phonenumber = sms_utils.Sms()
         wallet_account = phonenumber.format_phone_number(phone_number)
-
-        with open('c2b_wallet_account_result', 'a') as result_file:
-            result_file.write(str(wallet_account))
-            result_file.write("\n")
 
         member = None
         created_objects = []
         try:
             try:
                 member = Member.objects.get(phone_number=wallet_account)
-                ##################
-                with open('c2b_member_fetched.txt', 'a') as result_file:
-                    result_file.write(str(member))
-                    result_file.write("\n")
-                ##################
-
             except Member.DoesNotExist as exp:
-                with open('c2b_member_fetched_failed.txt', 'a') as result_file:
-                    result_file.write(str(exp))
-                    result_file.write("\n")
 
             general_instance = general_utils.General()
-            ###########
-            try:
-                wallet = member.wallet
-            except Exception as e:
-                with open('c2b_wallet_exception_file.txt', 'a') as db_file:
-                    db_file.write(str(e))
-                    db_file.write("\n")
 
-            ##############
+            wallet = member.wallet
+
             transaction_desc = "{} confirmed, kes {} has been credited to your wallet by {} {} {} ".format(transaction_id, transaction_amount, transacted_by_msisdn, transacted_by_firstname, transacted_by_lastname)
-
-            with open('c2b_transactions_file.txt', 'a') as db_file:
-                db_file.write(str(wallet.acc_no))
-                db_file.write("\n")
 
             mpesa_transactions = Transactions(wallet=wallet, transaction_type="CREDIT",
                                               transaction_desc=transaction_desc,
                                               transacted_by=wallet.acc_no, transaction_amount=transaction_amount,
                                               transaction_code=general_instance.generate_unique_identifier('WTC'))
             mpesa_transactions.save()
-            with open('c2b_db_file.txt', 'a') as db_file:
-                db_file.write("Transaction {}, saved successfully ".format(transaction_id))
-                db_file.write("\n")
             created_objects.append(mpesa_transactions)
             serializer = WalletTransactionsSerializer(mpesa_transactions)
             instance = fcm_utils.Fcm()
@@ -471,11 +436,6 @@ class MpesaC2BConfirmationURL(APIView):
         except Exception as e:
             instance = general_utils.General()
             instance.delete_created_objects(created_objects)
-            ###################
-            with open('c2b_exception.txt', 'a') as result_file:
-                result_file.write(str(e))
-                result_file.write("\n")
-            ###################
             data = {"status": 0, "message": "Unable to process transaction"}
             return Response(data, status=status.HTTP_200_OK)
 

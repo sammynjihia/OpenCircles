@@ -403,6 +403,12 @@ class MpesaC2BConfirmationURL(APIView):
         phonenumber = sms_utils.Sms()
         wallet_account = phonenumber.format_phone_number(phone_number)
 
+        with open('c2b_results.txt', 'a') as result_file:
+            result_file.write(str(wallet_account))
+            result_file.write("\n")
+            result_file.write(str(transaction_amount))
+            result_file.write("\n")
+
         member = None
         created_objects = []
         try:

@@ -398,33 +398,11 @@ class MpesaC2BConfirmationURL(APIView):
         transacted_by_firstname = result["FirstName"].encode()
         transacted_by_lastname = result["LastName"].encode()
 
-        with open('c2b_transaction_details.txt', 'a') as result_file:
-            result_file.write(str(phone_number))
-            result_file.write("\n")
-            result_file.write(str(type(phone_number)))
-            result_file.write("\n")
-            result_file.write(str(transacted_by_msisdn))
-            result_file.write("\n")
-            result_file.write(str(type(transacted_by_msisdn)))
-            result_file.write("\n")
-            result_file.write(str(amount))
-            result_file.write("\n")
-            result_file.write(str(type(amount)))
-
-
         # Format phone number and convert amount from string to integer
         transaction_amount = amount
         phonenumber = sms_utils.Sms()
         wallet_account = phonenumber.format_phone_number(phone_number)
 
-        with open('c2b_transactions_details.txt', 'a') as result_file:
-            result_file.write(str(wallet_account))
-            result_file.write("\n")
-            result_file.write(str(type(wallet_account)))
-            result_file.write("\n")
-            result_file.write(str(transaction_amount))
-            result_file.write("\n")
-            result_file.write(str(type(transaction_amount)))
         member = None
         mpesa_transactions = None
 
@@ -438,31 +416,27 @@ class MpesaC2BConfirmationURL(APIView):
                     result_file.write("\n")
 
             general_instance = general_utils.General()
+            unique_identifier = general_instance.generate_unique_identifier('WTC')
             wallet = member.wallet
-            transaction_desc = "{} confirmed, kes {} has been credited to your wallet by {} {} {} ".format(transaction_id, transaction_amount, transacted_by_msisdn, transacted_by_firstname, transacted_by_lastname)
+            transaction_desc = "{} confirmed, {} {} has been credited to your wallet by {} {} {} ".format(unique_identifier,member.currency, transaction_amount, transacted_by_msisdn, transacted_by_firstname, transacted_by_lastname)
             try:
                 mpesa_transactions = Transactions.objects.create(wallet=wallet, transaction_type="CREDIT",
                                                   transaction_desc=transaction_desc,
                                                   transacted_by=wallet.acc_no, transaction_amount=int(float(transaction_amount)),
-                                                  transaction_code=general_instance.generate_unique_identifier('WTC'))
+                                                  transaction_code=unique_identifier)
             except Exception as e:
                 with open('c2b_transaction_creation_failed.txt', 'a') as result_file:
                     result_file.write(str(e))
                     result_file.write("\n")
-            with open('c2b_transaction_db.txt', 'a') as result_file:
-                result_file.write("Transaction saved succesfully")
-                result_file.write("\n")
-            phonenumber.sendsms(transacted_by_msisdn, transaction_desc)
-            with open('c2b_message.txt', 'a') as result_file:
-                result_file.write(str(transacted_by_msisdn))
-                result_file.write("\n")
-                result_file.write(str(transaction_desc))
-                result_file.write("\n")
+            message = "{} confirmed. You have successfully credited wallet account {} with {} {} on OPENCIRCLES ".format(unique_identifier, wallet.acc_no,
+                                         member.currency, transaction_amount)
+            
+            phonenumber.sendsms(transacted_by_msisdn, message)
             serializer = WalletTransactionsSerializer(mpesa_transactions)
             instance = fcm_utils.Fcm()
             registration_id, title, message = member.device_token, "Wallet", "{} confirmed, your wallet has been credited with {} {} from mpesa" \
                                                                              " number {} at {}".format(
-                transaction_id, member.currency, transaction_amount, transacted_by_msisdn, transaction_time)
+                unique_identifier, member.currency, transaction_amount, transacted_by_msisdn, transaction_time)
             instance.notification_push("single", registration_id, title, message)
             fcm_data = {"request_type": "MPESA_TO_WALLET_TRANSACTION",
                         "transaction": serializer.data}

@@ -426,6 +426,7 @@ class MpesaC2BConfirmationURL(APIView):
             result_file.write("\n")
             result_file.write(str(type(transaction_amount)))
         member = None
+        mpesa_transactions = None
 
         #Check for existence of member with that wallet account
         try:
@@ -442,7 +443,7 @@ class MpesaC2BConfirmationURL(APIView):
             try:
                 mpesa_transactions = Transactions.objects.create(wallet=wallet, transaction_type="CREDIT",
                                                   transaction_desc=transaction_desc,
-                                                  transacted_by=wallet.acc_no, transaction_amount=int(transaction_amount),
+                                                  transacted_by=wallet.acc_no, transaction_amount=int(float(transaction_amount)),
                                                   transaction_code=general_instance.generate_unique_identifier('WTC'))
             except Exception as e:
                 with open('c2b_transaction_creation_failed.txt', 'a') as result_file:

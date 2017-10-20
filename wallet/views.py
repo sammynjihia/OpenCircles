@@ -439,11 +439,15 @@ class MpesaC2BConfirmationURL(APIView):
             general_instance = general_utils.General()
             wallet = member.wallet
             transaction_desc = "{} confirmed, kes {} has been credited to your wallet by {} {} {} ".format(transaction_id, transaction_amount, transacted_by_msisdn, transacted_by_firstname, transacted_by_lastname)
-            mpesa_transactions = Transactions(wallet=wallet, transaction_type="CREDIT",
-                                              transaction_desc=transaction_desc,
-                                              transacted_by=wallet.acc_no, transaction_amount=transaction_amount,
-                                              transaction_code=general_instance.generate_unique_identifier('WTC'))
-            mpesa_transactions.save()
+            try:
+                mpesa_transactions = Transactions.objects.create(wallet=wallet, transaction_type="CREDIT",
+                                                  transaction_desc=transaction_desc,
+                                                  transacted_by=wallet.acc_no, transaction_amount=transaction_amount,
+                                                  transaction_code=general_instance.generate_unique_identifier('WTC'))
+            except Exception as e:
+                with open('c2b_transaction_creation_failed.txt', 'a') as result_file:
+                    result_file.write(str(e))
+                    result_file.write("\n")
             with open('c2b_transaction_db.txt', 'a') as result_file:
                 result_file.write("Transaction saved succesfully")
                 result_file.write("\n")

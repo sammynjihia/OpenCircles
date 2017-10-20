@@ -388,32 +388,11 @@ class MpesaC2BConfirmationURL(APIView):
             post_file.write(data)
             post_file.write("\n")
 
-        result1 = json.loads(data)
-
-        ################
-        with open('c2b_results1.txt', 'a') as result_file:
-            result_file.write(str(type(result1)))
-            result_file.write("\n")
-            result_file.write(str(result1))
-            result_file.write("\n")
-        ##################
-
-        result = json.dumps(result1)
-
-        ###################3
-        with open('c2b_results2.txt', 'a') as result_file:
-            result_file.write(str(type(result)))
-            result_file.write("\n")
-            result_file.write(str(result))
-            result_file.write("\n")
-        #####################
-
-        result = result.json()
-
+        result = json.loads(data)
 
         transaction_id = result["TransID"]
         transaction_time = result["TransTime"]
-        amount = result["TransAmount"]
+        amount = result["TransAmount"].encode()
         phone_number = result["BillRefNumber"]
         transacted_by_msisdn = result["MSISDN"]
         transacted_by_firstname = result["FirstName"]

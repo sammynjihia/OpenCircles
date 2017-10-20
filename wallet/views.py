@@ -428,9 +428,9 @@ class MpesaC2BConfirmationURL(APIView):
                 with open('c2b_transaction_creation_failed.txt', 'a') as result_file:
                     result_file.write(str(e))
                     result_file.write("\n")
-            message = "{} confirmed. You have successfully credited wallet account {} with {} {} on OPENCIRCLES ".format(unique_identifier, wallet.acc_no,
+            message = "{} confirmed. You have successfully credited wallet account {} with {} {} on OPENCIRCLES ".format(unique_identifier, wallet_account,
                                          member.currency, transaction_amount)
-            
+
             phonenumber.sendsms(transacted_by_msisdn, message)
             serializer = WalletTransactionsSerializer(mpesa_transactions)
             instance = fcm_utils.Fcm()

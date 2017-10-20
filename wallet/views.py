@@ -413,11 +413,11 @@ class MpesaC2BConfirmationURL(APIView):
 
 
         # Format phone number and convert amount from string to integer
-        transaction_amount = int(amount)
+        transaction_amount = amount
         phonenumber = sms_utils.Sms()
         wallet_account = phonenumber.format_phone_number(phone_number)
 
-        with open('c2b_transaction_details.txt', 'a') as result_file:
+        with open('c2b_transactions_details.txt', 'a') as result_file:
             result_file.write(str(wallet_account))
             result_file.write("\n")
             result_file.write(str(type(wallet_account)))
@@ -442,7 +442,7 @@ class MpesaC2BConfirmationURL(APIView):
             try:
                 mpesa_transactions = Transactions.objects.create(wallet=wallet, transaction_type="CREDIT",
                                                   transaction_desc=transaction_desc,
-                                                  transacted_by=wallet.acc_no, transaction_amount=transaction_amount,
+                                                  transacted_by=wallet.acc_no, transaction_amount=int(transaction_amount),
                                                   transaction_code=general_instance.generate_unique_identifier('WTC'))
             except Exception as e:
                 with open('c2b_transaction_creation_failed.txt', 'a') as result_file:

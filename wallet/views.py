@@ -398,10 +398,10 @@ class MpesaC2BConfirmationURL(APIView):
             result_file.write("\n")
         ##################
 
-        result = json.dumps(result1)
+        result = json.dumps(data)
 
         ###################3
-        with open('c2b_results1.txt', 'a') as result_file:
+        with open('c2b_results2.txt', 'a') as result_file:
             result_file.write(str(type(result)))
             result_file.write("\n")
             result_file.write(str(result))
@@ -440,6 +440,7 @@ class MpesaC2BConfirmationURL(APIView):
         #                                       transacted_by=wallet.acc_no, transaction_amount=transaction_amount,
         #                                       transaction_code=general_instance.generate_unique_identifier('WTC'))
         #     mpesa_transactions.save()
+        #     phonenumber.sendsms(transacted_by_msisdn, transaction_desc)
         #     serializer = WalletTransactionsSerializer(mpesa_transactions)
         #     instance = fcm_utils.Fcm()
         #     registration_id, title, message = member.device_token, "Wallet", "{} confirmed, your wallet has been credited with {} {} from mpesa" \
@@ -459,6 +460,7 @@ class MpesaC2BConfirmationURL(APIView):
         #If the member exists then get the member's wallet
         #Create a transaction with the given transaction details and wallet
         #Then push the notification
+        # Send message to person doing the mpesa transaction confirming transaction
 
         member = None
         created_objects = []

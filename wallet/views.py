@@ -400,9 +400,15 @@ class MpesaC2BConfirmationURL(APIView):
         transacted_by_lastname = result["LastName"]
 
         with open('c2b_results.txt', 'a') as result_file:
-            result_file.write(str(phone_number))
+            result_file.write(str(type(phone_number)))
             result_file.write("\n")
             result_file.write(str(type(amount)))
+            result_file.write("\n")
+
+        result1 = data.json()
+
+        with open('c2b_results1.txt', 'a') as result_file:
+            result_file.write(str(type(result1)))
             result_file.write("\n")
 
         # Format phone number and convert amount from string to integer
@@ -411,6 +417,32 @@ class MpesaC2BConfirmationURL(APIView):
         wallet_account = phonenumber.format_phone_number(phone_number)
 
         #Check for existence of member with that wallet account
+        # try:
+        #     member = Member.objects.get(phone_number=wallet_account)
+        #     general_instance = general_utils.General()
+        #     wallet = member.wallet
+        #     transaction_desc = "{} confirmed, kes {} has been credited to your wallet by {} {} {} ".format(transaction_id, transaction_amount, transacted_by_msisdn, transacted_by_firstname, transacted_by_lastname)
+        #     mpesa_transactions = Transactions(wallet=wallet, transaction_type="CREDIT",
+        #                                       transaction_desc=transaction_desc,
+        #                                       transacted_by=wallet.acc_no, transaction_amount=transaction_amount,
+        #                                       transaction_code=general_instance.generate_unique_identifier('WTC'))
+        #     mpesa_transactions.save()
+        #     serializer = WalletTransactionsSerializer(mpesa_transactions)
+        #     instance = fcm_utils.Fcm()
+        #     registration_id, title, message = member.device_token, "Wallet", "{} confirmed, your wallet has been credited with {} {} from mpesa" \
+        #                                                                      " number {} at {}".format(
+        #         transaction_id, member.currency, transaction_amount, transacted_by_msisdn, transaction_time)
+        #     instance.notification_push("single", registration_id, title, message)
+        #     fcm_data = {"request_type": "MPESA_TO_WALLET_TRANSACTION",
+        #                 "transaction": serializer.data}
+        #     data = {"status": 1, "wallet_transaction": serializer.data}
+        #     instance.data_push("single", registration_id, fcm_data)
+        #     return Response(data, status=status.HTTP_200_OK)
+        #
+        # except Exception as exp:
+        #     with open('c2b_failure_exception.txt', 'a') as result_file:
+        #         result_file.write(str(exp))
+        #         result_file.write("\n")
         #If the member exists then get the member's wallet
         #Create a transaction with the given transaction details and wallet
         #Then push the notification

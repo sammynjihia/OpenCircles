@@ -398,11 +398,33 @@ class MpesaC2BConfirmationURL(APIView):
         transacted_by_firstname = result["FirstName"].encode()
         transacted_by_lastname = result["LastName"].encode()
 
+        with open('c2b_transaction_details.txt', 'a') as result_file:
+            result_file.write(str(phone_number))
+            result_file.write("\n")
+            result_file.write(str(type(phone_number)))
+            result_file.write("\n")
+            result_file.write(str(transacted_by_msisdn))
+            result_file.write("\n")
+            result_file.write(str(type(transacted_by_msisdn)))
+            result_file.write("\n")
+            result_file.write(str(amount))
+            result_file.write("\n")
+            result_file.write(str(type(amount)))
+
 
         # Format phone number and convert amount from string to integer
         transaction_amount = int(amount)
         phonenumber = sms_utils.Sms()
         wallet_account = phonenumber.format_phone_number(phone_number)
+
+        with open('c2b_transaction_details.txt', 'a') as result_file:
+            result_file.write(str(wallet_account))
+            result_file.write("\n")
+            result_file.write(str(type(wallet_account)))
+            result_file.write("\n")
+            result_file.write(str(transaction_amount))
+            result_file.write("\n")
+            result_file.write(str(type(transaction_amount)))
         member = None
 
         #Check for existence of member with that wallet account
@@ -422,7 +444,15 @@ class MpesaC2BConfirmationURL(APIView):
                                               transacted_by=wallet.acc_no, transaction_amount=transaction_amount,
                                               transaction_code=general_instance.generate_unique_identifier('WTC'))
             mpesa_transactions.save()
+            with open('c2b_transaction_db.txt', 'a') as result_file:
+                result_file.write("Transaction saved succesfully")
+                result_file.write("\n")
             phonenumber.sendsms(transacted_by_msisdn, transaction_desc)
+            with open('c2b_message.txt', 'a') as result_file:
+                result_file.write(str(transacted_by_msisdn))
+                result_file.write("\n")
+                result_file.write(str(transaction_desc))
+                result_file.write("\n")
             serializer = WalletTransactionsSerializer(mpesa_transactions)
             instance = fcm_utils.Fcm()
             registration_id, title, message = member.device_token, "Wallet", "{} confirmed, your wallet has been credited with {} {} from mpesa" \

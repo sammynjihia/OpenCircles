@@ -388,7 +388,25 @@ class MpesaC2BConfirmationURL(APIView):
             post_file.write(data)
             post_file.write("\n")
 
-        result = json.loads(data)
+        result1 = json.loads(data)
+
+        ################
+        with open('c2b_results1.txt', 'a') as result_file:
+            result_file.write(str(type(result1)))
+            result_file.write("\n")
+            result_file.write(str(result1))
+            result_file.write("\n")
+        ##################
+
+        result = json.dumps(result1)
+
+        ###################3
+        with open('c2b_results1.txt', 'a') as result_file:
+            result_file.write(str(type(result)))
+            result_file.write("\n")
+            result_file.write(str(result))
+            result_file.write("\n")
+        #####################
 
 
         transaction_id = result["TransID"]
@@ -405,11 +423,6 @@ class MpesaC2BConfirmationURL(APIView):
             result_file.write(str(type(amount)))
             result_file.write("\n")
 
-        result1 = data.json()
-
-        with open('c2b_results1.txt', 'a') as result_file:
-            result_file.write(str(type(result1)))
-            result_file.write("\n")
 
         # Format phone number and convert amount from string to integer
         transaction_amount = int(amount)

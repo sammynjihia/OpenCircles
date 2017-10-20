@@ -390,61 +390,22 @@ class MpesaC2BConfirmationURL(APIView):
 
         result = json.loads(data)
 
-        transaction_id = result["TransID"]
-        transaction_time = result["TransTime"]
+        transaction_id = result["TransID"].encode()
+        transaction_time = result["TransTime"].encode()
         amount = result["TransAmount"].encode()
-        phone_number = result["BillRefNumber"]
-        transacted_by_msisdn = result["MSISDN"]
-        transacted_by_firstname = result["FirstName"]
-        transacted_by_lastname = result["LastName"]
-
-        with open('c2b_results.txt', 'a') as result_file:
-            result_file.write(str(type(phone_number)))
-            result_file.write("\n")
-            result_file.write(str(type(amount)))
-            result_file.write("\n")
+        phone_number = result["BillRefNumber"].encode()
+        transacted_by_msisdn = result["MSISDN"].encode()
+        transacted_by_firstname = result["FirstName"].encode()
+        transacted_by_lastname = result["LastName"].encode()
 
 
         # Format phone number and convert amount from string to integer
         transaction_amount = int(amount)
         phonenumber = sms_utils.Sms()
         wallet_account = phonenumber.format_phone_number(phone_number)
+        member = None
 
         #Check for existence of member with that wallet account
-        # try:
-        #     member = Member.objects.get(phone_number=wallet_account)
-        #     general_instance = general_utils.General()
-        #     wallet = member.wallet
-        #     transaction_desc = "{} confirmed, kes {} has been credited to your wallet by {} {} {} ".format(transaction_id, transaction_amount, transacted_by_msisdn, transacted_by_firstname, transacted_by_lastname)
-        #     mpesa_transactions = Transactions(wallet=wallet, transaction_type="CREDIT",
-        #                                       transaction_desc=transaction_desc,
-        #                                       transacted_by=wallet.acc_no, transaction_amount=transaction_amount,
-        #                                       transaction_code=general_instance.generate_unique_identifier('WTC'))
-        #     mpesa_transactions.save()
-        #     phonenumber.sendsms(transacted_by_msisdn, transaction_desc)
-        #     serializer = WalletTransactionsSerializer(mpesa_transactions)
-        #     instance = fcm_utils.Fcm()
-        #     registration_id, title, message = member.device_token, "Wallet", "{} confirmed, your wallet has been credited with {} {} from mpesa" \
-        #                                                                      " number {} at {}".format(
-        #         transaction_id, member.currency, transaction_amount, transacted_by_msisdn, transaction_time)
-        #     instance.notification_push("single", registration_id, title, message)
-        #     fcm_data = {"request_type": "MPESA_TO_WALLET_TRANSACTION",
-        #                 "transaction": serializer.data}
-        #     data = {"status": 1, "wallet_transaction": serializer.data}
-        #     instance.data_push("single", registration_id, fcm_data)
-        #     return Response(data, status=status.HTTP_200_OK)
-        #
-        # except Exception as exp:
-        #     with open('c2b_failure_exception.txt', 'a') as result_file:
-        #         result_file.write(str(exp))
-        #         result_file.write("\n")
-        #If the member exists then get the member's wallet
-        #Create a transaction with the given transaction details and wallet
-        #Then push the notification
-        # Send message to person doing the mpesa transaction confirming transaction
-
-        member = None
-        created_objects = []
         try:
             try:
                 member = Member.objects.get(phone_number=wallet_account)
@@ -453,19 +414,15 @@ class MpesaC2BConfirmationURL(APIView):
                     result_file.write(str(exp))
                     result_file.write("\n")
 
-
             general_instance = general_utils.General()
-
             wallet = member.wallet
-
             transaction_desc = "{} confirmed, kes {} has been credited to your wallet by {} {} {} ".format(transaction_id, transaction_amount, transacted_by_msisdn, transacted_by_firstname, transacted_by_lastname)
-
             mpesa_transactions = Transactions(wallet=wallet, transaction_type="CREDIT",
                                               transaction_desc=transaction_desc,
                                               transacted_by=wallet.acc_no, transaction_amount=transaction_amount,
                                               transaction_code=general_instance.generate_unique_identifier('WTC'))
             mpesa_transactions.save()
-            created_objects.append(mpesa_transactions)
+            phonenumber.sendsms(transacted_by_msisdn, transaction_desc)
             serializer = WalletTransactionsSerializer(mpesa_transactions)
             instance = fcm_utils.Fcm()
             registration_id, title, message = member.device_token, "Wallet", "{} confirmed, your wallet has been credited with {} {} from mpesa" \
@@ -477,11 +434,19 @@ class MpesaC2BConfirmationURL(APIView):
             data = {"status": 1, "wallet_transaction": serializer.data}
             instance.data_push("single", registration_id, fcm_data)
             return Response(data, status=status.HTTP_200_OK)
-        except Exception as e:
-            instance = general_utils.General()
-            instance.delete_created_objects(created_objects)
-            data = {"status": 0, "message": "Unable to process transaction"}
-            return Response(data, status=status.HTTP_200_OK)
+
+        except Exception as exp:
+            with open('c2b_failure_exception.txt', 'a') as result_file:
+                result_file.write(str(exp))
+                result_file.write("\n")
+
+        data = {"status": 0, "message": "Unable to process transaction"}
+        return Response(data, status=status.HTTP_200_OK)
+        #If the member exists then get the member's wallet
+        #Create a transaction with the given transaction details and wallet
+        #Then push the notification
+        # Send message to person doing the mpesa transaction confirming transaction
+
 
 
 

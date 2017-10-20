@@ -402,7 +402,7 @@ class MpesaC2BConfirmationURL(APIView):
         with open('c2b_results.txt', 'a') as result_file:
             result_file.write(str(phone_number))
             result_file.write("\n")
-            result_file.write(str(amount))
+            result_file.write(str(type(amount)))
             result_file.write("\n")
 
         # Format phone number and convert amount from string to integer
@@ -413,7 +413,7 @@ class MpesaC2BConfirmationURL(APIView):
         #Check for existence of member with that wallet account
         #If the member exists then get the member's wallet
         #Create a transaction with the given transaction details and wallet
-        #
+        #Then push the notification
 
         member = None
         created_objects = []

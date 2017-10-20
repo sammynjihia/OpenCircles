@@ -399,15 +399,21 @@ class MpesaC2BConfirmationURL(APIView):
         transacted_by_firstname = result["FirstName"]
         transacted_by_lastname = result["LastName"]
 
+        with open('c2b_results.txt', 'a') as result_file:
+            result_file.write(str(phone_number))
+            result_file.write("\n")
+            result_file.write(str(amount))
+            result_file.write("\n")
+
+        # Format phone number and convert amount from string to integer
         transaction_amount = int(amount)
         phonenumber = sms_utils.Sms()
         wallet_account = phonenumber.format_phone_number(phone_number)
 
-        with open('c2b_results.txt', 'a') as result_file:
-            result_file.write(str(wallet_account))
-            result_file.write("\n")
-            result_file.write(str(transaction_amount))
-            result_file.write("\n")
+        #Check for existence of member with that wallet account
+        #If the member exists then get the member's wallet
+        #Create a transaction with the given transaction details and wallet
+        #
 
         member = None
         created_objects = []

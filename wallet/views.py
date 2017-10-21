@@ -474,3 +474,37 @@ class MpesaC2BValidationURL(APIView):
         print(json.dumps(result, indent=4, sort_keys=True))
 
         return Response(status=status.HTTP_200_OK)
+
+
+class MpesaB2BResultURL(APIView):
+    """
+    URL to receive mpesa b2b result response
+    """
+    def post(self, request):
+        data = request.body
+        with open('b2b_resulturl_post_file.txt', 'a') as post_file:
+            post_file.write(data)
+            post_file.write("\n")
+
+        result = json.loads(data)
+        print("####################Response from mpesa from the MpesaB2BResultURL#############################")
+        print(json.dumps(result, indent=4, sort_keys=True))
+
+        return Response(status=status.HTTP_200_OK)
+
+
+class MpesaB2BQueueTimeOutURL(APIView):
+    """
+    URL to receive mpesa b2b queue time out response
+    """
+    def post(self, request):
+        data = request.body
+        with open('b2b_queuetimeouturl_post_file.txt', 'a') as post_file:
+            post_file.write(data)
+            post_file.write("\n")
+
+        result = json.loads(data)
+        print("####################Response from mpesa from the MpesaQueueTimeOutURL#############################")
+        print(json.dumps(result, indent=4, sort_keys=True))
+
+        return Response(status=status.HTTP_200_OK)

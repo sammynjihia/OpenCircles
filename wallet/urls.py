@@ -13,5 +13,7 @@ urlpatterns = [
    url('^mpesaB2CQueueTimeoutURL/$', views.MpesaB2CQueueTimeoutURL.as_view(), name="mpesaB2CQueueTimeoutURL"),
    url(r'^mpesa_B2C_checkout_initiate/$', views.WalletToMpesa.as_view(), name="mpesa_B2C_checkout_initiate"),
    url(r'^mpesaC2BConfirmationURL/$', views.MpesaC2BConfirmationURL.as_view(), name="mpesaC2BConfirmationURL"),
-   url(r'^mpesaC2BValidationURL/$', views.MpesaC2BValidationURL.as_view(), name="mpesaC2BValidationURL")
+   url(r'^mpesaC2BValidationURL/$', views.MpesaC2BValidationURL.as_view(), name="mpesaC2BValidationURL"),
+   url(r'^mpesaB2BResultURL/$', views.MpesaB2BResultURL.as_view(), name="mpesaB2BResultURL"),
+   url(r'^mpesaB2BQueueTimeOutURL/$', views.MpesaB2BQueueTimeOutURL.as_view(), name="mpesaB2BQueueTimeOutURL")
 ]

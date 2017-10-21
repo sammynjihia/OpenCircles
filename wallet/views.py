@@ -21,6 +21,7 @@ from app_utility import wallet_utils,general_utils,fcm_utils, mpesa_api_utils, s
 
 import datetime,json
 import pytz,uuid
+import math
 
 # Create your views here.
 @api_view(['GET'])
@@ -474,6 +475,55 @@ class MpesaC2BValidationURL(APIView):
         print(json.dumps(result, indent=4, sort_keys=True))
 
         return Response(status=status.HTTP_200_OK)
+
+class WalletToPayBill(APIView):
+    """
+    Debits wallet to business paybill, amount, paybill number, account number and pin to be provided. B2B
+    """
+    authentication_classes = (TokenAuthentication,)
+    permissions_class = (IsAuthenticated,)
+    def post(self, request, *args):
+        serializers = WalletToPayBillSerializer(data=request.data)
+        phonenumber = sms_utils.Sms()
+        if serializers.is_valid():
+            raw_amount = serializers.validated_data["amount"]
+            pin = serializers.validated_data["pin"]
+            paybill_number = serializers.validated_data["business_shortcode"]
+            account_number = serializers.validated_data["account_number"]
+            mpesaAPI = mpesa_api_utils.MpesaUtils()
+            charges = (5/100)*raw_amount
+            amount = raw_amount + math.ceil(charges)
+            amount = int(amount)
+
+            validty = wallet_utils.Wallet()
+            valid, message = validty.validate_account(request, pin, amount)
+            if valid:
+                if 200 <= amount <=70000:
+                    result = mpesaAPI.mpesa_b2b_checkout(amount, account_number, paybill_number)
+
+                    if "errorCode" in result.keys():
+                        # If errorCode in response, then request not successful, error occured
+                        data = {"status":0, "message": result["errorMessage"] }
+                        return Response(data, status=status.HTTP_200_OK)
+
+                    elif result["ResponseCode"] == '0' :
+                        # If ResponseCode is 0 then service request was accepted successfully
+                        print (result["ResponseDescription"])
+                        data = {"status": 1, "message": result["ResponseDescription"]}
+                        return Response(data, status=status.HTTP_200_OK)
+
+                    else:
+                        #If response was unexpected then request not sent, an error occured.
+                        data = {"status": 0, "message": "Sorry! Request not sent"}
+                        return Response(data, status=status.HTTP_200_OK)
+
+                data = {"status":0, "message": "Transaction unsuccessful, amount is not in the range of 200-70000"}
+                return Response(data, status=status.HTTP_200_OK)
+            data = {"status":0, "message":message}
+            return Response(data, status=status.HTTP_200_OK)
+
+        data = {"status": 0, "message": serializers.errors}
+        return Response(data, status=status.HTTP_200_OK)
 
 
 class MpesaB2BResultURL(APIView):

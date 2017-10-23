@@ -59,7 +59,7 @@ class WalletToMpesaSerializer(serializers.Serializer):
 
 class WalletToPayBillSerializer(serializers.Serializer):
     """
-    Serializer for Wallet to Mpesa (B2C) transaction endpoint
+    Serializer for Wallet to Mpesa (B2B) transaction endpoint
     """
 
     amount = serializers.IntegerField()
@@ -68,4 +68,4 @@ class WalletToPayBillSerializer(serializers.Serializer):
     pin = serializers.CharField()
 
     class Meta():
-        fields = ["amount", "business_shortcode", "account_number", "pin"]
+        fields = ["amount", "business_number", "account_number", "pin"]

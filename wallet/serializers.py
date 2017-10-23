@@ -63,7 +63,7 @@ class WalletToPayBillSerializer(serializers.Serializer):
     """
 
     amount = serializers.IntegerField()
-    business_shortcode = serializers.CharField()
+    business_number = serializers.CharField()
     account_number = serializers.CharField()
     pin = serializers.CharField()
 

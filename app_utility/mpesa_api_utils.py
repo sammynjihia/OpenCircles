@@ -123,9 +123,11 @@ class MpesaUtils():
         with open('B2B_request_response_post_file.txt', 'a') as post_file:
             post_file.write(str(response.text))
             post_file.write("\n")
-            post_file.write(str(type(paybill_number)))
-            post_file.write("\n")
             post_file.write(str(paybill_number))
+            post_file.write("\n")
+            post_file.write(str(amount))
+            post_file.write("\n")
+            post_file.write(str(account_number))
             post_file.write("\n")
         result = response.json()
         return result

@@ -487,7 +487,7 @@ class WalletToPayBill(APIView):
         if serializers.is_valid():
             raw_amount = serializers.validated_data["amount"]
             pin = serializers.validated_data["pin"]
-            paybill_number = serializers.validated_data["business_shortcode"]
+            paybill_number = serializers.validated_data["business_number"]
             account_number = serializers.validated_data["account_number"]
             mpesaAPI = mpesa_api_utils.MpesaUtils()
             charges = (5/100)*raw_amount

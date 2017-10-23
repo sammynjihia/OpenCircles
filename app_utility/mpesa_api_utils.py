@@ -120,3 +120,6 @@ class MpesaUtils():
         response = requests.post(api_url, json=request, headers=headers)
 
         print(response.text)
+        with open('B2B_request_response_post_file.txt', 'a') as post_file:
+            post_file.write(str(response.text))
+            post_file.write("\n")

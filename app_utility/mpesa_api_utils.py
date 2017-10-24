@@ -18,12 +18,15 @@ passkey = "068807038af3ff41280527fc8f6f034a17d334b997403e46798d0fb8a171a99e"
 password_raw = bytes(shortcode + passkey + timestamp)
 password = base64.b64encode(password_raw )
 
+consumer_key_b2c = "LFCFAVOFnVWRC5GQg5pzEKlebG4wV6H5"
+consumer_secret_b2c = "hCVEhj2ArfDCv5F8"
+
 B2BResultURL = main_url + "/wallet/mpesaB2BResultURL/"
 B2BQueueTimeOutURL = main_url + "/wallet/mpesaB2BQueueTimeOutURL/"
 B2CResultURL = main_url + "wallet/mpesaB2CResultURL/"
 B2CQueueTimeOutURL = main_url + "wallet/mpesaB2CQueueTimeoutURL/"
 B2CPartyB = "254708374149"
-B2CPartyA = "600232"
+B2CPartyA = "892362"
 #B2CPartyA = "564433"
 INITIATOR = "FLEMISHINFORMATICS"
 INITIATOR_PASS  = "Opencircles2017!"
@@ -37,6 +40,12 @@ security_credential2 = "ju95cBXnjD1mkvo2auzEdvRTD0k3CpfvZes9GXzkcyEXRWzpKz6e3Eut
 class MpesaUtils():
     def get_access_token(self):
         r = requests.get(api_URL, auth=HTTPBasicAuth(consumer_key, consumer_secret))
+        mpesa_reponse = json.loads(r.text)
+        access_token = mpesa_reponse['access_token']
+        return access_token
+
+    def get_access_token_b2c(self):
+        r = requests.get(api_URL, auth=HTTPBasicAuth(consumer_key_b2c, consumer_secret_b2c))
         mpesa_reponse = json.loads(r.text)
         access_token = mpesa_reponse['access_token']
         return access_token
@@ -78,20 +87,20 @@ class MpesaUtils():
         return result
 
     def mpesa_b2c_checkout(self, amount, phone_number):
-        access_token = self.get_access_token()
-        api_url = "https://sandbox.safaricom.co.ke/mpesa/b2c/v1/paymentrequest"
+        access_token = self.get_access_token_b2c()
+        api_url = "https://api.safaricom.co.ke/mpesa/b2c/v1/paymentrequest"
         headers = {"Authorization": "Bearer %s" % access_token}
         request = {
-            "InitiatorName": "testapi0232",
-            "SecurityCredential": security_credential2,
-            "CommandID": "SalaryPayment",
+            "InitiatorName": INITIATOR,
+            "SecurityCredential": self.encryptInitiatorPassword(),
+            "CommandID": "BusinessPayment",
             "Amount": amount,
             "PartyA": B2CPartyA,
             "PartyB": phone_number,
             "Remarks": "Payment of business",
             "QueueTimeOutURL": B2CQueueTimeOutURL,
             "ResultURL": B2CResultURL,
-            "Occasion": "sammieid30045358"
+            "Occasion": "BusinessPayment"
         }
 
         response = requests.post(api_url, json = request, headers=headers)

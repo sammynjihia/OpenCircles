@@ -295,6 +295,8 @@ class MpesaB2CResultURL(APIView):
         OriginatorConversationID = B2CResults["OriginatorConversationID"]
         ResultCode= B2CResults["ResultCode"]
         ResultDesc = B2CResults["ResultDesc"]
+        PhoneNumber = B2CTransaction_log.objects.get(OriginatorConversationID=OriginatorConversationID)
+        initiatorPhoneNumber = PhoneNumber.Initiator_PhoneNumber
 
 
         if ResultCode == '0':
@@ -306,10 +308,6 @@ class MpesaB2CResultURL(APIView):
             transactionDateTime = mpesa_data["TransactionCompletedDateTime"]
             transactionReceipt = mpesa_data["TransactionReceipt"]
             receiverPartyPublicName = mpesa_data["ReceiverPartyPublicName"]
-            PhoneNumber = B2CTransaction_log.objects.get(OriginatorConversationID=OriginatorConversationID)
-            initiatorPhoneNumber = PhoneNumber.Initiator_PhoneNumber
-            print("&"*90)
-            print(initiatorPhoneNumber)
 
             member = None
             created_objects = []
@@ -353,10 +351,40 @@ class MpesaB2CResultURL(APIView):
                 return Response(data, status=status.HTTP_200_OK)
 
         elif ResultCode == '2' :
+            instance = fcm_utils.Fcm()
+            try:
+                member = Member.objects.get(phone_number=initiatorPhoneNumber)
+                registration_id, title, message = member.device_token, "Wallet to Mpesa transaction unsuccessful", " We cannot process your request at the moment. Try again later. If the problem persists" \
+                                                                                 " kindly call our customer care service on (254) 795891656"
+                instance.notification_push("single", registration_id, title, message)
+                fcm_data = {"request_type": "SYSTEM_WARNING_MSG",
+                            "title": title, "message":message, "time":datetime.datetime.now()}
+                instance.data_push("single", registration_id, fcm_data)
+
+            except Member.DoesNotExist as exp:
+
+                with open('member_fetched_failed.txt', 'a') as result_file:
+                    result_file.write(str(exp))
+                    result_file.write("\n")
             data = {"status": 0, "message": "Transaction unsuccessful, {}".format(ResultDesc)}
             return Response(data, status=status.HTTP_200_OK)
 
         else:
+            instance = fcm_utils.Fcm()
+            try:
+                member = Member.objects.get(phone_number=initiatorPhoneNumber)
+                registration_id, title, message = member.device_token, "Wallet to Mpesa transaction unsuccessful", " We cannot process your request at the moment. Try again later. If the problem persists" \
+                                                                                 " kindly call our customer care service on (254) 795891656"
+                instance.notification_push("single", registration_id, title, message)
+                fcm_data = {"request_type": "SYSTEM_WARNING_MSG",
+                            "title": title, "message": message, "time": datetime.datetime.now()}
+                instance.data_push("single", registration_id, fcm_data)
+
+            except Member.DoesNotExist as exp:
+
+                with open('member_fetched_failed.txt', 'a') as result_file:
+                    result_file.write(str(exp))
+                    result_file.write("\n")
             data = {"status": 0, "message": "Transaction unsuccessful, something went wrong"}
             return Response(data, status=status.HTTP_200_OK)
 
@@ -554,6 +582,8 @@ class MpesaB2BResultURL(APIView):
         OriginatorConversationID = B2BResults["OriginatorConversationID"]
         ResultCode = B2BResults["ResultCode"]
         ResultDesc = B2BResults["ResultDesc"]
+        PhoneNumber = B2BTransaction_log.objects.get(OriginatorConversationID=OriginatorConversationID)
+        initiatorPhoneNumber = PhoneNumber.Initiator_PhoneNumber
 
         if ResultCode == '0':
             # do something
@@ -565,8 +595,6 @@ class MpesaB2BResultURL(APIView):
             transactionDateTime = mpesa_data["TransCompletedTime"]
             transactionReceipt = TransactionID
             receiverPartyPublicName = mpesa_data["ReceiverPartyPublicName"]
-            PhoneNumber = B2BTransaction_log.objects.get(OriginatorConversationID=OriginatorConversationID)
-            initiatorPhoneNumber = PhoneNumber.Initiator_PhoneNumber
             BillReferenceNumber = PhoneNumber.AccountNumber
 
             member = None
@@ -609,6 +637,21 @@ class MpesaB2BResultURL(APIView):
             except Exception as e:
                 print (str(e))
         else:
+            instance = fcm_utils.Fcm()
+            try:
+                member = Member.objects.get(phone_number=initiatorPhoneNumber)
+                registration_id, title, message = member.device_token, "Wallet to Paybill transaction unsuccessful", " We cannot process your request at the moment. Try again later. If the problem persists" \
+                                                                                                                   " kindly call our customer care service on (254) 795891656"
+                instance.notification_push("single", registration_id, title, message)
+                fcm_data = {"request_type": "SYSTEM_WARNING_MSG",
+                            "title": title, "message": message, "time": datetime.datetime.now()}
+                instance.data_push("single", registration_id, fcm_data)
+
+            except Member.DoesNotExist as exp:
+
+                with open('member_fetched_failed.txt', 'a') as result_file:
+                    result_file.write(str(exp))
+                    result_file.write("\n")
             data = {"status": 0, "message": "Transaction unsuccessful, something went wrong"}
             return Response(data, status=status.HTTP_200_OK)
 

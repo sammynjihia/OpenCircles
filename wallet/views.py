@@ -583,6 +583,9 @@ class MpesaB2BResultURL(APIView):
     """
     def post(self, request):
         data = request.body
+        with open('b2b_resulturl_post_file.txt', 'a') as post_file:
+            post_file.write(data)
+            post_file.write("\n")
         result = json.loads(data)
         print("####################Response from mpesa from the MpesaB2BResultURL#############################")
         print(json.dumps(result, indent=4, sort_keys=True))
@@ -598,7 +601,7 @@ class MpesaB2BResultURL(APIView):
             mpesa_transaction = MpesaTransaction_logs(OriginatorConversationID=OriginatorConversationID, ResultCode=ResultCode,
                                                       ResultDesc=ResultDesc)
             mpesa_transaction.save()
-            with open('b2b_resulturl_post_file.txt', 'a') as post_file:
+            with open('b2b_result_try_post_file.txt', 'a') as post_file:
                 post_file.write(data)
                 post_file.write("\n")
         except ValidationError as e:

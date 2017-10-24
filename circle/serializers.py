@@ -11,7 +11,7 @@ from member.serializers import MemberSerializer
 from member.models import Member,Contacts
 
 from shares.models import Shares,IntraCircleShareTransaction
-from app_utility import circle_utils
+from app_utility import circle_utils,loan_utils
 
 from loan.serializers import LoanTariffSerializer
 from loan.models import LoanTariff
@@ -100,9 +100,9 @@ class CircleSerializer(serializers.HyperlinkedModelSerializer):
 
     def get_loan_limit(self,circle):
         member = self.context.get('request').user.member
-        instance = circle_utils.Circle()
-        available_shares =instance.get_available_circle_member_shares(circle,member)+settings.LOAN_LIMIT
-        return available_shares
+        loan_instance = loan_utils.Loan()
+        loan_limit = loan_instance.calculate_loan_limit(circle,member)
+        return loan_limit
 
 class InvitedCircleSerializer(serializers.ModelSerializer):
     """
@@ -277,10 +277,11 @@ class UnloggedCircleMemberSerializer(serializers.ModelSerializer):
     is_self = serializers.SerializerMethodField()
     available_shares = serializers.SerializerMethodField()
     allow_public_guarantees_request = serializers.SerializerMethodField()
+    allow_guarantor_request = serializers.SerializerMethodField()
 
     class Meta:
         model = Member
-        fields = ['first_name','surname','other_name','email','gender','country','phone_number','national_id','currency','date_of_birth','time_registered','is_self','available_shares','allow_public_guarantees_request']
+        fields = ['first_name','surname','other_name','email','gender','country','phone_number','national_id','currency','date_of_birth','time_registered','is_self','available_shares','allow_public_guarantees_request','allow_guarantor_request']
 
 
     def get_time_registered(self,member):
@@ -302,6 +303,11 @@ class UnloggedCircleMemberSerializer(serializers.ModelSerializer):
         circle_member = CircleMember.objects.get(circle=circle,member=member)
         return circle_member.allow_public_guarantees_request
 
+    def get_allow_guarantor_request(self,member):
+        response = self.get_allow_public_guarantees_request(member)
+        if response:
+            return True
+        return False
     # def get_passport_image(self,member):
     #     if member.passport_image:
     #         # f = open(member.passport_image.path, 'rb')

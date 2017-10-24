@@ -23,7 +23,10 @@ class Fcm():
         print(result)
 
     def get_circle_members_token(self,circle,member):
-        circle_members = CircleMember.objects.filter(circle=circle).exclude(member=member)
+        if member is None:
+            circle_members = CircleMember.objects.filter(circle=circle)
+        else:
+            circle_members = CircleMember.objects.filter(circle=circle).exclude(member=member)
         registration_ids= [cm.member.device_token for cm in circle_members]
         return registration_ids
 

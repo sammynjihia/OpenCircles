@@ -56,4 +56,9 @@ class WalletToMpesaSerializer(serializers.Serializer):
     class Meta():
         fields = ["amount", "phone_number", "pin"]
 
-
+class BrainTreeTransactionSerializer(serializers.Serializer):
+    """
+    serializer for brain tree transaction endpoint
+    """
+    nonce = serializers.CharField()
+    amount = serializers.IntegerField()

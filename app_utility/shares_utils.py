@@ -1,4 +1,6 @@
+from __future__ import division
 from shares.models import SharesWithdrawalTariff,IntraCircleShareTransaction
+from circle.models import CircleMember
 from django.db.models import Min,Max
 from django.conf import settings
 
@@ -14,12 +16,63 @@ class Shares():
         return False,"Amount entered is less than the allowed minimum shares withdrawal of kes {}".format(settings.MINIMUN_WITHDRAWAL_AMOUNT)
 
     def validate_purchased_shares(self,amount,circle,member):
-        available_shares = circle_utils.Circle().get_total_circle_member_shares(circle,member)
+        available_shares = circle_utils.Circle().get_total_circle_member_shares(circle,member,None)
         remaining_shares = settings.MAXIMUM_CIRCLE_SHARES - available_shares
         if remaining_shares >= settings.MININIMUM_CIRCLE_SHARES:
             if amount <= remaining_shares:
                 return True,""
         return False,"Unable to purchase shares.The amount entered will exceed the maximum shares threshold of {} {}".format(member.currency,settings.MAXIMUM_CIRCLE_SHARES)
+
+    def insert_circle_member_shares(self):
+        circle_members = CircleMember.objects.all()
+        circle_instance = circle_utils.Circle()
+        for c in circle_members:
+            shares = CircleMember.objects.get(circle=c.circle,member=c.member).shares.get()
+            circle_member_shares = circle_instance.get_total_circle_member_shares(c.circle,c.member,None)
+            total_circle_shares = circle_instance.get_total_circle_shares(c.circle,None)
+            circle_shares_fraction = 0
+            if total_circle_shares > 0:
+                circle_shares_fraction = float(format((circle_member_shares/total_circle_shares),'.3f'))
+            shares.fraction = circle_shares_fraction
+            # shares.circle_name = c.circle.circle_name
+            shares.save()
+
+    def get_circle_member_shares_fraction(self,shares,time_constraint,excluded_member):
+        if shares is not None:
+            circle_instance = circle_utils.Circle()
+            circle, member = shares.circle_member.circle, shares.circle_member.member
+            circle_member_shares = circle_instance.get_total_circle_member_shares(circle,member,time_constraint)
+            print("member shares")
+            print(circle_member_shares)
+            total_circle_shares = circle_instance.get_total_circle_shares(circle,time_constraint,excluded_member)
+            print("total circle shares")
+            print(total_circle_shares)
+            if total_circle_shares > 0:
+                circle_shares_fraction = float(format((circle_member_shares/total_circle_shares),'.3f'))
+            else:
+                circle_shares_fraction = 0
+            return circle_shares_fraction
+
+    def get_circle_member_shares(self,shares):
+        if shares is not None:
+            circle_instance = circle_utils.Circle()
+            circle, member = shares.circle_member.circle, shares.circle_member.member
+            total_circle_shares = circle_instance.get_total_circle_shares(circle,None,None)
+            print(total_circle_shares)
+            circle_members = CircleMember.objects.filter(circle=circle)
+            for circle_member in circle_members:
+                shares = circle_member.shares.get()
+                member = circle_member.member
+                print(member.user.first_name)
+                circle_member_shares = circle_instance.get_total_circle_member_shares(circle,member,None)
+                print(circle_member_shares)
+                if total_circle_shares > 0:
+                    circle_shares_fraction = float(format((circle_member_shares/total_circle_shares),'.3f'))
+                else:
+                    circle_shares_fraction = 0
+                shares.fraction = circle_shares_fraction
+                shares.circle_name = circle.circle_name
+                shares.save()
 
     def save_transaction_code(self):
         transactions = IntraCircleShareTransaction.objects.all()

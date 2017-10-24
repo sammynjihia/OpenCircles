@@ -23,7 +23,7 @@ class Transactions(models.Model):
     transaction_type = models.CharField(max_length=10,choices=TRANSACTION_TYPE_CHOICE)
     transaction_time = models.DateTimeField(auto_now=True)
     transaction_desc = models.TextField()
-    transaction_amount = models.IntegerField()
+    transaction_amount = models.FloatField()
     transacted_by = models.CharField(max_length=100,default="SELF")
     recipient = models.CharField(max_length=100,default="SELF")
     transaction_code = models.CharField(max_length=100,unique=True)
@@ -35,3 +35,16 @@ class B2CTransaction_log(models.Model):
     OriginatorConversationID = models.CharField(max_length=100)
     Initiator_PhoneNumber = models.CharField(max_length=100)
     Recipient_PhoneNumber = models.CharField(max_length=100)
+
+class RevenueStreams(models.Model):
+    STREAM_TYPE_CHOICE = (
+        ('LOAN INTEREST', 'revenue from loan'),
+        ('SHARES WITHDRAW', 'charges of shares withdrawal')
+    )
+    stream_code = models.CharField(max_length=20)
+    stream_amount = models.FloatField()
+    stream_type = models.CharField(max_length=20,choices=STREAM_TYPE_CHOICE)
+    time_of_transaction = models.DateTimeField()
+
+    class Meta():
+        db_table = "RevenueStreams"

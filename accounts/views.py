@@ -77,6 +77,7 @@ class LoginIn(APIView):
     Authenticates user,requires username and pin to be provided
     """
     def post(self, request, *args, **kwargs):
+        print(request.data)
         serializer = AuthenticateUserSerializer(data=request.data)
         if serializer.is_valid():
             username = serializer.validated_data.get("username")

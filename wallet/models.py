@@ -35,3 +35,9 @@ class B2CTransaction_log(models.Model):
     OriginatorConversationID = models.CharField(max_length=100)
     Initiator_PhoneNumber = models.CharField(max_length=100)
     Recipient_PhoneNumber = models.CharField(max_length=100)
+
+class B2BTransaction_log(models.Model):
+    OriginatorConversationID = models.CharField(max_length=100)
+    Initiator_PhoneNumber = models.CharField(max_length=100)
+    Recipient_PayBillNumber = models.CharField(max_length=100)
+    AccountNumber = models.CharField(max_length=100)

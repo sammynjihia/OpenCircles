@@ -360,6 +360,7 @@ class MpesaB2CResultURL(APIView):
                 fcm_data = {"request_type": "SYSTEM_WARNING_MSG",
                             "title": title, "message":message, "time":datetime.datetime.now()}
                 instance.data_push("single", registration_id, fcm_data)
+                instance.notification_push("single", registration_id, title, message)
 
             except Member.DoesNotExist as exp:
 
@@ -379,6 +380,7 @@ class MpesaB2CResultURL(APIView):
                 fcm_data = {"request_type": "SYSTEM_WARNING_MSG",
                             "title": title, "message": message, "time": datetime.datetime.now()}
                 instance.data_push("single", registration_id, fcm_data)
+                instance.notification_push("single", registration_id, title, message)
 
             except Member.DoesNotExist as exp:
 
@@ -633,6 +635,7 @@ class MpesaB2BResultURL(APIView):
                                 "transaction": serializer.data}
                     data = {"status": 1, "wallet_transaction": serializer.data}
                     instance.data_push("single", registration_id, fcm_data)
+                    instance.notification_push("single", registration_id, title, message)
                     return Response(data, status=status.HTTP_200_OK)
             except Exception as e:
                 print (str(e))
@@ -646,6 +649,7 @@ class MpesaB2BResultURL(APIView):
                 fcm_data = {"request_type": "SYSTEM_WARNING_MSG",
                             "title": title, "message": message, "time": datetime.datetime.now()}
                 instance.data_push("single", registration_id, fcm_data)
+                instance.notification_push("single", registration_id, title, message)
 
             except Member.DoesNotExist as exp:
 

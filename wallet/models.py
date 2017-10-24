@@ -54,3 +54,10 @@ class RevenueStreams(models.Model):
 
     class Meta():
         db_table = "RevenueStreams"
+
+
+class MpesaTransaction_logs(models.Model):
+    OriginatorConversationID = models.CharField(max_length=100, unique=True)
+    ResultCode = models.CharField(max_length=5)
+    ResultDesc = models.CharField(max_length=250)
+

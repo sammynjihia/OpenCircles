@@ -222,7 +222,7 @@ class MpesaCallbackURL(APIView):
         MerchantRequestID = result["Body"]["stkCallback"]["MerchantRequestID"]
         ResultCode = result["Body"]["stkCallback"]["ResultCode"]
         ResultDescription = result["Body"]["stkCallback"]["ResultDesc"]
-        if ResultCode == 0:
+        if ResultCode == '0':
             CallbackMetadata= result["Body"]["stkCallback"]["CallbackMetadata"]
             mpesa_Callbackdata = CallbackMetadata
             mpesa_data ={n['Name']:n['Value'] for n in mpesa_Callbackdata["Item"] for key,value in n.iteritems() if value in ["Amount","PhoneNumber", "MpesaReceiptNumber", "TransactionDate"]}
@@ -297,7 +297,7 @@ class MpesaB2CResultURL(APIView):
         ResultDesc = B2CResults["ResultDesc"]
 
 
-        if ResultCode == 0:
+        if ResultCode == '0':
             TransactionID = B2CResults["TransactionID"]
             ResultParameters = B2CResults["ResultParameters"]["ResultParameter"]
             mpesa_data ={n['Key']:n['Value'] for n in ResultParameters for key,value in n.iteritems() if value in
@@ -352,7 +352,7 @@ class MpesaB2CResultURL(APIView):
                 data = {"status": 0, "message": "Unable to process transaction"}
                 return Response(data, status=status.HTTP_200_OK)
 
-        elif ResultCode == 2 :
+        elif ResultCode == '2' :
             data = {"status": 0, "message": "Transaction unsuccessful, {}".format(ResultDesc)}
             return Response(data, status=status.HTTP_200_OK)
 
@@ -555,7 +555,7 @@ class MpesaB2BResultURL(APIView):
         ResultCode = B2BResults["ResultCode"]
         ResultDesc = B2BResults["ResultDesc"]
 
-        if ResultCode == 0:
+        if ResultCode == '0':
             # do something
             TransactionID = B2BResults["TransactionID"]
             ResultParameters = B2BResults["ResultParameters"]["ResultParameter"]

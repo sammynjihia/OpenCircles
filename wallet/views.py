@@ -14,8 +14,10 @@ from rest_framework.reverse import reverse
 
 from .serializers import *
 
-from .models import Transactions,Wallet, B2CTransaction_log, B2BTransaction_log
+from .models import Transactions,Wallet, B2CTransaction_log, B2BTransaction_log, MpesaTransaction_logs
 from member.models import Member
+from django.core.exceptions import ValidationError
+
 
 from app_utility import wallet_utils,general_utils,fcm_utils, mpesa_api_utils, sms_utils, brain_tree_utils
 
@@ -287,10 +289,6 @@ class MpesaB2CResultURL(APIView):
     """
     def post(self, request):
         data = request.body
-        with open('b2c_post_file.txt', 'a') as post_file:
-            post_file.write(data)
-            post_file.write("\n")
-
         result = json.loads(data)
         print (json.dumps(result, indent=4, sort_keys=True))
 
@@ -300,6 +298,17 @@ class MpesaB2CResultURL(APIView):
         ResultDesc = B2CResults["ResultDesc"]
         PhoneNumber = B2CTransaction_log.objects.get(OriginatorConversationID=OriginatorConversationID)
         initiatorPhoneNumber = PhoneNumber.Initiator_PhoneNumber
+
+        try:
+            mpesa_transaction = MpesaTransaction_logs(OriginatorConversationID=OriginatorConversationID, ResultCode=ResultCode,
+                                                      ResultDesc=ResultDesc)
+            mpesa_transaction.save()
+            with open('b2c_post_file.txt', 'a') as post_file:
+                post_file.write(data)
+                post_file.write("\n")
+        except ValidationError as e:
+            data = {"status": 0, "message": "Database transaction unsuccessful, object already exist"}
+            return Response(data, status=status.HTTP_200_OK)
 
 
         if ResultCode == '0':
@@ -574,10 +583,6 @@ class MpesaB2BResultURL(APIView):
     """
     def post(self, request):
         data = request.body
-        with open('b2b_resulturl_post_file.txt', 'a') as post_file:
-            post_file.write(data)
-            post_file.write("\n")
-
         result = json.loads(data)
         print("####################Response from mpesa from the MpesaB2BResultURL#############################")
         print(json.dumps(result, indent=4, sort_keys=True))
@@ -588,6 +593,17 @@ class MpesaB2BResultURL(APIView):
         ResultDesc = B2BResults["ResultDesc"]
         PhoneNumber = B2BTransaction_log.objects.get(OriginatorConversationID=OriginatorConversationID)
         initiatorPhoneNumber = PhoneNumber.Initiator_PhoneNumber
+
+        try:
+            mpesa_transaction = MpesaTransaction_logs(OriginatorConversationID=OriginatorConversationID, ResultCode=ResultCode,
+                                                      ResultDesc=ResultDesc)
+            mpesa_transaction.save()
+            with open('b2b_resulturl_post_file.txt', 'a') as post_file:
+                post_file.write(data)
+                post_file.write("\n")
+        except ValidationError as e:
+            data = {"status": 0, "message": "Database transaction unsuccessful, object already exist"}
+            return Response(data, status=status.HTTP_200_OK)
 
         if ResultCode == '0':
             # do something

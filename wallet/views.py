@@ -9,7 +9,7 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.authentication import TokenAuthentication
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view,authentication_classes,permission_classes
 from rest_framework.reverse import reverse
 
 from .serializers import *
@@ -17,12 +17,12 @@ from .serializers import *
 from .models import Transactions,Wallet, B2CTransaction_log, B2BTransaction_log
 from member.models import Member
 
-from app_utility import wallet_utils,general_utils,fcm_utils, mpesa_api_utils, sms_utils
+from app_utility import wallet_utils,general_utils,fcm_utils, mpesa_api_utils, sms_utils, brain_tree_utils
 
 import datetime,json
 import pytz,uuid
 import math
-
+import braintree
 # Create your views here.
 @api_view(['GET'])
 def api_root(request,format=None):
@@ -51,24 +51,27 @@ class WallettoWalletTranfer(APIView):
                 return Response(data,status=status.HTTP_200_OK)
             amount,pin,account = serializer.validated_data['amount'],serializer.validated_data['pin'],recipient.wallet.acc_no
             if amount < 50:
-                data = {"status":0,"message":"Transfers below kes 50 are not allowed"}
+                data = {"status":0,"message":"Transfers below KES 50 are not allowed"}
                 return Response(data,status=status.HTTP_200_OK)
             valid,message = wallet_utils.Wallet().validate_account_info(request,amount,pin,account)
             if valid:
+                general_instance = general_utils.General()
                 sender_wallet,recipient_wallet = request.user.member.wallet,recipient.wallet
-                sender_desc = "kes {} sent to {} {}".format(amount,recipient.user.first_name,recipient.user.last_name)
-                recipient_desc = "Received kes {} from {} {}".format(amount,request.user.first_name,request.user.last_name)
+                suffix = general_instance.generate_unique_identifier('')
+                sender_transaction_code = 'WTD' + suffix
+                recipient_transaction_code = 'WTC' + suffix
+                sender_desc = "{} confirmed.You have sent {} {} to {} {}.".format(sender_transaction_code, recipient.currency, amount, recipient.user.first_name, recipient.user.last_name)
+                recipient_desc = "{} confirmed.You have received KES {} from {} {}.".format(recipient_transaction_code, amount, request.user.first_name, request.user.last_name)
                 try:
-                    general_instance = general_utils.General()
-                    sender_transaction = Transactions.objects.create(wallet= sender_wallet,transaction_type="DEBIT",transaction_desc=sender_desc,transaction_amount=amount,transaction_time=datetime.datetime.now(),recipient=account,transaction_code=general_instance.generate_unique_identifier('WTD'))
+                    sender_transaction = Transactions.objects.create(wallet= sender_wallet,transaction_type="DEBIT",transaction_desc=sender_desc,transaction_amount=amount,transaction_time=datetime.datetime.now(),recipient=account,transaction_code=sender_transaction_code)
                     created_objects.append(sender_transaction)
-                    recipient_transaction = Transactions.objects.create(wallet = recipient_wallet,transaction_type="CREDIT",transaction_desc=recipient_desc,transacted_by=sender_wallet.acc_no,transaction_amount=amount,transaction_time=datetime.datetime.now(),transaction_code=general_instance.generate_unique_identifier('WTC'))
+                    recipient_transaction = Transactions.objects.create(wallet = recipient_wallet,transaction_type="CREDIT",transaction_desc=recipient_desc,transacted_by=sender_wallet.acc_no,transaction_amount=amount,transaction_time=datetime.datetime.now(),transaction_code=recipient_transaction_code)
                     created_objects.append(recipient_transaction)
                     instance = fcm_utils.Fcm()
                     registration_id,title,message = recipient.device_token,"Wallet","%s %s has credited your wallet with %s %s"%(request.user.first_name,request.user.last_name,request.user.member.currency,amount)
                     instance.notification_push("single",registration_id,title,message)
                     recipient_wallet_transaction = WalletTransactionsSerializer(recipient_transaction)
-                    fcm_data = {"request_type":"WALLET_TO_WALLET_TRANSACTION","transaction":recipient_wallet_transaction.data}
+                    fcm_data = {"request_type":"WALLET_TO_WALLET_TRANSACTION","wallet_transaction":recipient_wallet_transaction.data}
                     sender_wallet_transaction = WalletTransactionsSerializer(sender_transaction)
                     data = {"status":1,"wallet_transaction":sender_wallet_transaction.data}
                     instance.data_push("single",registration_id,fcm_data)
@@ -244,7 +247,7 @@ class MpesaCallbackURL(APIView):
 
                 general_instance = general_utils.General()
                 wallet = member.wallet
-                transaction_desc = "{} confirmed, kes {} has been credited to your wallet by {} " \
+                transaction_desc = "{} confirmed.You have receives KES {} from {}. " \
                     .format(transaction_code, amount, phone_number)
 
                 mpesa_transactions = Transactions(wallet=wallet, transaction_type="CREDIT",
@@ -325,7 +328,6 @@ class MpesaB2CResultURL(APIView):
                 wallet = member.wallet
                 transaction_desc = "{} confirmed, {} {} has been sent to {} from your wallet at {} " \
                     .format(transactionReceipt, member.currency, transactionAmount, receiverPartyPublicName, transactionDateTime)
-
                 mpesa_transactions = Transactions(wallet=wallet, transaction_type="DEBIT",
                                                   transaction_desc=transaction_desc,
                                                   transacted_by=wallet.acc_no, transaction_amount=transactionAmount,transation_code=general_instance.generate_unique_identifier('WTD'))
@@ -677,3 +679,40 @@ class MpesaB2BQueueTimeOutURL(APIView):
         print(json.dumps(result, indent=4, sort_keys=True))
 
         return Response(status=status.HTTP_200_OK)
+
+@api_view(['POST'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
+def brain_tree_client_token(request):
+    try:
+        brain_tree_instance = brain_tree_utils.BrainTree()
+        token = braintree.ClientToken.generate()
+        data = {"status":1,"token":token}
+    except Exception as e:
+        print(str(e))
+        data = {"status":0}
+    return Response(data,status=status.HTTP_200_OK)
+
+class BrainTreeTransaction(APIView):
+    """
+    Performs the paypal or card transaction
+    """
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = (IsAuthenticated,)
+
+    def post(self,request):
+        serializer = BrainTreeTransactionSerializer(data=request.data)
+        if serializer.is_valid():
+            amount, nonce = serializer.validated_data['amount'], serializer.validated_data['nonce']
+            brain_tree_instance = brain_tree_utils.BrainTree()
+            result = braintree.Transaction.sale({
+                                                    "amount": amount,
+                                                    "payment_method_nonce": nonce,
+                                                    "options": {
+                                                      "submit_for_settlement": True
+                                                    }
+                                                })
+            if result.is_success:
+                pass
+        data = {"status":0, "message":serializer.errors}
+        return Response(data, status=status.HTTP_200_OK)

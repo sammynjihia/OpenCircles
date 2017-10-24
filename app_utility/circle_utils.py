@@ -4,6 +4,7 @@ from circle.models import Circle as CircleModel,CircleMember,CircleInvitation
 from shares.models import Shares,IntraCircleShareTransaction
 from loan.models import LoanTariff,GuarantorRequest
 from app_utility import fcm_utils,sms_utils
+from django.db.models import Q
 
 import operator,re
 
@@ -38,8 +39,9 @@ class Circle():
         # invited_circles = [circle for circle in circles if circle in unjoined_circles]
         return invited_circles
 
+
     def get_available_circle_shares(self,circle):
-        shares = Shares.objects.filter(circle_member__in=CircleMember.objects.filter(circle=circle))
+        shares = Shares.objects.filter(circle_member__circle=circle)
         transactions = IntraCircleShareTransaction.objects.filter(shares__in=shares)
         deposits = transactions.filter(transaction_type="DEPOSIT").aggregate(total=Sum('num_of_shares'))
         total_deposits = 0 if deposits['total'] is None else deposits['total']
@@ -54,13 +56,16 @@ class Circle():
         available_shares = (total_deposits-total_transfers-total_withdraws)-(total_locked-total_unlocked)
         return available_shares
 
-    def get_total_circle_member_shares(self,circle,member):
+    def get_total_circle_member_shares(self,circle,member,date):
         try:
             circle_member = CircleMember.objects.get(circle=circle,member=member)
         except CircleMember.DoesNotExist:
             return 0
-        share = circle_member.shares.get()
-        transactions = IntraCircleShareTransaction.objects.filter(shares=share)
+        shares = circle_member.shares.get()
+        if date is None:
+            transactions = IntraCircleShareTransaction.objects.filter(shares=shares)
+        else:
+            transactions = IntraCircleShareTransaction.objects.filter(shares=shares,transaction_time__lt=date)
         deposits = transactions.filter(transaction_type="DEPOSIT").aggregate(total=Sum('num_of_shares'))
         total_deposits = 0 if deposits['total'] is None else deposits['total']
         transfers = transactions.filter(transaction_type="TRANSFER").aggregate(total=Sum('num_of_shares'))
@@ -70,13 +75,28 @@ class Circle():
         total_shares = (total_deposits-total_transfers-total_withdraws)
         return total_shares
 
+    def get_total_circle_shares(self,circle,date,member):
+        if date is None:
+            transactions = IntraCircleShareTransaction.objects.filter(shares__circle_member__circle=circle)
+        else:
+            transactions = IntraCircleShareTransaction.objects.filter(~Q(shares__circle_member__member=member)).filter(shares__circle_member__circle=circle,transaction_time__lt=date)
+        deposits = transactions.filter(transaction_type="DEPOSIT").aggregate(total=Sum('num_of_shares'))
+        total_deposits = 0 if deposits['total'] is None else deposits['total']
+        transfers = transactions.filter(transaction_type="TRANSFER").aggregate(total=Sum('num_of_shares'))
+        total_transfers = 0 if transfers['total'] is None else transfers['total']
+        withdraws = transactions.filter(transaction_type="WITHDRAW").aggregate(total=Sum('num_of_shares'))
+        total_withdraws = 0 if withdraws['total'] is None else withdraws['total']
+        total_shares = (total_deposits-total_transfers-total_withdraws)
+        return total_shares
+
+
     def get_available_circle_member_shares(self,circle,member):
         try:
             circle_member = CircleMember.objects.get(circle=circle,member=member)
         except CircleMember.DoesNotExist:
             return 0
-        share = circle_member.shares.get()
-        transactions = IntraCircleShareTransaction.objects.filter(shares=share)
+        shares = circle_member.shares.get()
+        transactions = IntraCircleShareTransaction.objects.filter(shares=shares)
         deposits = transactions.filter(transaction_type="DEPOSIT").aggregate(total=Sum('num_of_shares'))
         total_deposits = 0 if deposits['total'] is None else deposits['total']
         transfers = transactions.filter(transaction_type="TRANSFER").aggregate(total=Sum('num_of_shares'))

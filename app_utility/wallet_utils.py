@@ -19,6 +19,8 @@ class Wallet():
             if amount > 0:
                 wallet = request.user.member.wallet
                 balance = self.calculate_wallet_balance(wallet)
+                print("wallet balance")
+                print(balance)
                 if balance >= amount:
                     return True,""
                 return False,"Insufficient funds in your wallet"

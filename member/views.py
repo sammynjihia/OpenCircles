@@ -35,18 +35,21 @@ class MemberDetail(APIView):
     permission_classes = (IsAuthenticated,)
     def get_object(self,phone_number):
         try:
-            return Member.objects.get(phone_number=phone_number)
+            return True,Member.objects.get(phone_number=phone_number)
         except Member.DoesNotExist:
-            raise Http404
+            return False,"Member with this phone number does not exist."
 
     def post(self,request,*args,**kwargs):
         serializer = PhoneNumberSerializer(data=request.data)
         if serializer.is_valid():
             phone_number = sms_utils.Sms().format_phone_number(serializer.validated_data['phone_number'])
             # phone_number = serializer.validated_data['phone_number']
-            member = self.get_object(phone_number)
-            member_serializer = MemberSerializer(member,context={'request':request})
-            data = {"status":1,"member":member_serializer.data}
+            valid,member = self.get_object(phone_number)
+            if valid:
+                member_serializer = MemberSerializer(member,context={'request':request})
+                data = {"status":1,"member":member_serializer.data}
+            else:
+                data = {"status":0,"message":member}
             return Response(data,status=status.HTTP_200_OK)
         data = {"status":0,"message":serializer.errors}
         return Response(data,status=status.HTTP_400_BAD_REQUEST)

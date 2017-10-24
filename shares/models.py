@@ -1,6 +1,5 @@
 from __future__ import unicode_literals
 from django.db import models
-import uuid
 from circle.models import Circle, CircleMember
 
 class Shares(models.Model):

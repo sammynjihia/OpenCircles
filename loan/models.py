@@ -73,7 +73,7 @@ class LoanRepayment(models.Model):
     amount = models.IntegerField(null=False, blank=False, default=0)
     time_of_repayment = models.DateTimeField(null=False)
     time_created = models.DateTimeField(auto_now=True)
-
+    rating = models.IntegerField(default=4)
     class Meta:
         db_table = 'LoanRepayment'
 

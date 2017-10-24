@@ -158,9 +158,11 @@ class Loan():
                 circle, member = loan.circle_member.circle, loan.circle_member.member
                 fcm_instance = fcm_utils.Fcm()
                 if delta == 1:
+                    today = datetime.now()
+                    today = today.strftime("%Y-%m-%d %H:%M:%S")
                     title = "Circle {} loan".format(circle.circle_name)
                     message = "Your loan of {} {} will be cancelled tomorrow.".format(member.currency,loan.amount)
-                    fcm_data = {"request_type":"SYSTEM_WARNING_MSG","title":"loan expiry","message":message}
+                    fcm_data = {"request_type":"SYSTEM_WARNING_MSG","title":"loan expiry","message":message,"time":today}
                     registration_id = member.device_token
                     fcm_instance.data_push("single",registration_id,fcm_data)
                 else:

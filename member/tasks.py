@@ -43,8 +43,6 @@ def send_frequent_invitations():
     #Don't use the below
     invitees = invite_contacts.count()
     list_of_numbers = ['254712388212', '254714642293', '254713189107']
-    for number in list_of_numbers:
-        sms.sendsms(to=number, message=message)
 
     log_message = "{} contacts will receive a message in production mode".format(invitees)
     return log_message

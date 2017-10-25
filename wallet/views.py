@@ -349,7 +349,6 @@ class MpesaB2CResultURL(APIView):
                 instance = fcm_utils.Fcm()
                 registration_id, title, message = member.device_token, "Wallet", "{} confirmed, {} {} has been debited from your wallet to {} at {} " \
                     .format(transactionReceipt, member.currency, transactionAmount, receiverPartyPublicName, transactionDateTime)
-                instance.notification_push("single", registration_id, title, message)
                 fcm_data = {"request_type": "WALLET_TO_MPESA_TRANSACTION",
                             "transaction": serializer.data}
                 data = {"status": 1, "wallet_transaction": serializer.data}
@@ -369,9 +368,8 @@ class MpesaB2CResultURL(APIView):
                                                                                  " kindly call our customer care service on (254) 795891656"
                 instance.notification_push("single", registration_id, title, message)
                 fcm_data = {"request_type": "SYSTEM_WARNING_MSG",
-                            "title": title, "message":message, "time":datetime.datetime.now()}
+                            "title": title, "message":message, "time":"2017-05-04 03:02:03"}
                 instance.data_push("single", registration_id, fcm_data)
-                instance.notification_push("single", registration_id, title, message)
 
             except Member.DoesNotExist as exp:
 
@@ -389,9 +387,8 @@ class MpesaB2CResultURL(APIView):
                                                                                  " kindly call our customer care service on (254) 795891656"
                 instance.notification_push("single", registration_id, title, message)
                 fcm_data = {"request_type": "SYSTEM_WARNING_MSG",
-                            "title": title, "message": message, "time": datetime.datetime.now()}
+                            "title": title, "message": message, "time": "2017-05-04 03:02:03"}
                 instance.data_push("single", registration_id, fcm_data)
-                instance.notification_push("single", registration_id, title, message)
 
             except Member.DoesNotExist as exp:
 
@@ -651,12 +648,11 @@ class MpesaB2BResultURL(APIView):
                     instance = fcm_utils.Fcm()
                     registration_id, title, message = member.device_token, "Wallet", "{} confirmed, {} {} has been debited from your wallet to {} at {} " \
                         .format(transactionReceipt, member.currency, transactionAmount, receiverPartyPublicName, transactionDateTime)
-                    instance.notification_push("single", registration_id, title, message)
+
                     fcm_data = {"request_type": "WALLET_TO_PAYBILL_TRANSACTION",
                                 "transaction": serializer.data}
                     data = {"status": 1, "wallet_transaction": serializer.data}
                     instance.data_push("single", registration_id, fcm_data)
-                    instance.notification_push("single", registration_id, title, message)
                     return Response(data, status=status.HTTP_200_OK)
             except Exception as e:
                 print (str(e))
@@ -666,11 +662,11 @@ class MpesaB2BResultURL(APIView):
                 member = Member.objects.get(phone_number=initiatorPhoneNumber)
                 registration_id, title, message = member.device_token, "Wallet to Paybill transaction unsuccessful", " We cannot process your request at the moment. Try again later. If the problem persists" \
                                                                                                                    " kindly call our customer care service on (254) 795891656"
-                instance.notification_push("single", registration_id, title, message)
+
                 fcm_data = {"request_type": "SYSTEM_WARNING_MSG",
-                            "title": title, "message": message, "time": datetime.datetime.now()}
+                            "title": title, "message": message, "time": "2017-05-04 03:02:03"}
                 instance.data_push("single", registration_id, fcm_data)
-                instance.notification_push("single", registration_id, title, message)
+
 
             except Member.DoesNotExist as exp:
 

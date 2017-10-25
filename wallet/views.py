@@ -366,9 +366,10 @@ class MpesaB2CResultURL(APIView):
                 member = Member.objects.get(phone_number=initiatorPhoneNumber)
                 registration_id, title, message = member.device_token, "Wallet to Mpesa transaction unsuccessful", " We cannot process your request at the moment. Try again later. If the problem persists" \
                                                                                  " kindly call our customer care service on (254) 795891656"
-                instance.notification_push("single", registration_id, title, message)
+                #instance.notification_push("single", registration_id, title, message)
+                date_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 fcm_data = {"request_type": "SYSTEM_WARNING_MSG",
-                            "title": title, "message":message, "time":"2017-05-04 03:02:03"}
+                            "title": title, "message":message, "time":date_time}
                 instance.data_push("single", registration_id, fcm_data)
 
             except Member.DoesNotExist as exp:
@@ -385,9 +386,10 @@ class MpesaB2CResultURL(APIView):
                 member = Member.objects.get(phone_number=initiatorPhoneNumber)
                 registration_id, title, message = member.device_token, "Wallet to Mpesa transaction unsuccessful", " We cannot process your request at the moment. Try again later. If the problem persists" \
                                                                                  " kindly call our customer care service on (254) 795891656"
-                instance.notification_push("single", registration_id, title, message)
+                #instance.notification_push("single", registration_id, title, message)
+                date_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 fcm_data = {"request_type": "SYSTEM_WARNING_MSG",
-                            "title": title, "message": message, "time": "2017-05-04 03:02:03"}
+                            "title": title, "message": message, "time": date_time}
                 instance.data_push("single", registration_id, fcm_data)
 
             except Member.DoesNotExist as exp:
@@ -649,6 +651,7 @@ class MpesaB2BResultURL(APIView):
                     registration_id, title, message = member.device_token, "Wallet", "{} confirmed, {} {} has been debited from your wallet to {} at {} " \
                         .format(transactionReceipt, member.currency, transactionAmount, receiverPartyPublicName, transactionDateTime)
 
+                    #instance.notification_push("single", registration_id, title, message)
                     fcm_data = {"request_type": "WALLET_TO_PAYBILL_TRANSACTION",
                                 "transaction": serializer.data}
                     data = {"status": 1, "wallet_transaction": serializer.data}
@@ -662,9 +665,10 @@ class MpesaB2BResultURL(APIView):
                 member = Member.objects.get(phone_number=initiatorPhoneNumber)
                 registration_id, title, message = member.device_token, "Wallet to Paybill transaction unsuccessful", " We cannot process your request at the moment. Try again later. If the problem persists" \
                                                                                                                    " kindly call our customer care service on (254) 795891656"
-
+                #instance.notification_push("single", registration_id, title, message)
+                date_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 fcm_data = {"request_type": "SYSTEM_WARNING_MSG",
-                            "title": title, "message": message, "time": "2017-05-04 03:02:03"}
+                            "title": title, "message": message, "time": date_time}
                 instance.data_push("single", registration_id, fcm_data)
 
 

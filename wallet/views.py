@@ -208,8 +208,22 @@ class WalletToMpesa(APIView):
         data = {"status": 0, "message": serializers.errors}
         return Response(data, status=status.HTTP_200_OK)
 
-
 class MpesaCallbackURL(APIView):
+    """
+    callbackURL for mpesa transactions
+    """
+    #mpesaCallbackURL
+    def post(self, request):
+        data = request.body
+        with open('stkpush_callbakcurl_post_file.txt', 'a') as post_file:
+            post_file.write(data)
+            post_file.write("\n")
+
+        data = {"status": 1, "message": "Callback URL reached successfully by mpesa"}
+        return Response(data, status=status.HTTP_200_OK)
+
+
+class MpesaCallbackURL1(APIView):
     """
     callbackURL for mpesa transactions
     """

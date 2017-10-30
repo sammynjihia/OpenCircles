@@ -24,7 +24,7 @@ from wallet.models import Transactions
 from loan.models import LoanApplication as loanapplication,GuarantorRequest,LoanAmortizationSchedule,LoanRepayment as loanrepayment,LoanGuarantor
 
 from app_utility import general_utils,fcm_utils,circle_utils,wallet_utils,loan_utils,sms_utils
-from loan.tasks import unlocking_guarantors_shares, updating_loan_limit
+from loan.tasks import unlocking_guarantors_shares, updating_loan_limit, sending_guarantee_requests, task_share_loan_interest
 import datetime,json,math,uuid
 
 # Create your views here.
@@ -110,9 +110,12 @@ class LoanApplication(APIView):
                                 loan_guarantors_serializer = LoanGuarantorsSerializer(loan_guarantors,many=True)
                                 loan_serializer = LoansSerializer(loan)
                                 data = {"status":1,"shares_transaction":shares_transaction_serializer.data,"message":"Loan application successfully received.Waiting for guarantors approval","loan":loan_serializer.data,"loan_limit":loan_limit,"loan_guarantors":loan_guarantors_serializer.data}
-                                # unblock task
 
-                                loan_instance.send_guarantee_requests(loan_guarantors,member,loan_tariff)
+                                # unblock task, not fully done
+                                loan_instance.send_guarantee_requests(loan_guarantors,member)
+                                #Below is the celery task, get the guarantors id.
+                                #sending_guarantee_requests.delay(guarantors_id, member.id)
+
                                 # unblock task, Done
                                 #loan_instance.update_loan_limit(circle,member)
                                 updating_loan_limit.delay(circle.id, member.id)
@@ -241,8 +244,8 @@ class LoanRepayment(APIView):
                                 print(unlockable)
                                 if unlockable:
                                     #unlock guarantor shares
-                                    loan_instance.unlock_guarantors_shares(guarantors, "")
-                                    # unlocking_guarantors_shares.delay(guarantors_id, "")
+                                    # loan_instance.unlock_guarantors_shares(guarantors, "")
+                                    unlocking_guarantors_shares.delay(guarantors_id, "")
                             wallet_transaction_serializer = WalletTransactionsSerializer(wallet_transaction)
                             circle_instance = circle_utils.Circle()
                             if remaining_number_of_months == 0 or ending_balance == 0:
@@ -255,8 +258,9 @@ class LoanRepayment(APIView):
                                 created_objects.append(shares_transaction)
                                 unlocked_shares = UnlockedShares.objects.create(locked_shares=locked_shares,shares_transaction=shares_transaction)
                                 created_objects.append(unlocked_shares)
-                                # unblock task
-                                loan_instance.share_loan_interest(loan)
+                                # unblock task, Done
+                                #loan_instance.share_loan_interest(loan)
+                                task_share_loan_interest.delay(loan.id)
                                 shares_transaction_serializer = SharesTransactionSerializer(shares_transaction)
                                 loan_repayment_serializer = LoanRepaymentSerializer(loan_repayment, context={"is_fully_repaid":True})
                                 loan_limit = loan_instance.calculate_loan_limit(circle, member)

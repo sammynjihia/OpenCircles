@@ -28,8 +28,9 @@ def send_frequent_invitations():
     message = "Break Bounderies and explore discovered opportunities with the all new OpenCircles mobile app. A revolutionary way to invest your money. Join now" \
               " and find out why mobile financing will never be the same again. "
     if invite_contacts.exists():
-        #sms.sendsms(numbers, message)
-        invite_contacts.update(invitation_sent=True)
+        response,unsent = sms.sendmultiplesms(numbers, message)
+        if response:
+            invite_contacts.exclude(phone_number__in=unsent).update(invitation_sent=True)
     else:
         print("No contacts in this table")
 

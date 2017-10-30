@@ -51,7 +51,7 @@ class SharesTransactionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = IntraCircleShareTransaction
-        fields = ['type_of_transaction','amount','time_of_transaction','circle_acc_number']
+        fields = ['type_of_transaction','amount','time_of_transaction','circle_acc_number','transaction_desc']
 
     def get_time_of_transaction(self,transaction):
         time = transaction.transaction_time.strftime("%Y-%m-%d %H:%M:%S")

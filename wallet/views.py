@@ -45,6 +45,7 @@ class WallettoWalletTranfer(APIView):
         serializer = WallettoWalletTransferSerializer(data=request.data)
         created_objects = []
         if serializer.is_valid():
+            sender = request.user.member
             try:
                 recipient = Member.objects.get(phone_number=serializer.validated_data['phone_number'])
             except Member.DoesNotExist:
@@ -58,12 +59,15 @@ class WallettoWalletTranfer(APIView):
             valid,message = wallet_utils.Wallet().validate_account_info(request,amount,pin,account)
             if valid:
                 general_instance = general_utils.General()
-                sender_wallet,recipient_wallet = request.user.member.wallet,recipient.wallet
+                wallet_instance = wallet_utils.Wallet()
+                sender_wallet,recipient_wallet = sender.wallet,recipient.wallet
                 suffix = general_instance.generate_unique_identifier('')
                 sender_transaction_code = 'WTD' + suffix
                 recipient_transaction_code = 'WTC' + suffix
-                sender_desc = "{} confirmed.You have sent {} {} to {} {}.".format(sender_transaction_code, recipient.currency, amount, recipient.user.first_name, recipient.user.last_name)
-                recipient_desc = "{} confirmed.You have received KES {} from {} {}.".format(recipient_transaction_code, amount, request.user.first_name, request.user.last_name)
+                today = datetime.datetime.now()
+                today_date = today.date()
+                sender_desc = "{} confirmed.You have sent {} {} to {} {} on {} .New wallet balance is {} {}.".format(sender_transaction_code, sender.currency, amount, recipient.user.first_name, recipient.user.last_name, today_date, sender.currency, wallet_instance.calculate_wallet_balance(sender_wallet))
+                recipient_desc = "{} confirmed.You have received {} {} from {} {} on {}.New wallet balance is {} {}".format(recipient_transaction_code, recipient.currency, amount, request.user.first_name, request.user.last_name, today_date, recipient.currency, wallet_instance,calculate_wallet_balance(recipient_wallet))
                 try:
                     sender_transaction = Transactions.objects.create(wallet= sender_wallet,transaction_type="DEBIT",transaction_desc=sender_desc,transaction_amount=amount,transaction_time=datetime.datetime.now(),recipient=account,transaction_code=sender_transaction_code)
                     created_objects.append(sender_transaction)
@@ -261,10 +265,12 @@ class MpesaCallbackURL1(APIView):
                         result_file.write(str(exp))
                         result_file.write("\n")
 
-                general_instance = general_utils.General()
+                general_instance, wallet_instance = general_utils.General(),wallet_utils.Wallet()
                 wallet = member.wallet
-                transaction_desc = "{} confirmed.You have receives KES {} from {}. " \
-                    .format(transaction_code, amount, phone_number)
+                today = datetime.datetime.now()
+                today_date = today.date()
+                transaction_desc = "{} confirmed.You have received {} {} from {} on {}.New wallet balance is {} {}." \
+                    .format(transaction_code, member.currency, amount, phone_number, today_date, member.currency, wallet_instance.calculate_wallet_balance(wallet) )
 
                 mpesa_transactions = Transactions(wallet=wallet, transaction_type="CREDIT",
                                                   transaction_desc=transaction_desc,
@@ -347,10 +353,10 @@ class MpesaB2CResultURL(APIView):
                     with open('member_fetched_failed.txt', 'a') as result_file:
                         result_file.write(str(exp))
                         result_file.write("\n")
-                general_instance = general_utils.General()
+                general_instance, wallet_instance = general_utils.General(), wallet_utils.Wallet()
                 wallet = member.wallet
-                transaction_desc = "{} confirmed, {} {} has been sent to {} from your wallet at {} " \
-                    .format(transactionReceipt, member.currency, transactionAmount, receiverPartyPublicName, transactionDateTime)
+                transaction_desc = "{} confirmed.{} {} has been sent to {} from your wallet at {}.New wallet balance is {} {}. " \
+                    .format(transactionReceipt, member.currency, transactionAmount, receiverPartyPublicName, transactionDateTime, member.currency, wallet_instance.calculate_wallet_balance(wallet) )
                 mpesa_transactions = Transactions(wallet=wallet, transaction_type="DEBIT",
                                                   transaction_desc=transaction_desc,
                                                   transacted_by=wallet.acc_no, transaction_amount=transactionAmount,transation_code=general_instance.generate_unique_identifier('WTD'))

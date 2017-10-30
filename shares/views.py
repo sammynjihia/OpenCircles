@@ -69,6 +69,7 @@ class PurchaseShares(APIView):
                         created_objects.append(shares_transaction)
                         print("shares transaction")
                         print(shares_transaction.num_of_shares)
+                        shares_utils.Shares().get_circle_member_shares(shares)
                         circle_instance = circle_utils.Circle()
                         available_shares = circle_instance.get_available_circle_member_shares(circle, member)
                         print("available shares")
@@ -82,6 +83,7 @@ class PurchaseShares(APIView):
                         data = {"status":1, "wallet_transaction":wallet_serializer.data, "shares_transaction":shares_serializer.data, "loan_limit":loan_limit}
                     except Exception as e:
                         print(str(e))
+                        shares_utils.Shares().get_circle_member_shares(shares)
                         general_utils.General().delete_created_objects(created_objects)
                         data = {"status":0, "message":"Unable to complete transaction"}
                         return Response(data, status=status.HTTP_200_OK)
@@ -139,6 +141,7 @@ class MemberSharesTransactions(APIView):
             #     print(available_shares)
             transactions = shares.shares_transaction.all()
             serializer = SharesTransactionSerializer(transactions, many=True, context={'request':request})
+            print(serializer.data)
             data = {"status":1, "transactions":serializer.data}
             return Response(data, status=status.HTTP_200_OK)
         data = {"status":0, "message":serializer.errors}
@@ -183,6 +186,7 @@ class SharesWithdrawal(APIView):
                                     created_objects.append(shares_transaction)
                                     revenue = RevenueStreams.objects.create(stream_amount=shares_tariff.amount,stream_type="SHARES WITHDRAW",stream_code=transaction_code,time_of_transaction=time_processed)
                                     created_objects.append(revenue)
+                                    shares_utils.Shares().get_circle_member_shares(shares)
                                     transaction_code = general_instance.generate_unique_identifier('WTC')
                                     wallet_desc = "{} confirmed.You have received {} {} from circle {} shares withdrawal".format(transaction_code, member.currency, amount, circle.circle_name)
                                     wallet_transaction = Transactions.objects.create(wallet= member.wallet, transaction_type='CREDIT', transaction_time = time_processed, transaction_desc=wallet_desc, transaction_amount= amount, transaction_code=transaction_code)
@@ -201,6 +205,7 @@ class SharesWithdrawal(APIView):
                                     data = {"status":1, "shares_transaction":shares_transaction_serializer.data, "wallet_transaction":wallet_transaction_serializer.data, "loan_limit":loan_limit, "message":wallet_desc}
                                 except Exception as e:
                                     print(str(e))
+                                    shares_utils.Shares().get_circle_member_shares(shares)
                                     general_instance = general_utils.General()
                                     general_instance.delete_created_objects(created_objects)
                                     data = {"status":0,"message":"Unable to process the shares withdrawal request"}

@@ -20,11 +20,13 @@ class Sms:
         gateway = AfricasTalkingGateway(self.username,self.api_key)
         try:
             response = gateway.sendMessage(to,message)
+            print(response)
             if response[0]['status'] == 'Success':
                 return True
             else:
                 return False
         except Exception as e:
+            print(str(e))
             return False
 
     def sendmultiplesms(self,to,message):

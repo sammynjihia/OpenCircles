@@ -7,6 +7,16 @@ from member.models import Member
 from shares.models import Shares, LockedShares, UnlockedShares
 
 # Create your models here.
+class LoanTariff(models.Model):
+    circle = models.ForeignKey(Circle,on_delete=models.CASCADE)
+    max_amount = models.IntegerField()
+    min_amount = models.IntegerField()
+    num_of_months = models.IntegerField()
+    monthly_interest_rate = models.FloatField()
+
+    class Meta:
+        db_table = "LoanTariff"
+
 class LoanApplication(models.Model):
     loan_code = models.CharField(unique=True,max_length=20,default='LN0001')
     circle_member = models.ForeignKey(CircleMember, null=False)
@@ -22,6 +32,7 @@ class LoanApplication(models.Model):
     other_info = models.TextField(max_length=10000, blank=True)
     is_fully_repaid = models.BooleanField(default=False)
     time_of_last_payment = models.DateTimeField(null=True)
+    loan_tariff = models.ForeignKey(LoanTariff, null=True)
 
     class Meta:
         db_table = 'LoanApplication'
@@ -76,13 +87,3 @@ class LoanRepayment(models.Model):
     rating = models.IntegerField(default=4)
     class Meta:
         db_table = 'LoanRepayment'
-
-class LoanTariff(models.Model):
-    circle = models.ForeignKey(Circle,on_delete=models.CASCADE)
-    max_amount = models.IntegerField()
-    min_amount = models.IntegerField()
-    num_of_months = models.IntegerField()
-    monthly_interest_rate = models.FloatField()
-
-    class Meta:
-        db_table = "LoanTariff"

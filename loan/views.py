@@ -23,7 +23,7 @@ from wallet.models import Transactions
 from loan.models import LoanApplication as loanapplication,GuarantorRequest,LoanAmortizationSchedule,LoanRepayment as loanrepayment,LoanGuarantor
 
 from app_utility import general_utils,fcm_utils,circle_utils,wallet_utils,loan_utils,sms_utils
-from loan.tasks import unlocking_guarantors_shares
+from loan.tasks import unlocking_guarantors_shares, updating_loan_limit
 import datetime,json,math,uuid
 
 # Create your views here.
@@ -111,8 +111,9 @@ class LoanApplication(APIView):
                                 data = {"status":1,"shares_transaction":shares_transaction_serializer.data,"message":"Loan application successfully received.Waiting for guarantors approval","loan":loan_serializer.data,"loan_limit":loan_limit,"loan_guarantors":loan_guarantors_serializer.data}
                                 # unblock task
                                 loan_instance.send_guarantee_requests(loan_guarantors,member,loan_tariff)
-                                # unblock task
-                                loan_instance.update_loan_limit(circle,member)
+                                # unblock task, Done
+                                #loan_instance.update_loan_limit(circle,member)
+                                updating_loan_limit.delay(circle.id, member.id)
                             except Exception as e:
                                 print(str(e))
                                 instance = general_utils.General()
@@ -166,8 +167,9 @@ class LoanApplication(APIView):
                     fcm_data = {"request_type":"UPDATE_AVAILABLE_SHARES","circle_acc_number":circle.circle_acc_number,"phone_number":member.phone_number,"available_shares":fcm_available_shares}
                     registration_id = fcm_instance.get_circle_members_token(circle,member)
                     fcm_instance.data_push("multiple",registration_id,fcm_data)
-                    # unblock task
-                    loan_instance.update_loan_limit(circle,member)
+                    # unblock task, Done
+                    #loan_instance.update_loan_limit(circle,member)
+                    updating_loan_limit.delay(circle.id, member.id)
                     return Response(data, status=status.HTTP_200_OK)
                 data = {"status":0,"message":response}
                 return Response(data,status=status.HTTP_200_OK)
@@ -282,8 +284,9 @@ class LoanRepayment(APIView):
                             registration_ids = fcm_instance.get_circle_members_token(circle,member)
                             fcm_data = {"request_type":"UPDATE_AVAILABLE_SHARES","available_shares":fcm_available_shares,"circle_acc_number":circle.circle_acc_number,"phone_number":member.phone_number}
                             fcm_instance.data_push("multiple",registration_ids,fcm_data)
-                            # unblock task
-                            loan_instance.update_loan_limit(circle,member)
+                            # unblock task, Done
+                            #loan_instance.update_loan_limit(circle,member)
+                            updating_loan_limit.delay(circle.id, member.id)
                             return Response(data,status=status.HTTP_200_OK)
                         except Exception as e:
                             print(str(e))
@@ -331,12 +334,12 @@ class LoanGuarantorResponse(APIView):
             time_accepted = datetime.datetime.now()
             loan_member = loan.circle_member.member
             loan_instance,circle_instance = loan_utils.Loan(), circle_utils.Circle()
+            created_objects = []
             try:
                 if guarantor.has_accepted is None:
                     fcm_instance = fcm_utils.Fcm()
                     if has_accepted:
                         general_instance = general_utils.General()
-                        created_objects = []
                         loan_instance = loan_utils.Loan()
                         shares = circle_member.shares.get()
                         shares_transaction_code = general_instance.generate_unique_identifier('STL')
@@ -351,7 +354,7 @@ class LoanGuarantorResponse(APIView):
                         unguaranteed_amount = loan_instance.get_remaining_guaranteed_amount(loan,loan.circle_member.shares.get())
                         fcm_instance = fcm_utils.Fcm()
                         print("remaining amount to guarantee")
-                        print unguaranteed_amount
+                        print(unguaranteed_amount)
                         if unguaranteed_amount == 0:
                             time_processed = datetime.datetime.now()
                             wallet_transaction_code = general_instance.generate_unique_identifier('WTC')
@@ -404,8 +407,9 @@ class LoanGuarantorResponse(APIView):
                         message = "%s %s has declined to guarantee you %s %s"%(member.user.first_name,member.user.last_name,member.currency,guarantor.num_of_shares)
                         fcm_instance.notification_push("single",registration_id,title,message)
                         return Response(data,status=status.HTTP_200_OK)
-                    # unblock task
-                    loan_instance.update_loan_limit(circle,member)
+                    # unblock task, Done
+                    #loan_instance.update_loan_limit(circle,member)
+                    updating_loan_limit.delay(circle.id, member.id)
                     registration_id = loan_member.device_token
                     title = "Circle %s loan guarantor request"%(circle.circle_name)
                     message = "%s %s has accepted to guaranteed you %s %s"%(member.user.first_name, member.user.last_name, member.currency,guarantor.num_of_shares)
@@ -594,7 +598,7 @@ class UnprocessedLoanGuarantorRequest(APIView):
     permission_classes = (IsAuthenticated,)
     def post(self,request,*args,**kwargs):
         unprocessed_requests = GuarantorRequest.objects.filter(has_accepted = None, circle_member__member=request.user.member)
-        print unprocessed_requests
+        print(unprocessed_requests)
         unprocessed_requests_serializer = UnprocessedGuarantorRequestSerializer(unprocessed_requests,many=True)
         data = {"status":1,"unprocessed_requests":unprocessed_requests_serializer.data}
         return Response(data,status=status.HTTP_200_OK)

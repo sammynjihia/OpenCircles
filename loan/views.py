@@ -3,6 +3,7 @@ from __future__ import division
 from django.shortcuts import render
 from django.db.models import Q
 from django.conf import settings
+from django.db import IntegrityError
 
 from .serializers import *
 from wallet.serializers import WalletTransactionsSerializer
@@ -80,7 +81,7 @@ class LoanApplication(APIView):
                         return Response(data,status=status.HTTP_200_OK)
                     general_instance = general_utils.General()
                     annual_interest_rate =  loan_tariff.monthly_interest_rate * 12
-                    loan = loanapplication.objects.create(loan_code=loan_code,circle_member=circle_member,amount=loan_amount,interest_rate=loan_tariff.monthly_interest_rate,num_of_repayment_cycles=loan_tariff.num_of_months)
+                    loan = loanapplication.objects.create(loan_code=loan_code,circle_member=circle_member,amount=loan_amount,interest_rate=loan_tariff.monthly_interest_rate,num_of_repayment_cycles=loan_tariff.num_of_months,loan_tariff=loan_tariff)
                     created_objects.append(loan)
                     guarantors = guarantors[0]
                     shares_transaction_code = general_instance.generate_unique_identifier('STL')
@@ -110,7 +111,7 @@ class LoanApplication(APIView):
                                 loan_serializer = LoansSerializer(loan)
                                 data = {"status":1,"shares_transaction":shares_transaction_serializer.data,"message":"Loan application successfully received.Waiting for guarantors approval","loan":loan_serializer.data,"loan_limit":loan_limit,"loan_guarantors":loan_guarantors_serializer.data}
                                 # unblock task
-                                loan_instance.send_guarantee_requests(loan_guarantors,member,loan_tariff)
+                                loan_instance.send_guarantee_requests(loan_guarantors,member)
                                 # unblock task
                                 loan_instance.update_loan_limit(circle,member)
                             except Exception as e:
@@ -204,7 +205,9 @@ class LoanRepayment(APIView):
                         circle = loan.circle_member.circle
                         loan_repayment = loan_amortize.filter(~Q(loan_repayment=None)).count()
                         print(loan_amortize.filter().values_list('loan_repayment'))
-                        loan_tariff = LoanTariff.objects.get(circle=circle,max_amount__gte=loan.amount,min_amount__lte=loan.amount)
+                        loan_tariff = loan.loan_tariff
+                        if loan_tariff is None:
+                            loan_tariff = LoanTariff.objects.get(circle=circle,max_amount__gte=loan.amount,min_amount__lte=loan.amount)
                         paid_months = loan_repayment + 1
                         print("paid months")
                         print(paid_months)
@@ -231,10 +234,12 @@ class LoanRepayment(APIView):
                             if guarantors.exists():
                                 unlockable = loan_instance.calculate_total_paid_principal(loan)
                                 guarantors_id = list(guarantors.values_list('id',flat=True))
+                                print("unlockable")
+                                print(unlockable)
                                 if unlockable:
                                     #unlock guarantor shares
-                                    # loan_instance.unlock_guarantors_shares(guarantors, "")
-                                    unlocking_guarantors_shares.delay(guarantors_id, "")
+                                    loan_instance.unlock_guarantors_shares(guarantors, "")
+                                    # unlocking_guarantors_shares.delay(guarantors_id, "")
                             wallet_transaction_serializer = WalletTransactionsSerializer(wallet_transaction)
                             circle_instance = circle_utils.Circle()
                             if remaining_number_of_months == 0 or ending_balance == 0:
@@ -283,7 +288,7 @@ class LoanRepayment(APIView):
                             fcm_data = {"request_type":"UPDATE_AVAILABLE_SHARES","available_shares":fcm_available_shares,"circle_acc_number":circle.circle_acc_number,"phone_number":member.phone_number}
                             fcm_instance.data_push("multiple",registration_ids,fcm_data)
                             # unblock task
-                            loan_instance.update_loan_limit(circle,member)
+                            loan_instance.update_loan_limit(circle,None)
                             return Response(data,status=status.HTTP_200_OK)
                         except Exception as e:
                             print(str(e))
@@ -331,12 +336,12 @@ class LoanGuarantorResponse(APIView):
             time_accepted = datetime.datetime.now()
             loan_member = loan.circle_member.member
             loan_instance,circle_instance = loan_utils.Loan(), circle_utils.Circle()
+            created_objects = []
             try:
                 if guarantor.has_accepted is None:
                     fcm_instance = fcm_utils.Fcm()
                     if has_accepted:
                         general_instance = general_utils.General()
-                        created_objects = []
                         loan_instance = loan_utils.Loan()
                         shares = circle_member.shares.get()
                         shares_transaction_code = general_instance.generate_unique_identifier('STL')
@@ -365,7 +370,9 @@ class LoanGuarantorResponse(APIView):
                             loan.save()
                             wallet_transaction_serializer = WalletTransactionsSerializer(wallet_transaction)
                             loan_serializer = LoansSerializer(loan)
-                            loan_tariff = LoanTariff.objects.get(circle=circle,max_amount__gte=loan.amount,min_amount__lte=loan.amount)
+                            loan_tariff = loan.loan_tariff
+                            if loan_tariff is None:
+                                loan_tariff = LoanTariff.objects.get(circle=circle,max_amount__gte=loan.amount,min_amount__lte=loan.amount)
                             annual_interest,date_approved,num_of_months,amount = loan_tariff.monthly_interest_rate * 12, time_processed.date(), loan_tariff.num_of_months, loan.amount
                             loan_amortization = loan_instance.amortization_schedule(annual_interest, amount, num_of_months, date_approved)
                             loan_amortization['loan']=loan
@@ -473,30 +480,47 @@ class NewLoanGuarantor(APIView):
     authentication_classes = (TokenAuthentication,)
     permission_classes = (IsAuthenticated,)
     def post(self,request,*args,**kwargs):
+        print(request.data)
         serializer = NewLoanGuarantorSerializer(data=request.data)
         if serializer.is_valid():
             loan_code,phone_number,amount = serializer.validated_data['loan_code'],sms_utils.Sms().format_phone_number(serializer.validated_data['phone_number']),serializer.validated_data['amount']
             loan = loanapplication.objects.get(loan_code=loan_code)
             circle = loan.circle_member.circle
             guaranteed_amount = loan.amount - LockedShares.objects.get(loan=loan).shares_transaction.num_of_shares
+            member = loan.circle_member.member
             fraction_guaranteed = float(amount/guaranteed_amount)
+            loan_instance = loan_utils.Loan()
+            circle_member = CircleMember.objects.get(member__phone_number=phone_number,circle=circle)
+            created_objects,guarantor = [], []
             try:
-                loan_guarantor = GuarantorRequest.objects.create(circle_member=CircleMember.objects.get(member__phone_number=phone_number,circle=circle),num_of_shares=amount,time_requested=datetime.datetime.today(),fraction_guaranteed=fraction_guaranteed,loan=loan)
-                guarantor_member = loan_guarantor.circle_member.member
-                loan_guarantors_serializer = LoanGuarantorsSerializer(loan_guarantor)
-                data={"status":1,"loan_guarantor":loan_guarantors_serializer.data}
-                circle_instance = circle_utils.Circle()
-                fcm_available_shares = circle_instance.get_guarantor_available_shares(circle,guarantor_member)
-                fcm_instance = fcm_utils.Fcm()
-                fcm_data = {"request_type":"UPDATE_AVAILABLE_SHARES","circle_acc_number":circle.circle_acc_number,"phone_number":phone_number,"available_shares":fcm_available_shares}
-                registration_ids = fcm_instance.get_circle_members_token(circle,guarantor_member)
-                fcm_instance.data_push("multiple",registration_ids,fcm_data)
-                return Response(data,status=status.HTTP_200_OK)
-            except Exception as e:
-                print(str(e))
+                loan_guarantor= GuarantorRequest.objects.create(circle_member=circle_member,num_of_shares=amount,time_requested=datetime.datetime.today(),fraction_guaranteed=fraction_guaranteed,loan=loan)
+                created_objects.append(loan_guarantor)
+                try:
+                    guarantor_member = loan_guarantor.circle_member.member
+                    loan_guarantors_serializer = LoanGuarantorsSerializer(loan_guarantor)
+                    data={"status":1,"loan_guarantor":loan_guarantors_serializer.data}
+                    circle_instance = circle_utils.Circle()
+                    fcm_available_shares = circle_instance.get_guarantor_available_shares(circle,guarantor_member)
+                    loan_tariff = loan.loan_tariff
+                    if loan_tariff is None:
+                        loan_tariff = LoanTariff.objects.get(circle=circle,max_amount__gte=loan.amount,min_amount__lte=loan.amount)
+                    guarantor.append(loan_guarantor)
+                    # unblock task
+                    loan_instance.send_guarantee_requests(guarantor,member)
+                    fcm_instance = fcm_utils.Fcm()
+                    fcm_data = {"request_type":"UPDATE_AVAILABLE_SHARES","circle_acc_number":circle.circle_acc_number,"phone_number":phone_number,"available_shares":fcm_available_shares}
+                    registration_ids = fcm_instance.get_circle_members_token(circle,guarantor_member)
+                    fcm_instance.data_push("multiple",registration_ids,fcm_data)
+                    return Response(data,status=status.HTTP_200_OK)
+                except Exception as e:
+                    print(str(e))
+                    general_utils.General().delete_created_objects(created_objects)
+                    ms = "Unable to add {} {} as loan guarantor.".format(circle_member.member.user.first_name, circle_member.member.user.last_name)
+                    data={"status":0,"message":ms}
+                    return Response(data,status=status.HTTP_200_OK)
+            except IntegrityError:
                 data={"status":0,"message":"The member already exists as your loan guarantor."}
                 return Response(data,status=status.HTTP_200_OK)
-
         data = {"status":0,"message":serializer.errors}
         return Response(data,status=status.HTTP_200_OK)
 
@@ -521,8 +545,13 @@ def remove_loan_guarantor(request,*args,**kwargs):
             circle_instance = circle_utils.Circle()
             fcm_available_shares = circle_instance.get_guarantor_available_shares(circle,guarantor_member)
             fcm_instance = fcm_utils.Fcm()
+            registration_id = guarantor_member.device_token
+            fcm_data = {"request_type":"DELETE_GUARANTEE_LOAN_REQUEST","loan_code":loan.loan_code}
+            print(fcm_data)
+            fcm_instance.data_push("single",registration_id,fcm_data)
             fcm_data = {"request_type":"UPDATE_AVAILABLE_SHARES","circle_acc_number":circle.circle_acc_number,"phone_number":phone_number,"available_shares":fcm_available_shares}
             registration_ids = fcm_instance.get_circle_members_token(circle, guarantor_member)
+            print(fcm_data)
             fcm_instance.data_push("multiple",registration_ids,fcm_data)
         else:
             data = {"status":0,"message":"Unable to delete guarantor"}
@@ -545,7 +574,10 @@ class AmortizationSchedule(APIView):
                 loan_amortization = LoanAmortizationSchedule.objects.filter(loan=loan)
                 if loan_amortization.exists():
                     loan_repayment = loan_amortization.filter(~Q(loan_repayment=None)).count()
-                    actual_months = LoanTariff.objects.get(max_amount__gte=loan.amount,min_amount__lte=loan.amount,circle=loan.circle_member.circle).num_of_months
+                    loan_tariff = loan.loan_tariff
+                    if loan_tariff is None:
+                        loan_tariff = LoanTariff.objects.get(max_amount__gte=loan.amount,min_amount__lte=loan.amount,circle=loan.circle_member.circle)
+                    actual_months = loan_tariff.num_of_months
                     paid_months = loan_repayment
                     print("paid months")
                     print(paid_months)

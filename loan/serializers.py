@@ -194,7 +194,9 @@ class UnprocessedGuarantorRequestSerializer(serializers.ModelSerializer):
     def get_num_of_months(self,guarantor):
         amount = guarantor.loan.amount
         try:
-            loan_tariff = LoanTariff.objects.get(circle=guarantor.circle_member.circle,max_amount__gte=amount,min_amount__lte=amount)
+            loan_tariff = guarantor.loan.loan_tariff
+            if loan_tariff is None:
+                loan_tariff = LoanTariff.objects.get(circle=guarantor.circle_member.circle,max_amount__gte=amount,min_amount__lte=amount)
             return loan_tariff.num_of_months
         except LoanTariff.DoesNotExist:
             return 0

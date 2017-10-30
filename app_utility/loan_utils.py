@@ -6,7 +6,7 @@ from dateutil.relativedelta import relativedelta
 from django.conf import settings
 from django.db.models import Sum,Q
 
-from loan.models import LoanApplication,GuarantorRequest
+from loan.models import LoanApplication,GuarantorRequest,LoanTariff
 from shares.models import IntraCircleShareTransaction,LockedShares,UnlockedShares
 from wallet.models import RevenueStreams,Transactions
 from circle.models import CircleMember
@@ -122,6 +122,8 @@ class Loan():
                 shares_desc = "{} confirmed.Shares worth {} {} have been unlocked.{}".format(shares_transaction_code,member.currency, guarantor.num_of_shares, shares_desc)
                 locked_shares = LockedShares.objects.filter(loan=guarantor.loan).get(shares_transaction__shares=shares)
                 shares_transaction = IntraCircleShareTransaction.objects.create(shares=shares,transaction_type="UNLOCKED",num_of_shares=guarantor.num_of_shares,transaction_desc=shares_desc,transaction_code=shares_transaction_code)
+                print(shares_transaction.transaction_type)
+                print(shares_transaction.shares)
                 created_objects.append(shares_transaction)
                 unlocked_shares = UnlockedShares.objects.create(locked_shares=locked_shares, shares_transaction=shares_transaction)
                 created_objects.append(unlocked_shares)
@@ -135,9 +137,8 @@ class Loan():
                 fcm_data = {"request_type":"UNLOCK_SHARES","shares_transaction":shares_transaction_serializer.data,"loan_limit":loan_limit}
                 registration_id = member.device_token
                 instance.data_push("single",registration_id,fcm_data)
-                title = "Circle {} Loan Guarantee".format(circle.circle_name)
-                message = "Shares worth {} {} that were locked to guarantee {}'s loan have been unlocked.".format(member.currency,guarantor.num_of_shares,guarantor.loan.circle_member.member.user.first_name)
-                instance.notification_push("single",registration_id,title,message)
+                fcm_data = {"request_type":"DELETE_GUARANTEE_LOAN_REQUEST","loan_code":guarantor.loan.loan_code}
+                instance.data_push("single",registration_id,fcm_data)
                 fcm_available_shares = circle_instance.get_guarantor_available_shares(circle, member)
                 fcm_data = {"request_type":"UPDATE_AVAILABLE_SHARES","circle_acc_number":circle.circle_acc_number,"phone_number":member.phone_number,"available_shares":fcm_available_shares}
                 registration_id = instance.get_circle_members_token(circle,member)
@@ -161,7 +162,7 @@ class Loan():
                     today = datetime.now()
                     today = today.strftime("%Y-%m-%d %H:%M:%S")
                     title = "Circle {} loan".format(circle.circle_name)
-                    message = "Your loan of {} {} will be cancelled tomorrow.".format(member.currency,loan.amount)
+                    message = "Your loan of {} {} will be cancelled on {}.".format(member.currency,loan.amount,loan_expiry_date)
                     fcm_data = {"request_type":"SYSTEM_WARNING_MSG","title":"loan expiry","message":message,"time":today}
                     registration_id = member.device_token
                     fcm_instance.data_push("single",registration_id,fcm_data)
@@ -183,16 +184,15 @@ class Loan():
                         unlocked_shares = UnlockedShares.objects.create(locked_shares=locked_shares,shares_transaction=shares_transaction)
                         created_objects.append(unlocked_shares)
                         shares_transaction_serializer = SharesTransactionSerializer(shares_transaction)
-                        instance = fcm_utils.Fcm()
+                        loan_limit = self.calculate_loan_limit(circle,member)
+                        fcm_instance = fcm_utils.Fcm()
                         registration_id = member.device_token
-                        fcm_data = {"request_type":"DECLINE_LOAN","shares_transaction":shares_transaction_serializer.data,"loan_code":loan.loan_code}
+                        fcm_data = {"request_type":"UNLOCK_SHARES","shares_transaction":shares_transaction_serializer.data,"loan_limit":loan_limit}
+                        fcm_instance.data_push("single",registration_id,fcm_data)
+                        fcm_data = {"request_type":"DECLINE_LOAN","loan_code":loan.loan_code}
                         fcm_instance.data_push("single",registration_id,fcm_data)
                         loan.delete()
-                        # unblock task
-                        self.update_loan_limit(circle,None)
-                        title = "Circle {} loan".format(circle.circle_name)
-                        message = "Your loan of {} {} in circle {} has been declined.".format(member.currency, amount,circle.circle_name)
-                        fcm_instance.notification_push("single",registration_id,title,message)
+                        self.update_loan_limit(circle,member)
                     except Exception as e:
                         print(str(e))
                         general_utils.General().delete_created_objects(created_objects)
@@ -207,7 +207,6 @@ class Loan():
         if principal >= guaranteed['total']:
             return True
         return False
-
 
     def share_loan_interest(self,loan):
         interest = loan.loan_amortization.filter().aggregate(total=Sum('interest'))
@@ -279,9 +278,12 @@ class Loan():
             print(str(e))
             general_instance.delete_created_objects(created_objects)
 
-    def send_guarantee_requests(self,loan_guarantors,member,loan_tariff):
-        annual_interest_rate = loan_tariff.monthly_interest_rate*12
+    def send_guarantee_requests(self,loan_guarantors,member):
         loan = loan_guarantors[0].loan
+        loan_tariff = loan.loan_tariff
+        if loan_tariff is None:
+            loan_tariff = LoanTariff.objects.get(circle=loan.circle_member.circle,max_amount__gte=loan.amount,min_amount__lte=loan.amount)
+        annual_interest_rate = loan_tariff.monthly_interest_rate*12
         loan_amortization = self.full_amortization_schedule(annual_interest_rate, loan.amount, loan_tariff.num_of_months, datetime.now().date())[0]
         circle_instance = circle_utils.Circle()
         print(loan_amortization['interest'])
@@ -322,6 +324,7 @@ class Loan():
         #     t.join()
 
     def calculate_loan_limit(self,circle,member):
+        print(member.user.first_name)
         circle_instance = circle_utils.Circle()
         available_shares = circle_instance.get_available_circle_member_shares(circle,member)
         print(available_shares)
@@ -332,6 +335,8 @@ class Loan():
             loan_limit = int(math.floor(available_shares + ((available_shares/total_shares)*actual_available_shares)))
             if loan_limit >= settings.MAXIMUM_CIRCLE_SHARES:
                 return settings.MAXIMUM_CIRCLE_SHARES
+            print("loan_limit")
+            print(loan_limit)
             return loan_limit
         return available_shares
 
@@ -345,6 +350,8 @@ class Loan():
                     member = Member.objects.get(device_token=reg_id)
                     print(member.user.first_name)
                     loan_limit = self.calculate_loan_limit(circle,member)
+                    print("loan limit")
+                    print(loan_limit)
                     fcm_data = {"request_type":"UPDATE_LOAN_LIMIT","circle_acc_number":circle.circle_acc_number,"loan_limit":loan_limit}
                     fcm_instance.data_push("single",reg_id,fcm_data)
                     # t = threading.Thread(target=fcm_instance.data_push, args=("single",reg_id,fcm_data))

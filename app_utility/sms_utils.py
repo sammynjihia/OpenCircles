@@ -26,3 +26,12 @@ class Sms:
                 return False
         except Exception as e:
             return False
+
+    def sendmultiplesms(self,to,message):
+        gateway = AfricasTalkingGateway(self.username, self.api_key)
+        try:
+            response = gateway.sendMessage(to,message)
+            unsent = [res['number'] for res in response if res['status'] != 'Success']
+            return True,unsent
+        except Exception as e:
+            return False,''

@@ -4,6 +4,7 @@ from app_utility import loan_utils
 from loan.models import GuarantorRequest
 from circle.models import Circle
 from member.models import Member
+from loan.models import LoanApplication
 
 
 
@@ -36,4 +37,34 @@ def updating_loan_limit(circle_id, member_id):
 
     return log_message
 
+@shared_task
+def sending_guarantee_requests(guarantors_id, member_id):
+    guarantors = GuarantorRequest.objects.filter(id__in=guarantors_id)
+    member = Member.objects.get(id=member_id)
+    instance = loan_utils.Loan()
+    instance.send_guarantee_requests(guarantors, member)
+    log_message = "Sent guarantee request successfully"
+
+    with open('celery_updating_loan_limit_worker_file.txt', 'a') as post_file:
+        post_file.write(str(guarantors_id))
+        post_file.write("\n")
+        post_file.write(str(member_id))
+        post_file.write("\n")
+
+    return log_message
+
+
+@shared_task
+def task_share_loan_interest(loan_id):
+    loan = LoanApplication.objects.get(loan_id)
+    instance = loan_utils.Loan()
+    instance.share_loan_interest(loan)
+    log_message = "Loan interest successful"
+
+    with open('celery_share_loan_interest_worker_file.txt', 'a') as post_file:
+        post_file.write(str(loan_id))
+        post_file.write("\n")
+
+
+    return log_message
 

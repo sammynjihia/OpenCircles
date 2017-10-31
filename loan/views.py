@@ -110,6 +110,7 @@ class LoanApplication(APIView):
                                 loan_guarantors_serializer = LoanGuarantorsSerializer(loan_guarantors,many=True)
                                 loan_serializer = LoansSerializer(loan)
                                 data = {"status":1,"shares_transaction":shares_transaction_serializer.data,"message":"Loan application successfully received.Waiting for guarantors approval","loan":loan_serializer.data,"loan_limit":loan_limit,"loan_guarantors":loan_guarantors_serializer.data}
+                                print(loan_guarantors)
                                 print("loan guarantors")
                                 guarantors_id = list(loan_guarantors.values_list('id',flat=True))
                                 print(guarantors_id)

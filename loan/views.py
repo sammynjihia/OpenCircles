@@ -112,7 +112,7 @@ class LoanApplication(APIView):
                                 data = {"status":1,"shares_transaction":shares_transaction_serializer.data,"message":"Loan application successfully received.Waiting for guarantors approval","loan":loan_serializer.data,"loan_limit":loan_limit,"loan_guarantors":loan_guarantors_serializer.data}
                                 print(loan_guarantors)
                                 print("loan guarantors")
-                                guarantors_id = list(loan_guarantors.values_list('id',flat=True))
+                                guarantors_id = [ guarantor.id for guarantor in loan_guarantors]
                                 print(guarantors_id)
                                 # unblock task, not fully done
                                 loan_instance.send_guarantee_requests(loan_guarantors,member)

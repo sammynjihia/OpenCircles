@@ -110,14 +110,11 @@ class LoanApplication(APIView):
                                 loan_guarantors_serializer = LoanGuarantorsSerializer(loan_guarantors,many=True)
                                 loan_serializer = LoansSerializer(loan)
                                 data = {"status":1,"shares_transaction":shares_transaction_serializer.data,"message":"Loan application successfully received.Waiting for guarantors approval","loan":loan_serializer.data,"loan_limit":loan_limit,"loan_guarantors":loan_guarantors_serializer.data}
-                                print(loan_guarantors)
-                                print("loan guarantors")
                                 guarantors_id = [ guarantor.id for guarantor in loan_guarantors]
-                                print(guarantors_id)
                                 # unblock task, not fully done
-                                loan_instance.send_guarantee_requests(loan_guarantors,member)
+                                # loan_instance.send_guarantee_requests(loan_guarantors,member)
                                 #Below is the celery task, get the guarantors id.
-                                #sending_guarantee_requests.delay(guarantors_id, member.id)
+                                sending_guarantee_requests.delay(guarantors_id, member.id)
 
                                 # unblock task, Done
                                 #loan_instance.update_loan_limit(circle,member)
@@ -297,7 +294,6 @@ class LoanRepayment(APIView):
                             registration_ids = fcm_instance.get_circle_members_token(circle,member)
                             fcm_data = {"request_type":"UPDATE_AVAILABLE_SHARES","available_shares":fcm_available_shares,"circle_acc_number":circle.circle_acc_number,"phone_number":member.phone_number}
                             fcm_instance.data_push("multiple",registration_ids,fcm_data)
-
                             # unblock task, Done
                             #loan_instance.update_loan_limit(circle,member)
                             updating_loan_limit.delay(circle.id, member.id)
@@ -519,7 +515,10 @@ class NewLoanGuarantor(APIView):
                         loan_tariff = LoanTariff.objects.get(circle=circle,max_amount__gte=loan.amount,min_amount__lte=loan.amount)
                     guarantor.append(loan_guarantor)
                     # unblock task
-                    loan_instance.send_guarantee_requests(guarantor,member)
+                    # loan_instance.send_guarantee_requests(guarantor,member)
+                    guarantors_id = [loan_guarantor.id]
+                    #Below is the celery task, get the guarantors id.
+                    sending_guarantee_requests.delay(guarantors_id, member.id)
                     fcm_instance = fcm_utils.Fcm()
                     fcm_data = {"request_type":"UPDATE_AVAILABLE_SHARES","circle_acc_number":circle.circle_acc_number,"phone_number":phone_number,"available_shares":fcm_available_shares}
                     registration_ids = fcm_instance.get_circle_members_token(circle,guarantor_member)

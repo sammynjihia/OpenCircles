@@ -266,7 +266,7 @@ class LoanRepayment(APIView):
                                 #loan_instance.share_loan_interest(loan)
                                 print("loan being passed")
                                 print(loan)
-                                task_share_loan_interest.delay(loan)
+                                task_share_loan_interest.delay(loan.id)
 
                                 shares_transaction_serializer = SharesTransactionSerializer(shares_transaction)
                                 loan_repayment_serializer = LoanRepaymentSerializer(loan_repayment, context={"is_fully_repaid":True})

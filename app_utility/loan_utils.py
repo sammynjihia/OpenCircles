@@ -210,6 +210,8 @@ class Loan():
         return False
 
     def share_loan_interest(self,loan):
+        print(loan)
+        print(type(loan))
         interest = loan.loan_amortization.filter().aggregate(total=Sum('interest'))
         interest = round(interest['total'])
         print("total interest")

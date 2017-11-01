@@ -57,7 +57,7 @@ def sending_guarantee_requests(guarantors_id, member_id):
 @shared_task
 def task_share_loan_interest(loan_id):
 
-    loan = LoanApplication.objects.get(loan_id)
+    loan = LoanApplication.objects.get(id=loan_id)
     with open('celery_share_loan_interest_loan_worker_file.txt', 'a') as post_file:
         post_file.write(str(loan_id))
         post_file.write("\n")

@@ -264,6 +264,8 @@ class LoanRepayment(APIView):
                                 created_objects.append(unlocked_shares)
                                 # unblock task, Done
                                 #loan_instance.share_loan_interest(loan)
+                                print("loan being passed")
+                                print(loan)
                                 task_share_loan_interest.delay(loan)
 
                                 shares_transaction_serializer = SharesTransactionSerializer(shares_transaction)

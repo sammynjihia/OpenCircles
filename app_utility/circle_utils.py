@@ -6,6 +6,8 @@ from loan.models import LoanTariff,GuarantorRequest
 from app_utility import fcm_utils,sms_utils
 from django.db.models import Q
 
+import circle
+
 import operator,re
 
 class Circle():
@@ -133,16 +135,17 @@ class Circle():
             circle, member = invite.invited_by.circle, invite.invited_by.member
             if invite.is_member:
                 invited_member = Member.objects.get(phone_number=invite.phone_number)
-                fcm_instance, sms_instance = fcm_utils.Fcm(), sms_utils.Sms()
-                title = "Circle {}".format(circle.circle_name)
-                message = "{} has invited you to join this circle.".format(member.user.first_name)
+                DeclinedCircles.objects.filter(circle=circle,member=invited_member).delete()
                 registration_id = invited_member.device_token
                 if len(registration_id):
-                    fcm_instance.notification_push("single",registration_id,title,message)
+                    fcm_instance = fcm_utils.Fcm()
+                    invited_by = "{} {}".format(member.user.first_name,member.user.last_name)
+                    invited_serializer = circle.serializers.InvitedCircleSerializer(circle,context={"invited_by":invited_by})
+                    fcm_data = {"request_type":"NEW_CIRCLE_INVITATION","circle":invited_serializer.data}
+                    fcm_instance.data_push("single",registration_id,fcm_data)
                 else:
                     #send sms
-                    message =  "{} has invited you to join circle {}".format(member.user.first_name,circle.circle_name)
-                    # sms_instance.sendsms(invite.phone_number,message)
+                    message = "{} has invited you to join circle {}.".format(member.user.first_name, member.user.last_name, circle.circle_name)
             else:
                 #send sms
                 message =  ""

@@ -263,8 +263,8 @@ class LoanRepayment(APIView):
                                 unlocked_shares = UnlockedShares.objects.create(locked_shares=locked_shares,shares_transaction=shares_transaction)
                                 created_objects.append(unlocked_shares)
                                 # unblock task, Done
-                                # loan_instance.share_loan_interest(loan)
-                                task_share_loan_interest.delay(loan.id)
+                                loan_instance.share_loan_interest(loan)
+                                # task_share_loan_interest.delay(loan.id)
                                 shares_transaction_serializer = SharesTransactionSerializer(shares_transaction)
                                 loan_repayment_serializer = LoanRepaymentSerializer(loan_repayment, context={"is_fully_repaid":True})
                                 loan_limit = loan_instance.calculate_loan_limit(circle, member)
@@ -404,7 +404,7 @@ class LoanGuarantorResponse(APIView):
                         loan_limit = loan_instance.calculate_loan_limit(circle,member)
                         shares_transaction_serializer = SharesTransactionSerializer(shares_transaction)
                         msg = "You have successfully guaranteed {} {} {} {}".format(loan_member.user.first_name,loan_member.user.last_name,loan_member.currency,guarantor.num_of_shares)
-                        data = {"status":1,"shares_transaction":shares_transaction_serializer.data,"loan_limit":loan_limit,"message":""}
+                        data = {"status":1,"shares_transaction":shares_transaction_serializer.data,"loan_limit":loan_limit,"message":msg}
                         fcm_data = {"request_type":"UPDATE_GUARANTOR_REQUEST_STATUS","loan_code":loan.loan_code,"circle_acc_number":circle.circle_acc_number,"phone_number":member.phone_number,"has_accepted":True}
                         registration_id = loan_member.device_token
                         fcm_instance.data_push("single",registration_id,fcm_data)

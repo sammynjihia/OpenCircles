@@ -48,12 +48,12 @@ class CircleCreation(APIView):
             request.data._mutable = mutable
         serializer = CircleCreationSerializer(data=request.data)
         if serializer.is_valid():
-            instance = wallet_utils.Wallet()
+            wallet_instance = wallet_utils.Wallet()
             minimum_share = serializer.validated_data['minimum_share']
             if minimum_share < settings.MININIMUM_CIRCLE_SHARES:
                 data = {"status":0,"message":"The allowed minimum circle shares is {}".format(settings.MININIMUM_CIRCLE_SHARES)}
                 return Response(data,status=status.HTTP_200_OK)
-            valid,response = instance.validate_account(request,serializer.validated_data['pin'],minimum_share)
+            valid,response = wallet_instance.validate_account(request,serializer.validated_data['pin'],minimum_share)
             if valid:
                 created_objects=[]
                 try:
@@ -63,7 +63,7 @@ class CircleCreation(APIView):
                         acc_number = last_acc_number + 1
                     except ObjectDoesNotExist:
                         acc_number = 100000
-                    general_instance, wallet_instance = general_utils.General(),wallet_utils.Wallet(0)
+                    general_instance  = general_utils.General()
                     member = request.user.member
                     circle = serializer.save(initiated_by=member,circle_acc_number=acc_number)
                     created_objects.append(circle)

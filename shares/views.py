@@ -19,6 +19,8 @@ from wallet.models import Transactions,RevenueStreams
 from shares.models import IntraCircleShareTransaction,Shares,SharesWithdrawalTariff
 from circle.models import Circle,CircleMember
 
+from loan.tasks import unlocking_guarantors_shares, updating_loan_limit, sending_guarantee_requests, task_share_loan_interest
+
 import datetime,uuid
 
 # Create your views here.
@@ -57,14 +59,15 @@ class PurchaseShares(APIView):
                         circle_member = CircleMember.objects.get(circle=circle, member=member)
                         shares =circle_member.shares.get()
                         wallet = member.wallet
+                        wallet_balance = wallet_instance.calculate_wallet_balance(wallet) - amount
                         transaction_code = general_instance.generate_unique_identifier('WTD')
-                        wallet_desc = "{} confirmed.You have purchased shares worth {} {} in circle {}.".format(transaction_code, member.currency, amount, circle.circle_name)
+                        wallet_desc = "{} confirmed.You have purchased shares worth {} {} in circle {}.New wallet balance is {} {}.".format(transaction_code, member.currency, amount, circle.circle_name, member.currency, wallet_balance)
                         wallet_transaction = Transactions.objects.create(wallet=wallet, transaction_type="DEBIT", transaction_time=datetime.datetime.now(), transaction_desc=wallet_desc,transaction_amount=amount, recipient=circle_acc_number, transaction_code=transaction_code)
                         created_objects.append(wallet_transaction)
                         print("wallet transaction")
                         print(wallet_transaction.transaction_amount)
                         transaction_code = general_instance.generate_unique_identifier('STD')
-                        shares_desc = "{} confirmed.You have purchased shares worth {} {} in circle {}".format(transaction_code, member.currency, amount, circle.circle_name)
+                        shares_desc = "{} confirmed.You have purchased shares worth {} {} in circle {}.".format(transaction_code, member.currency, amount, circle.circle_name)
                         shares_transaction = IntraCircleShareTransaction.objects.create(shares=shares, transaction_type="DEPOSIT", sender=circle_member, recipient= circle_member, num_of_shares=amount, transaction_desc=shares_desc, transaction_code=transaction_code)
                         created_objects.append(shares_transaction)
                         print("shares transaction")
@@ -88,11 +91,13 @@ class PurchaseShares(APIView):
                         data = {"status":0, "message":"Unable to complete transaction"}
                         return Response(data, status=status.HTTP_200_OK)
                     # unblock task
-                    loan_instance.update_loan_limit(circle,member)
+                    # loan_instance.update_loan_limit(circle,member)
+                    updating_loan_limit.delay(circle.id, member.id)
                     fcm_instance = fcm_utils.Fcm()
                     fcm_data = {"request_type":"UPDATE_AVAILABLE_SHARES", "circle_acc_number":circle.circle_acc_number, "phone_number":member.phone_number, "available_shares":fcm_available_shares}
                     registration_id = fcm_instance.get_circle_members_token(circle, member)
                     fcm_instance.data_push("multiple", registration_id, fcm_data)
+                    print(fcm_data)
                     return Response(data,status=status.HTTP_200_OK)
                 data = {"status":0, "message":response}
                 return Response(data, status=status.HTTP_200_OK)
@@ -176,7 +181,7 @@ class SharesWithdrawal(APIView):
                                 shares = None
                                 try:
                                     loan_instance = loan_utils.Loan()
-                                    general_instance = general_utils.General()
+                                    general_instance, wallet_instance = general_utils.General(), wallet_utils.Wallet()
                                     circle_member = CircleMember.objects.get(circle=circle, member=member)
                                     shares = circle_member.shares.get()
                                     time_processed = datetime.datetime.now()
@@ -188,7 +193,8 @@ class SharesWithdrawal(APIView):
                                     created_objects.append(revenue)
                                     shares_utils.Shares().get_circle_member_shares(shares)
                                     transaction_code = general_instance.generate_unique_identifier('WTC')
-                                    wallet_desc = "{} confirmed.You have received {} {} from circle {} shares withdrawal".format(transaction_code, member.currency, amount, circle.circle_name)
+                                    wallet_balance = wallet_instance.calculate_wallet_balance(member.wallet) + amount
+                                    wallet_desc = "{} confirmed.You have received {} {} from circle {} shares withdrawal.New wallet balance is {} {}".format(transaction_code, member.currency, amount, circle.circle_name, member.currency, wallet_balance)
                                     wallet_transaction = Transactions.objects.create(wallet= member.wallet, transaction_type='CREDIT', transaction_time = time_processed, transaction_desc=wallet_desc, transaction_amount= amount, transaction_code=transaction_code)
                                     created_objects.append(wallet_transaction)
                                     shares_transaction_serializer = SharesTransactionSerializer(shares_transaction)
@@ -211,7 +217,8 @@ class SharesWithdrawal(APIView):
                                     data = {"status":0,"message":"Unable to process the shares withdrawal request"}
                                     return Response(data,status=status.HTTP_200_OK)
                                 # unblock task
-                                loan_instance.update_loan_limit(circle,member)
+                                # loan_instance.update_loan_limit(circle,member)
+                                updating_loan_limit.delay(circle.id, member.id)
                                 fcm_instance = fcm_utils.Fcm()
                                 fcm_data = {"request_type":"UPDATE_AVAILABLE_SHARES", "circle_acc_number":circle.circle_acc_number, "phone_number":member.phone_number, "available_shares":fcm_available_shares}
                                 registration_id = fcm_instance.get_circle_members_token(circle, member)

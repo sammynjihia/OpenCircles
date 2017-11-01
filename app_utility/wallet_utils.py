@@ -32,6 +32,10 @@ class Wallet():
         debit = Transactions.objects.filter(wallet=wallet,transaction_type="DEBIT").aggregate(total=Sum("transaction_amount"))
         credit = credit['total'] if credit['total'] is not None else 0
         debit = debit['total'] if debit['total'] is not None else 0
+        print("debit")
+        print(debit)
+        print("credit")
+        print(credit)
         balance = credit-debit
         return balance
 

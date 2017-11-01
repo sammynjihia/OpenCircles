@@ -63,15 +63,16 @@ class CircleCreation(APIView):
                         acc_number = last_acc_number + 1
                     except ObjectDoesNotExist:
                         acc_number = 100000
-                    general_instance = general_utils.General()
+                    general_instance, wallet_instance = general_utils.General(),wallet_utils.Wallet(0)
                     member = request.user.member
                     circle = serializer.save(initiated_by=member,circle_acc_number=acc_number)
                     created_objects.append(circle)
                     circle_member = CircleMember.objects.create(member=member,circle=circle)
                     wallet_transaction_code = general_instance.generate_unique_identifier('WTD')
-                    wallet_desc = "{} confirmed.You have purchased shares worth {} {} in circle {}".format(wallet_transaction_code,member.currency,minimum_share,circle.circle_name)
+                    wallet_balance = wallet_instance.calculate_wallet_balance(member.wallet) - minimum_share
+                    wallet_desc = "{} confirmed.You have purchased shares worth {} {} in circle {}.New wallet balance is {} {}.".format(wallet_transaction_code, member.currency, minimum_share, circle.circle_name, member.currency, wallet_balance)
                     shares_transaction_code = general_instance.generate_unique_identifier('STD')
-                    shares_desc = "{} confirmed.You have purchased shares worth {} {}".format(shares_transaction_code, member.currency, minimum_share)
+                    shares_desc = "{} confirmed.You have purchased shares worth {} {}.".format(shares_transaction_code, member.currency, minimum_share)
                     wallet_transaction = Transactions.objects.create(wallet=member.wallet,transaction_type="DEBIT",transaction_time=datetime.datetime.now(),transaction_amount=minimum_share,transaction_desc=wallet_desc,recipient=circle.circle_acc_number,transaction_code=wallet_transaction_code)
                     created_objects.append(wallet_transaction)
                     shares = Shares.objects.create(circle_member=circle_member)
@@ -87,8 +88,8 @@ class CircleCreation(APIView):
                     wallet_serializer = WalletTransactionsSerializer(wallet_transaction)
                     shares_serializer = SharesTransactionSerializer(shares_transaction)
                     circle_serializer = CircleSerializer(circle,context={'request':request})
-                    instance = fcm_utils.Fcm()
-                    registration_ids = instance.get_invited_circle_member_token(circle,member)
+                    fcm_instance = fcm_utils.Fcm()
+                    registration_ids = fcm_instance.get_invited_circle_member_token(circle,member)
                     circle_instance = circle_utils.Circle()
                     loan_tariffs = circle_instance.save_loan_tariff(circle,circle_loan_tariff)
                     if len(registration_ids):
@@ -99,8 +100,9 @@ class CircleCreation(APIView):
                         invited_serializer = InvitedCircleSerializer(circle,context={"invited_by":invited_by})
                         print(invited_serializer.data)
                         fcm_data = {"request_type":"NEW_CIRCLE_INVITATION","circle":invited_serializer.data}
-                        instance.notification_push(device,registration_ids,title,message)
-                        instance.data_push(device,registration_ids,fcm_data)
+                        fcm_instance.notification_push(device,registration_ids,title,message)
+                        fcm_instance.data_push(device,registration_ids,fcm_data)
+                        print(fcm_data)
                     data={"status":1,"circle":circle_serializer.data,"wallet_transaction":wallet_serializer.data,"shares_transaction":shares_serializer.data,"message":"Circle created successfully.Circle will be activated when members join."}
                     return Response(data,status=status.HTTP_201_CREATED)
                 except Exception as e:
@@ -246,10 +248,11 @@ class AllowedGuaranteeRegistration(APIView):
                 ms = "Unable to add {} {} to guarantee request list".format(guarantee_member.user.first_name,guarantee_member.user.last_name)
                 data = {"status":0,"message":ms}
                 return Response(data,status=status.HTTP_200_OK)
-            instance = fcm_utils.Fcm()
+            fcm_instance = fcm_utils.Fcm()
             registration_id = guarantee_member.device_token
             fcm_data = {"request_type":"UPDATE_ALLOW_GUARANTOR_REQUEST","circle_acc_number":circle.circle_acc_number,"phone_number":member.phone_number,"allow_guarantor_request":True}
-            instance.data_push("single",registration_id,fcm_data)
+            fcm_instance.data_push("single",registration_id,fcm_data)
+            print(fcm_data)
             return Response(data,status=status.HTTP_201_CREATED)
         data = {"status":0,"errors":serializer.errors}
         return Response(data,status=status.HTTP_200_OK)
@@ -280,15 +283,17 @@ class AllowedGuaranteeRequestsSetting(APIView):
                     data = {"status":0,"message":"Unable to change allowed guarantees setting"}
                     return Response(data,status=status.HTTP_200_OK)
                 fcm_data = {"request_type":"UPDATE_ALLOW_GUARANTOR_REQUEST","circle_acc_number":circle.circle_acc_number,"phone_number":member.phone_number,"allow_guarantor_request":True}
-                instance = fcm_utils.Fcm()
-                registration_ids = instance.get_circle_members_token(circle,member)
-                instance.data_push("multiple",registration_ids,fcm_data)
+                fcm_instance = fcm_utils.Fcm()
+                registration_ids = fcm_instance.get_circle_members_token(circle,member)
+                fcm_instance.data_push("multiple",registration_ids,fcm_data)
+                print(fcm_data)
                 data = {"status":1}
                 return Response(data,status=status.HTTP_200_OK)
-            instance = fcm_utils.Fcm()
-            registration_ids = instance.get_circle_members_token(circle,member)
+            fcm_instance = fcm_utils.Fcm()
+            registration_ids = fcm_instance.get_circle_members_token(circle,member)
             fcm_data = {"request_type":"UPDATE_ALLOW_GUARANTOR_REQUEST", "circle_acc_number":circle.circle_acc_number, "phone_number":member.phone_number, "allow_guarantor_request":False}
-            instance.data_push("multiple", registration_ids, fcm_data)
+            fcm_instance.data_push("multiple", registration_ids, fcm_data)
+            print(fcm_data)
             CircleMember.objects.filter(circle=circle, member=member).update(allow_public_guarantees_request=False)
             data = {"status":1}
             return Response(data,status=status.HTTP_200_OK)
@@ -316,10 +321,11 @@ def remove_allowed_guarantee_request(request,*args,**kwargs):
             message = " Unable to remove {} {} from guarantee request list".format(guarantee_circle_member.member.user.first_name,guarantee_circle_member.member.user.last_name)
             data = {"status":0,"message":message}
             return Response(data,status=status.HTTP_200_OK)
-        instance = fcm_utils.Fcm()
+        fcm_instance = fcm_utils.Fcm()
         registration_id = guarantee_circle_member.member.device_token
         fcm_data = {"request_type":"UPDATE_ALLOW_GUARANTOR_REQUEST","circle_acc_number":circle.circle_acc_number,"phone_number":member.phone_number,"allow_guarantor_request":False}
-        instance.data_push("single",registration_id,fcm_data)
+        fcm_instance.data_push("single",registration_id,fcm_data)
+        print(fcm_data)
         return Response(data,status=status.HTTP_200_OK)
     data = {"status":0,"message":serializer.errors}
     return Response(data,status=status.HTTP_200_OK)
@@ -339,8 +345,8 @@ class JoinCircle(APIView):
             if amount < circle.minimum_share:
                 data = {"status":0,"message":"The allowed minimum shares for circle {} is {}".format(circle.circle_name,circle.minimum_share)}
                 return Response(data,status=status.HTTP_200_OK)
-            instance = wallet_utils.Wallet()
-            valid,response = instance.validate_account(request,pin,amount)
+            wallet_instance = wallet_utils.Wallet()
+            valid,response = wallet_instance.validate_account(request,pin,amount)
             if valid:
                 created_objects = []
                 try:
@@ -349,7 +355,8 @@ class JoinCircle(APIView):
                     member = request.user.member
                     wallet_transaction_code = general_instance.generate_unique_identifier('WTD')
                     shares_transaction_code = general_instance.generate_unique_identifier('STD')
-                    wallet_desc = "{} confirmed.You have purchased shares worth {} {} in circle {}".format(wallet_transaction_code,member.currency,amount,circle.circle_name)
+                    wallet_balance = wallet_instance.calculate_wallet_balance(member.wallet) - amount
+                    wallet_desc = "{} confirmed.You have purchased shares worth {} {} in circle {}.New wallet balance is {} {}.".format(wallet_transaction_code, member.currency, amount, circle.circle_name, wallet_balance)
                     shares_desc = "{} confirmed.You have purchased shares worth {} {}".format(shares_transaction_code,member.currency,amount)
                     circle_instance = circle_utils.Circle()
                     circle_member = CircleMember.objects.create(circle=circle,member=member)
@@ -372,6 +379,7 @@ class JoinCircle(APIView):
                             fcm_data = {"request_type":"UPDATE_CIRCLE_STATUS","circle_acc_number":circle.circle_acc_number,"is_active":True}
                             registration_ids = fcm_instance.get_circle_members_token(circle,None)
                             fcm_instance.data_push("mutiple",registration_ids,fcm_data)
+                            print(fcm_data)
                             title = "Circle {}".format(circle.circle_name)
                             message = "Circle {} has been activated.You can now purchase shares,apply for loan and earn interest on loan repayments.".format(circle.circle_name)
                             fcm_instance.notification_push("multiple",registration_ids,title,message)
@@ -380,6 +388,7 @@ class JoinCircle(APIView):
                     fcm_data = {"request_type":"NEW_CIRCLE_MEMBERSHIP","circle_acc_number":circle.circle_acc_number,"circle_member":circle_member_serializer.data}
                     registration_ids = fcm_instance.get_circle_members_token(circle,member)
                     fcm_instance.data_push("mutiple",registration_ids,fcm_data)
+                    print(fcm_data)
                     data = {"status":1,"wallet_transaction":wallet_serializer.data,"shares_transaction":shares_serializer.data,"loan_limit":loan_limit}
                     return Response(data,status=status.HTTP_200_OK)
                 except Exception,e:
@@ -437,6 +446,7 @@ class CircleInvite(APIView):
                             print(invited_member.user.first_name)
                             if len(registration_id):
                                 fcm_instance.data_push("single",registration_id,fcm_data)
+                                print(fcm_data)
                             else:
                                 #send sms
                                 message = "{} has invited you to join circle {}.".format(request.user.first_name,circle.circle_name)

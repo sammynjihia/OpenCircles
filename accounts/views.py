@@ -23,7 +23,7 @@ from member.serializers import MemberSerializer
 from member.models import Member
 from wallet.models import Wallet
 
-import random, datetime, json
+import random, datetime, json,threading
 from accounts.tasks import save_member_contacts
 
 
@@ -157,11 +157,9 @@ class PhoneNumberConfirmation(APIView):
             phone_number = serializer.validated_data.get("phone_number")
             code = random.randint(1111, 9999)
             message = "Your confirmation code is {}".format(code)
-            response = instance.sendsms(phone_number, message)
-            if response:
-                data = {"status":1, "confirmation_code":code}
-                return Response(data, status=status.HTTP_200_OK)
-            data = {"status":0, "message":"Unable to send confirmation code"}
+            t = threading.Thread(target=instance.sendsms, args=(phone_number, message))
+            t.start()
+            data = {"status":1, "confirmation_code":code}
             return Response(data, status=status.HTTP_200_OK)
         error = "".join(serializer.errors['phone'])
         data = {"status": 0, "message":error}
@@ -186,21 +184,27 @@ class UpdateDeviceToken(APIView):
 
 @api_view(['POST'])
 def send_short_code(request, *args, **kwargs):
+    print(request.data)
     serializer = PhoneSerializer(data=request.data)
     if serializer.is_valid():
         phone_number = serializer.validated_data['phone_number']
-        instance = sms_utils.Sms()
-        code = random.randint(11111, 99999)
-        message = "Pin reset short code is {}".format(code)
-        response = instance.sendsms(phone_number, message)
-        if response:
+        try:
+            Member.objects.get(phone_number=phone_number)
+            instance = sms_utils.Sms()
+            code = random.randint(11111, 99999)
+            message = "Pin reset short code is {}".format(code)
+            t = threading.Thread(target=instance.sendsms,args=(phone_number,message))
+            # response = instance.sendsms(phone_number, message)
+            t.start()
             data = {"status":1, "short_code":code}
             return Response(data, status=status.HTTP_200_OK)
-        data = {"status":0, "message":"Unable to send pin rest short code"}
+        except Member.DoesNotExist:
+            data = {"status":0, "message":"User with the phone number does not exist."}
+            return Response(data, status=status.HTTP_200_OK)
+        data = {"status":0, "message":"Unable to send pin reset short code"}
         return Response(data, status=status.HTTP_200_OK)
-    data = {"status":0, "message":serializer.errors}
+    data = {"status": 0, "message":serializer.error}
     return Response(data, status=status.HTTP_200_OK)
-
 
 class ResetPin(APIView):
     """

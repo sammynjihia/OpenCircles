@@ -15,12 +15,14 @@ from member.models import Member
 from shares.serializers import SharesTransactionSerializer
 from wallet.serializers import WalletTransactionsSerializer
 
-from app_utility import circle_utils,fcm_utils,general_utils,shares_utils
+from app_utility import circle_utils,fcm_utils,general_utils,shares_utils,wallet_utils
 
 class Loan():
     def validate_loan_amount(self,request,loan_amount,circle):
         circle_instance = circle_utils.Circle()
         circle_member_loan_limit = self.calculate_loan_limit(circle,request.user.member)
+        print("circle member loan limit")
+        print(circle_member_loan_limit)
         if loan_amount >= settings.MINIMUM_LOAN:
                 if loan_amount <= circle_member_loan_limit:
                     return True,""
@@ -111,6 +113,8 @@ class Loan():
                     fcm_instance.notification_push("single",registration_id,title,message)
 
     def unlock_guarantors_shares(self, guarantors, shares_desc):
+        loan = guarantors[0].loan
+        loan_member = loan.circle_member.member
         for guarantor in guarantors:
             try:
                 general_instance = general_utils.General()
@@ -119,11 +123,9 @@ class Loan():
                 circle, member = guarantor.circle_member.circle, guarantor.circle_member.member
                 shares = guarantor.circle_member.shares.get()
                 shares_transaction_code = general_instance.generate_unique_identifier('STU')
-                shares_desc = "{} confirmed.Shares worth {} {} have been unlocked.{}".format(shares_transaction_code,member.currency, guarantor.num_of_shares, shares_desc)
-                locked_shares = LockedShares.objects.filter(loan=guarantor.loan).get(shares_transaction__shares=shares)
+                shares_desc = "{} confirmed.Shares worth {} {} that were locked to guarantee loan {} of {} {} have been unlocked{}".format(shares_transaction_code, member.currency, guarantor.num_of_shares, loan.loan_code, loan_member.user.first_name, loan_member.user.last_name, shares_desc)
+                locked_shares = LockedShares.objects.filter(loan=loan).get(shares_transaction__shares=shares)
                 shares_transaction = IntraCircleShareTransaction.objects.create(shares=shares,transaction_type="UNLOCKED",num_of_shares=guarantor.num_of_shares,transaction_desc=shares_desc,transaction_code=shares_transaction_code)
-                print(shares_transaction.transaction_type)
-                print(shares_transaction.shares)
                 created_objects.append(shares_transaction)
                 unlocked_shares = UnlockedShares.objects.create(locked_shares=locked_shares, shares_transaction=shares_transaction)
                 created_objects.append(unlocked_shares)
@@ -133,16 +135,15 @@ class Loan():
                 guarantor.unlocked = True
                 guarantor.save()
                 instance = fcm_utils.Fcm()
-                # updates available shares to other circle members
-                fcm_data = {"request_type":"UNLOCK_SHARES","shares_transaction":shares_transaction_serializer.data,"loan_limit":loan_limit}
+                fcm_data = {"request_type":"UNLOCK_SHARES", "shares_transaction":shares_transaction_serializer.data, "loan_limit":loan_limit}
                 registration_id = member.device_token
-                instance.data_push("single",registration_id,fcm_data)
-                fcm_data = {"request_type":"DELETE_GUARANTEE_LOAN_REQUEST","loan_code":guarantor.loan.loan_code}
-                instance.data_push("single",registration_id,fcm_data)
+                instance.data_push("single", registration_id, fcm_data)
+                fcm_data = {"request_type":"DELETE_GUARANTEE_LOAN_REQUEST", "loan_code":guarantor.loan.loan_code}
+                instance.data_push("single", registration_id, fcm_data)
                 fcm_available_shares = circle_instance.get_guarantor_available_shares(circle, member)
-                fcm_data = {"request_type":"UPDATE_AVAILABLE_SHARES","circle_acc_number":circle.circle_acc_number,"phone_number":member.phone_number,"available_shares":fcm_available_shares}
-                registration_id = instance.get_circle_members_token(circle,member)
-                instance.data_push("multiple",registration_id,fcm_data)
+                fcm_data = {"request_type":"UPDATE_AVAILABLE_SHARES", "circle_acc_number":circle.circle_acc_number, "phone_number":member.phone_number, "available_shares":fcm_available_shares}
+                registration_id = instance.get_circle_members_token(circle, member)
+                instance.data_push("multiple", registration_id, fcm_data)
             except Exception as e:
                 print(str(e))
                 general_utils.General().delete_created_objects(created_objects)
@@ -162,8 +163,8 @@ class Loan():
                     today = datetime.now()
                     today = today.strftime("%Y-%m-%d %H:%M:%S")
                     title = "Circle {} loan".format(circle.circle_name)
-                    message = "Your loan of {} {} will be cancelled on {}.".format(member.currency,loan.amount,loan_expiry_date)
-                    fcm_data = {"request_type":"SYSTEM_WARNING_MSG","title":"loan expiry","message":message,"time":today}
+                    message = "Your loan of {} {} will be cancelled on {} due to few loan guarantors.".format(member.currency,loan.amount,loan_expiry_date)
+                    fcm_data = {"request_type":"SYSTEM_WARNING_MSG","title":"Loan Cancellation","message":message,"time":today}
                     registration_id = member.device_token
                     fcm_instance.data_push("single",registration_id,fcm_data)
                 else:
@@ -172,13 +173,13 @@ class Loan():
                         general_instance = general_utils.General()
                         amount = loan.amount
                         guarantors = loan.guarantor.filter(has_accepted=True)
-                        shares_desc = "The loan the shares had guaranteed has been cancelled."
+                        shares_desc = " following cancellation of the loan."
                         self.unlock_guarantors_shares(guarantors,shares_desc)
                         shares = loan.circle_member.shares.get()
                         locked_shares = LockedShares.objects.filter(loan=loan).get(shares_transaction__shares=shares)
                         num_of_shares = locked_shares.shares_transaction.num_of_shares
                         shares_transaction_code = general_instance.generate_unique_identifier('STU')
-                        shares_desc = "{} confirmed.Shares worth {} {} have been unlocked after loan declination in circle {}".format(shares_transaction_code, member.currency, num_of_shares, circle.circle_name)
+                        shares_desc = "{} confirmed.Shares worth {} {} that were locked to guarantee your loan {} of {} {} have been unlocked following cancellation of loan.".format(shares_transaction_code, member.currency, num_of_shares, loan.loan_code, member.currency, loan.amount)
                         shares_transaction = IntraCircleShareTransaction.objects.create(shares=shares, transaction_type="UNLOCKED", num_of_shares=num_of_shares, transaction_desc=shares_desc, transaction_code=shares_transaction_code)
                         created_objects.append(shares_transaction)
                         unlocked_shares = UnlockedShares.objects.create(locked_shares=locked_shares,shares_transaction=shares_transaction)
@@ -241,8 +242,10 @@ class Loan():
                     print("truncated amount")
                     print(float(format(amount,'.2f')))
                     amount = round(amount,2)
+                    wallet_instance = wallet_utils.Wallet()
                     transaction_code = general_instance.generate_unique_identifier('WTC')
-                    wallet_desc = "{} confirmed. You have received {} {} as guarantee interest of loan {} of {} {} in circle {}.".format(transaction_code,member.currency,amount,loan.loan_code,loan_user.first_name,loan_user.last_name,circle.circle_name)
+                    wallet_balance = wallet_instance.calculate_wallet_balance(member.wallet) + amount
+                    wallet_desc = "{} confirmed. You have received {} {} from circle {} as your guarantor interest of loan {} of {} {}.New wallet balance is {} {}.".format(transaction_code, member.currency, amount, circle.circle_name, loan.loan_code, loan_user.first_name, loan_user.last_name, member.currency, wallet_balance)
                     wallet_transaction = Transactions.objects.create(wallet= member.wallet, transaction_type="CREDIT", transaction_desc=wallet_desc, transaction_amount=amount, transaction_time=time_transacted, transacted_by=circle.circle_name, transaction_code=transaction_code)
                     created_objects.append(wallet_transaction)
                     wallet_transaction_serializer = WalletTransactionsSerializer(wallet_transaction)
@@ -266,8 +269,10 @@ class Loan():
                 print("truncated amount")
                 print(float(format(amount,'.2f')))
                 amount = round(amount,2)
+                wallet_instance = wallet_utils.Wallet()
                 transaction_code = general_instance.generate_unique_identifier('WTC')
-                wallet_desc = "{} confirmed. You have received {} {} as interest of loan {} in circle {}.".format(transaction_code,member.currency,amount,loan.loan_code,circle.circle_name)
+                wallet_balance = wallet_instance.calculate_wallet_balance(member.wallet) + amount
+                wallet_desc = "{} confirmed. You have received {} {} from circle {} as interest of loan {}.New wallet balance {} {}.".format(transaction_code, member.currency,amount, circle.circle_name, loan.loan_code, member.currency, wallet_balance)
                 wallet_transaction = Transactions.objects.create(wallet= member.wallet, transaction_type="CREDIT", transaction_desc=wallet_desc, transaction_amount=amount, transaction_time=time_transacted, transacted_by=circle.circle_name, transaction_code=transaction_code)
                 created_objects.append(wallet_transaction)
                 wallet_transaction_serializer = WalletTransactionsSerializer(wallet_transaction)

@@ -53,8 +53,8 @@ class LoansSerializer(serializers.ModelSerializer):
 
     def get_locked_shares(self,loan):
         try:
-            ln = loan.locked.get().shares_transaction
-            return ln.num_of_shares
+            ln = loan.locked.filter(shares_transaction__shares=loan.circle_member.shares.get())
+            return ln[0].shares_transaction.num_of_shares
         except:
             return 0
 

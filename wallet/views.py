@@ -343,6 +343,7 @@ class MpesaB2CResultURL(APIView):
             transactionDateTime = mpesa_data["TransactionCompletedDateTime"]
             transactionReceipt = mpesa_data["TransactionReceipt"]
             receiverPartyPublicName = mpesa_data["ReceiverPartyPublicName"]
+            transactionAmount = float(transactionAmount)
 
             member = None
             created_objects = []
@@ -464,7 +465,7 @@ class MpesaC2BConfirmationURL(APIView):
         transacted_by_lastname = result["LastName"].encode()
 
         # Format phone number and convert amount from string to integer
-        transaction_amount = amount
+        transaction_amount = float(amount)
         phonenumber = sms_utils.Sms()
         wallet_account = phonenumber.format_phone_number(phone_number)
 
@@ -488,7 +489,7 @@ class MpesaC2BConfirmationURL(APIView):
             try:
                 mpesa_transactions = Transactions.objects.create(wallet=wallet, transaction_type="CREDIT",
                                                   transaction_desc=transaction_desc,
-                                                  transacted_by=wallet.acc_no, transaction_amount=int(float(transaction_amount)),
+                                                  transacted_by=wallet.acc_no, transaction_amount=transaction_amount,
                                                   transaction_code=unique_identifier)
             except Exception as e:
                 with open('c2b_transaction_creation_failed.txt', 'a') as result_file:
@@ -643,6 +644,7 @@ class MpesaB2BResultURL(APIView):
             transactionReceipt = TransactionID
             receiverPartyPublicName = mpesa_data["ReceiverPartyPublicName"]
             BillReferenceNumber = PhoneNumber.AccountNumber
+            transactionAmount = float(transactionAmount)
 
             member = None
             created_objects = []

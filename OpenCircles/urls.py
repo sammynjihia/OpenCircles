@@ -28,6 +28,7 @@ urlpatterns = [
     url(r'^wallet/',include('wallet.urls')),
     url(r'^shares/',include('shares.urls')),
     url(r'^loans/', include('loan.urls')),
+    url(r'^chat/', include('chat.urls')),
 ]
 
 if settings.DEBUG:

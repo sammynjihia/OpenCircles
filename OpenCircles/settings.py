@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     'member.apps.MemberConfig',
     'shares.apps.SharesConfig',
     'tool.apps.ToolConfig',
+    'chat.apps.ChatConfig',
     'rest_framework.authtoken',
 ]
 

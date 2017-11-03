@@ -1,6 +1,5 @@
 from .models import Member,Beneficiary
 from django.contrib.auth.models import User
-from django.utils.timezone import utc
 from django.core.files import File
 
 from rest_framework import serializers

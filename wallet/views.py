@@ -319,6 +319,7 @@ class MpesaB2CResultURL(APIView):
         OriginatorConversationID = B2CResults["OriginatorConversationID"]
         ResultCode= B2CResults["ResultCode"]
         ResultDesc = B2CResults["ResultDesc"]
+        TransactionID = B2CResults["TransactionID"]
         PhoneNumber = B2CTransaction_log.objects.get(OriginatorConversationID=OriginatorConversationID)
         initiatorPhoneNumber = PhoneNumber.Initiator_PhoneNumber
 
@@ -446,7 +447,7 @@ class MpesaB2CQueueTimeoutURL(APIView):
 
 class MpesaC2BConfirmationURL(APIView):
     """
-    URL to receive mpesa b2c comfirmation requests
+    URL to receive mpesa c2b comfirmation requests
     """
     def post(self, request):
         data = request.body
@@ -619,6 +620,7 @@ class MpesaB2BResultURL(APIView):
         OriginatorConversationID = B2BResults["OriginatorConversationID"]
         ResultCode = B2BResults["ResultCode"]
         ResultDesc = B2BResults["ResultDesc"]
+        TransactionID = B2BResults["TransactionID"]
         PhoneNumber = B2BTransaction_log.objects.get(OriginatorConversationID=OriginatorConversationID)
         initiatorPhoneNumber = PhoneNumber.Initiator_PhoneNumber
 

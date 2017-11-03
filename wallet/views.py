@@ -14,7 +14,7 @@ from rest_framework.reverse import reverse
 
 from .serializers import *
 
-from .models import Transactions,Wallet, B2CTransaction_log, B2BTransaction_log, MpesaTransaction_logs
+from .models import Transactions,Wallet, B2CTransaction_log, B2BTransaction_log, MpesaTransaction_logs, AdminMpesaTransaction_logs
 from member.models import Member
 from django.core.exceptions import ValidationError
 
@@ -332,9 +332,8 @@ class MpesaB2CResultURL(APIView):
             mpesa_transaction = MpesaTransaction_logs(OriginatorConversationID=OriginatorConversationID, ResultCode=ResultCode,
                                                       ResultDesc=ResultDesc)
             mpesa_transaction.save()
-            with open('b2c_post_file.txt', 'a') as post_file:
-                post_file.write(data)
-                post_file.write("\n")
+            admin_mpesa_transaction = AdminMpesaTransaction_logs(TransactioID=TransactionID, TransactionType='B2C', Response=data)
+            admin_mpesa_transaction.save()
         except ValidationError as e:
             data = {"status": 0, "message": "Database transaction unsuccessful, object already exist"}
             return Response(data, status=status.HTTP_200_OK)
@@ -416,7 +415,7 @@ class MpesaB2CResultURL(APIView):
             try:
                 member = Member.objects.get(phone_number=initiatorPhoneNumber)
                 registration_id, title, message = member.device_token, "Wallet to Mpesa transaction unsuccessful", " We cannot process your request at the moment. Try again later. If the problem persists" \
-                                                                                 " kindly call our customer care service on (254) 795891656"
+                                                                                 " kindly call our customer care service on (254) 795891656, use M-pesa transaction code {} for reference".format(TransactionID)
                 #instance.notification_push("single", registration_id, title, message)
                 date_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 fcm_data = {"request_type": "SYSTEM_WARNING_MSG",
@@ -471,6 +470,13 @@ class MpesaC2BConfirmationURL(APIView):
         transacted_by_msisdn = result["MSISDN"].encode()
         transacted_by_firstname = result["FirstName"].encode()
         transacted_by_lastname = result["LastName"].encode()
+
+        try:
+            admin_mpesa_transaction = AdminMpesaTransaction_logs(TransactioID=transaction_id, TransactionType='C2B', Response=data)
+            admin_mpesa_transaction.save()
+        except Exception as e:
+            data = {"status": 0, "message": "Database transaction unsuccessful, object already exist"}
+            return Response(data, status=status.HTTP_200_OK)
 
         # Format phone number and convert amount from string to integer
         transaction_amount = float(amount)
@@ -637,6 +643,9 @@ class MpesaB2BResultURL(APIView):
             mpesa_transaction = MpesaTransaction_logs(OriginatorConversationID=OriginatorConversationID, ResultCode=ResultCode,
                                                       ResultDesc=ResultDesc)
             mpesa_transaction.save()
+            admin_mpesa_transaction = AdminMpesaTransaction_logs(TransactioID=TransactionID, TransactionType='B2B',
+                                                                 Response=data)
+            admin_mpesa_transaction.save()
             with open('b2b_result_try_post_file.txt', 'a') as post_file:
                 post_file.write(data)
                 post_file.write("\n")

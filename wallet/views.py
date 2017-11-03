@@ -312,6 +312,11 @@ class MpesaB2CResultURL(APIView):
     """
     def post(self, request):
         data = request.body
+        with open('b2c_resulturl_post_file.txt', 'a') as post_file:
+            post_file.write(data)
+            post_file.write("\n")
+            post_file.write(str(type(data)))
+            post_file.write("\n")
         result = json.loads(data)
         print (json.dumps(result, indent=4, sort_keys=True))
 
@@ -391,7 +396,7 @@ class MpesaB2CResultURL(APIView):
             try:
                 member = Member.objects.get(phone_number=initiatorPhoneNumber)
                 registration_id, title, message = member.device_token, "Wallet to Mpesa transaction unsuccessful", " We cannot process your request at the moment. Try again later. If the problem persists" \
-                                                                                 " kindly call our customer care service on (254) 795891656"
+                                                                                 " kindly call our customer care service on (254) 795891656, use M-pesa transaction code {} for reference".format(TransactionID)
                 #instance.notification_push("single", registration_id, title, message)
                 date_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 fcm_data = {"request_type": "SYSTEM_WARNING_MSG",
@@ -453,6 +458,8 @@ class MpesaC2BConfirmationURL(APIView):
         data = request.body
         with open('c2b_confirmationurl_post_file.txt', 'a') as post_file:
             post_file.write(data)
+            post_file.write("\n")
+            post_file.write(str(type(data)))
             post_file.write("\n")
 
         result = json.loads(data)
@@ -612,6 +619,8 @@ class MpesaB2BResultURL(APIView):
         with open('b2b_resulturl_post_file.txt', 'a') as post_file:
             post_file.write(data)
             post_file.write("\n")
+            post_file.write(str(type(data)))
+            post_file.write("\n")
         result = json.loads(data)
         print("####################Response from mpesa from the MpesaB2BResultURL#############################")
         print(json.dumps(result, indent=4, sort_keys=True))
@@ -694,7 +703,7 @@ class MpesaB2BResultURL(APIView):
             try:
                 member = Member.objects.get(phone_number=initiatorPhoneNumber)
                 registration_id, title, message = member.device_token, "Wallet to Paybill transaction unsuccessful", " We cannot process your request at the moment. Try again later. If the problem persists" \
-                                                                                                                   " kindly call our customer care service on (254) 795891656"
+                                                                                                                   " kindly call our customer care service on (254) 795891656, use M-pesa transaction code {} for reference".format(TransactionID)
                 #instance.notification_push("single", registration_id, title, message)
                 date_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 fcm_data = {"request_type": "SYSTEM_WARNING_MSG",

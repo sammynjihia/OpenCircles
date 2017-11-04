@@ -9,7 +9,21 @@ urlpatterns = [
     url(r'^members$', views.members_page, name='members'),
     url(r'^search_for_member$', views.search_for_member, name='search_for_member'),
     url(r'^view_member_details/(?P<member_id>[0-9]+)/$', views.view_member_details, name='view_member_details'),
-    url(r'^wallet_transactions', views.wallet_transactions, name='wallet_transactions')
+    url(r'^wallet_transactions$', views.wallet_transactions, name='wallet_transactions'),
+    url(r'^search_for_transaction$', views.search_for_transaction, name='search_for_transaction'),
+    url(r'^view_transaction_details/(?P<transaction_id>[0-9]+)/$', views.view_transaction_details,
+        name='view_transaction_details')
 ]
+
+
+
+
+
+
+
+
+
+
+
 
 

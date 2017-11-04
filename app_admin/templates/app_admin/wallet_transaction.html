@@ -27,10 +27,13 @@
                     <td>Transaction code</td>
                     <td>Time</td>
                     <td>Amount</td>
-                    <td>Sender</td>
+                    <td>Transacted by</td>
                     <td>Recipient</td>
+                    <td>Type</td>
+                    <td>Source</td>
+
                 </thead>
-                <tbody id="members-table">
+                <tbody id="transactions-table">
 
                 </tbody>
             </table>
@@ -44,10 +47,10 @@
     </script>
 
     <script>
-        $(document).on('click', '#btn-search-member', function () {
-            var searchVal = $('#member-search-val').val();
+        $(document).on('click', '#btn-search-transaction', function () {
+            var searchVal = $('#transactions-search-val').val();
             var srvRqst = $.ajax({
-                url:"{% url 'app_admin:search_for_member' %}",
+                url:"{% url 'app_admin:search_for_transaction' %}",
                 data: {
                     search_val: searchVal,
                     csrfmiddlewaretoken: '{{ csrf_token }}'
@@ -60,21 +63,22 @@
                 try {
                     var responseObj = $.parseJSON(response);
                     var html = '';
-                    for (var i = 0; i < responseObj.length; i++) {
+                    for (var i = 0; i < responseObj.length; i++){
                         var id = responseObj[i]['id'];
-                        var url = 'href="view_member_details/'+id+'/"';
+                        var url = 'href="view_transaction_details/'+id+'/"';
                         html += '<tr>'
                             + '<td>'
-                                +'<a class="w3-text-blue cursor-pointer" '+url+'">' + responseObj[i]['name'] + '</a>'
+                                + '<a class="w3-text-blue cursor-pointer" '+url+'">' + responseObj[i]['transaction_code'] + '</a>'
                             + '</td>'
-                            + '<td>' + responseObj[i]['national_id'] + '</td>'
-                            + '<td>' + responseObj[i]['phone_number'] + '</td>'
-                            + '<td>' + responseObj[i]['email'] + '</td>'
-                            + '<td>' + responseObj[i]['gender'] + '</td>'
-                            + '<td>' + responseObj[i]['date_of_birth'] + '</td>'
+                            + '<td>' + responseObj[i]['time_of_transaction'] + '</td>'
+                            + '<td>' + responseObj[i]['amount'] + '</td>'
+                            + '<td>' + responseObj[i]['sender'] + '</td>'
+                            + '<td>' + responseObj[i]['recipient'] + '</td>'
+                            + '<td>' + responseObj[i]['transaction_type'] + '</td>'
+                            + '<td>' + responseObj[i]['source'] + '</td>'
                             + '</tr>';
                     }
-                    $('#members-table').html(html);
+                    $('#transactions-table').html(html);
                 }catch(exp){}finally {}
             });
         });

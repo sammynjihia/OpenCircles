@@ -75,7 +75,7 @@ def members_page(request):
 
 def search_for_member(request):
     search_val = request.POST.get('search_val')
-    members_obj = members_utils.MemberUtils.search_for_member(search_val);
+    members_obj = members_utils.MemberUtils.search_for_member(search_val)
     members_list = []
     for obj in members_obj:
         members_list.append(
@@ -108,7 +108,43 @@ def wallet_transactions(request):
     return render(request, 'app_admin/wallet_transaction.html', context)
 
 
+def search_for_transaction(request):
+    transactions = []
+    search_val = request.POST.get('search_val')
+    trx_objs = transactions_utils.TransactionUtils.search_wallet_transactions(search_val)
+    for obj in trx_objs:
+        sender = obj.transacted_by
+        recipient = obj.transacted_by
 
+        if sender.upper() == 'SELF':
+            sender = "{} {} {}".format(obj.wallet.member.user.first_name, obj.wallet.member.user.last_name,
+                                       obj.wallet.member.other_name)
+
+        if recipient.upper() == 'SELF':
+            recipient = "{} {} {}".format(obj.wallet.member.user.first_name, obj.wallet.member.user.last_name,
+                                       obj.wallet.member.other_name)
+
+        transactions.append({
+            'id': obj.id,
+            'transaction_code': obj.transaction_code,
+            'amount': obj.transaction_amount,
+            'sender': sender,
+            'recipient': recipient,
+            'time_of_transaction': obj.transaction_time.strftime('%d-%b-%Y %I-%M-%S %p'),
+            'transaction_type': obj.transaction_type,
+            'source': obj.source
+        })
+    return HttpResponse(json.dumps(transactions))
+
+
+def view_transaction_details(request, transaction_id):
+    request.session['transaction_id'] = transaction_id
+    trx = transactions_utils.TransactionUtils.get_transaction_by_id(transaction_id)
+    context = {
+        'transaction': trx,
+        'current_balance': transactions_utils.TransactionUtils.get_wallet_balance_wallet_id(trx.wallet.id)
+    }
+    return render(request, 'app_admin/transaction.html', context)
 
 
 

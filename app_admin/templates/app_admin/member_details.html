@@ -1,11 +1,94 @@
 {% extends 'app_admin/base_dashboard.html' %}
 {% load static %}
+{% load humanize %}
 
 {% block main_container %}
      <div class="col-sm-9 col-sm-offset-3 col-lg-10 col-lg-offset-2 main">
-        {{ member }}
-        {{ circles }}
-        {{ transactions }}
+        <div class="container">
+        <ul class="nav nav-tabs">
+          <li class="active">
+            <a data-toggle="tab" href="#member-details">
+              <i class="fa fa-user"></i> Member details
+            </a>
+          </li>
+          <li>
+            <a data-toggle="tab" href="#circles-details">
+                <i class="fa fa-briefcase"></i> Circles Details
+            </a>
+          </li>
+          <li>
+            <a data-toggle="tab" href="#wallet-transactions">
+              <i class="fa fa-money"></i> Wallet transactions
+            </a>
+          </li>
+       </ul>
+
+        <div class="tab-content">
+            <div id="member-details" class="tab-pane fade in active">
+                <div class="w3-container">
+                    <div class="w3-row">
+                        <div class="w3-col l4 m4 s4">
+                            &nbsp;&nbsp;
+                        </div>
+                        <div class="w3-col l4 m4 s4">
+                        <img src="{{member.passport_image.url}}"
+                                 alt="member image"
+                                 class="w3-padding-8 w3-center"
+                                 style="height: 200px;"/>
+                        </div>
+                    </div>
+                    <br>
+                    <br>
+                    <table class="w3-table w3-striped">
+                <tr>
+                    <td>Name</td>
+                    <td>{{ member.user.first_name }} {{ member.user.last_name }} {{ member.other_name }}</td>
+                </tr>
+                <tr>
+                    <td>National id</td>
+                    <td>{{ member.national_id }}</td>
+                </tr>
+                <tr>
+                    <td>Email</td>
+                    <td>{{ member.user.email }}</td>
+                </tr>
+                <tr>
+                    <td>Phone number</td>
+                    <td>{{ member.phone_number }}</td>
+                </tr>
+                <tr>
+                    <td>Gender</td>
+                    <td>{{ member.gender}}</td>
+                </tr>
+                <tr>
+                    <td>Nationality</td>
+                    <td>{{ member.country }}</td>
+                </tr>
+                <tr>
+                    <td>currency</td>
+                    <td>{{ member.currency }}</td>
+                </tr>
+                <tr>
+                    <td>Date registered</td>
+                    <td>{{ member.time_registered }}</td>
+                </tr>
+            </table>
+                </div>
+            </div>
+
+            <div id="circles-details" class="tab-pane fade">
+               {{ circles }}
+            </div>
+
+            <div id="wallet-transactions" class="tab-pane fade">
+              <div class="row">
+               {{ transactions }}
+              </div>
+            </div>
+       </div>
+     </div>
+
+     </div>
      </div>
 {% endblock %}
 

@@ -62,7 +62,7 @@ class PurchaseShares(APIView):
                         wallet_balance = wallet_instance.calculate_wallet_balance(wallet) - amount
                         transaction_code = general_instance.generate_unique_identifier('WTD')
                         wallet_desc = "{} confirmed.You have purchased shares worth {} {} in circle {}.New wallet balance is {} {}.".format(transaction_code, member.currency, amount, circle.circle_name, member.currency, wallet_balance)
-                        wallet_transaction = Transactions.objects.create(wallet=wallet, transaction_type="DEBIT", transaction_time=datetime.datetime.now(), transaction_desc=wallet_desc,transaction_amount=amount, recipient=circle_acc_number, transaction_code=transaction_code)
+                        wallet_transaction = Transactions.objects.create(wallet=wallet, transaction_type="DEBIT", transaction_time=datetime.datetime.now(), transaction_desc=wallet_desc,transaction_amount=amount, recipient=circle_acc_number, transaction_code=transaction_code, source="shares")
                         created_objects.append(wallet_transaction)
                         print("wallet transaction")
                         print(wallet_transaction.transaction_amount)
@@ -195,7 +195,7 @@ class SharesWithdrawal(APIView):
                                     transaction_code = general_instance.generate_unique_identifier('WTC')
                                     wallet_balance = wallet_instance.calculate_wallet_balance(member.wallet) + amount
                                     wallet_desc = "{} confirmed.You have received {} {} from circle {} shares withdrawal.New wallet balance is {} {}".format(transaction_code, member.currency, amount, circle.circle_name, member.currency, wallet_balance)
-                                    wallet_transaction = Transactions.objects.create(wallet= member.wallet, transaction_type='CREDIT', transaction_time = time_processed, transaction_desc=wallet_desc, transaction_amount= amount, transaction_code=transaction_code)
+                                    wallet_transaction = Transactions.objects.create(wallet= member.wallet, transaction_type='CREDIT', transaction_time = time_processed, transaction_desc=wallet_desc, transaction_amount= amount, transaction_code=transaction_code, source="shares")
                                     created_objects.append(wallet_transaction)
                                     shares_transaction_serializer = SharesTransactionSerializer(shares_transaction)
                                     wallet_transaction_serializer = WalletTransactionsSerializer(wallet_transaction)

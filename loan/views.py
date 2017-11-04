@@ -146,7 +146,7 @@ class LoanApplication(APIView):
                             wallet_balance = wallet_instance.calculate_wallet_balance(member.wallet) + loan_amount
                             wallet_transaction_code = general_instance.generate_unique_identifier('WTC')
                             wallet_desc ="{} confirmed.You have received your loan {} of {} {} from circle {}.New wallet balance is {} {}.".format(wallet_transaction_code, loan.loan_code, member.currency, loan_amount, circle.circle_name, member.currency, wallet_balance )
-                            wallet_transaction = Transactions.objects.create(wallet= member.wallet, transaction_type='CREDIT', transaction_time = time_processed,transaction_desc=wallet_desc, transaction_amount= loan_amount, transacted_by = circle.circle_name,transaction_code=wallet_transaction_code)
+                            wallet_transaction = Transactions.objects.create(wallet= member.wallet, transaction_type='CREDIT', transaction_time = time_processed,transaction_desc=wallet_desc, transaction_amount= loan_amount, transacted_by = circle.circle_name,transaction_code=wallet_transaction_code, source="loan")
                             created_objects.append(wallet_transaction)
                             loan.is_approved = True
                             loan.is_disbursed = True
@@ -237,7 +237,7 @@ class LoanRepayment(APIView):
                             wallet_balance =  wallet_instance.calculate_wallet_balance(member.wallet) - repayment_amount
                             wallet_desc = "{} confirmed.You have sent {} {} to circle {} for repayment of loan {}.New wallet balance is {} {}.".format(wallet_transaction_code, member.currency, repayment_amount, circle.circle_name, loan.loan_code, member.currency, wallet_balance)
                             time_processed = datetime.datetime.now()
-                            wallet_transaction = Transactions.objects.create(wallet=member.wallet, transaction_type="DEBIT", transaction_desc=wallet_desc, recipient=circle.circle_acc_number, transaction_amount=repayment_amount, transaction_time=time_processed, transaction_code=wallet_transaction_code)
+                            wallet_transaction = Transactions.objects.create(wallet=member.wallet, transaction_type="DEBIT", transaction_desc=wallet_desc, recipient=circle.circle_acc_number, transaction_amount=repayment_amount, transaction_time=time_processed, transaction_code=wallet_transaction_code, source="loan")
                             created_objects.append(wallet_transaction)
                             loan_repayment = loanrepayment.objects.create(amount=repayment_amount, time_of_repayment=time_processed, amortization_schedule=latest_loan_amortize, rating=loan_instance.set_loan_rating(loan))
                             created_objects.append(loan_repayment)
@@ -380,7 +380,7 @@ class LoanGuarantorResponse(APIView):
                             wallet_transaction_code = general_instance.generate_unique_identifier('WTC')
                             wallet_balance = wallet_instance.calculate_wallet_balance(loan_member.wallet) + loan.amount
                             wallet_desc = "{} confirmed.You have received your loan {} of {} {} from circle {}.New wallet balance is {} {}.".format(wallet_transaction_code, loan.loan_code, loan_member.currency, loan.amount, circle.circle_name, loan_member.currency, wallet_balance)
-                            wallet_transaction = Transactions.objects.create(wallet= loan_member.wallet, transaction_type='CREDIT', transaction_time = time_processed, transaction_desc=wallet_desc, transaction_amount= loan.amount, transacted_by = circle.circle_name, transaction_code=wallet_transaction_code)
+                            wallet_transaction = Transactions.objects.create(wallet= loan_member.wallet, transaction_type='CREDIT', transaction_time = time_processed, transaction_desc=wallet_desc, transaction_amount= loan.amount, transacted_by = circle.circle_name, transaction_code=wallet_transaction_code, source="loan")
                             created_objects.append(wallet_transaction)
                             loan.is_approved = True
                             loan.is_disbursed = True

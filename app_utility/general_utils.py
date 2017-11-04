@@ -26,6 +26,6 @@ class General():
 
     def generate_unique_identifier(self,prefix):
         # random_string = ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(8))
-        random_string = obfuscate(str(time.time())).upper()[:8]
+        random_string = self.obfuscate(str(time.time())).upper()[:8]
         code = prefix + random_string
         return code

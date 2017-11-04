@@ -37,6 +37,7 @@ class Wallet():
         print("credit")
         print(credit)
         balance = credit-debit
+        balance = round(balance,2)
         return balance
 
     def save_transaction_code(self,transaction):

@@ -18,6 +18,7 @@ from .models import Transactions,Wallet, B2CTransaction_log, B2BTransaction_log,
 from member.models import Member
 from django.core.exceptions import ValidationError
 
+from django.db import DatabaseError,transaction
 
 from app_utility import wallet_utils,general_utils,fcm_utils, mpesa_api_utils, sms_utils, brain_tree_utils
 
@@ -73,9 +74,20 @@ class WallettoWalletTranfer(APIView):
                 sender_desc = "{} confirmed.You have sent {} {} to {} {}.New wallet balance is {} {}.".format(sender_transaction_code, sender.currency, amount, recipient.user.first_name, recipient.user.last_name, sender.currency, sender_wallet_balance)
                 recipient_desc = "{} confirmed.You have received {} {} from {} {}.New wallet balance is {} {}".format(recipient_transaction_code, recipient.currency, amount, request.user.first_name, request.user.last_name, recipient.currency, recipient_wallet_balance)
                 try:
-                    sender_transaction = Transactions.objects.create(wallet= sender_wallet,transaction_type="DEBIT",transaction_desc=sender_desc,transaction_amount=amount,transaction_time=datetime.datetime.now(),recipient=account,transaction_code=sender_transaction_code, source="wallet")
+                    sender_transaction = Transactions(wallet= sender_wallet, transaction_type="DEBIT", transaction_desc=sender_desc, transaction_amount=amount, transaction_time=datetime.datetime.now(), recipient=account, transaction_code=sender_transaction_code, source="wallet")
+                    sender_transaction.save()
                     created_objects.append(sender_transaction)
-                    recipient_transaction = Transactions.objects.create(wallet = recipient_wallet,transaction_type="CREDIT",transaction_desc=recipient_desc,transacted_by=sender_wallet.acc_no,transaction_amount=amount,transaction_time=datetime.datetime.now(),transaction_code=recipient_transaction_code, source="wallet")
+                    recipient_transaction = Transactions(wallet = recipient_wallet, transaction_type="CREDIT", transaction_desc=recipient_desc, transaction_amount=amount,transacted_by=sender_wallet.acc_no, transaction_time=datetime.datetime.now(), transaction_code=recipient_transaction_code, source="wallet")
+                    recipient_transaction.save()
+                    # sid = transaction.savepoint()
+                    #
+                    # try:
+                    #
+                    #     transaction.savepoint_commit(sid)
+                    # except Exception:
+                    #     transaction.savepoint_rollback(sid)
+                    #     data = {"status":0,"message":"Unable to process transaction.."}
+                    #     return Response(data,status=status.HTTP_200_OK)
                     created_objects.append(recipient_transaction)
                     instance = fcm_utils.Fcm()
                     registration_id,title,message = recipient.device_token,"Wallet","%s %s has credited your wallet with %s %s"%(request.user.first_name,request.user.last_name,request.user.member.currency,amount)
@@ -104,12 +116,12 @@ class TransactionsDetails(APIView):
     authentication_classes = (TokenAuthentication,)
     permissions_classes = (IsAuthenticated,)
     def get_objects(self,request):
-        transactions = Transactions.objects.filter(wallet=request.user.member.wallet)
-        return transactions
+        wallet_transactions = Transactions.objects.filter(wallet=request.user.member.wallet)
+        return wallet_transactions
 
     def post(self,request,*args,**kwargs):
-        transactions = self.get_objects(request)
-        serializer = WalletTransactionsSerializer(transactions,many=True)
+        wallet_transactions = self.get_objects(request)
+        serializer = WalletTransactionsSerializer(wallet_transactions,many=True)
         data = {"status":1,"message":serializer.data}
         return Response(data,status=status.HTTP_200_OK)
 
@@ -123,8 +135,8 @@ class WalletTransactionDetails(APIView):
     def post(self,request,*args,**kwargs):
         serializer = WalletTransactionSerializer(data=request.data)
         if serializer.is_valid():
-            transaction = Transactions.objects.get(id=serializer.validated_data['transaction_id'])
-            wallet_transaction_serializer = WalletTransactionsSerializer(transaction)
+            wallet_transaction = Transactions.objects.get(id=serializer.validated_data['transaction_id'])
+            wallet_transaction_serializer = WalletTransactionsSerializer(wallet_transaction)
             data = {"status":1,"wallet_transaction":wallet_transaction_serializer.data}
             return Response(data,status=status.HTTP_200_OK)
 

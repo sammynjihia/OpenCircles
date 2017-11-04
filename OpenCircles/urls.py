@@ -29,6 +29,7 @@ urlpatterns = [
     url(r'^shares/',include('shares.urls')),
     url(r'^loans/', include('loan.urls')),
     url(r'^chat/', include('chat.urls')),
+    url(r'^app_admin/', include('app_admin.urls'))
 ]
 
 if settings.DEBUG:

@@ -4,6 +4,6 @@
 .env
 *.txt
 .idea
-.sqlite
+.sqlite3
 
 

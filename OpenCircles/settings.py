@@ -40,6 +40,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.humanize',
+
     'rest_framework',
     'accounts.apps.AccountsConfig',
     'app_settings.apps.AppSettingsConfig',
@@ -51,6 +53,7 @@ INSTALLED_APPS = [
     'tool.apps.ToolConfig',
     'chat.apps.ChatConfig',
     'rest_framework.authtoken',
+    'app_admin.apps.AppAdminConfig'
 ]
 
 MIDDLEWARE = [

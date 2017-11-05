@@ -106,6 +106,14 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+    },
+    'mysql_backup': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'open_circles',
+        'USER': 'open_circles',
+        'PASSWORD': 'open_circles',
+        'HOST': 'localhost',
+        'PORT': '',
     }
 }
 

@@ -1,86 +1,65 @@
 {% extends 'app_admin/base_dashboard.html' %}
 {% load static %}
+{% load humanize %}
 
 {% block main_container %}
-     <div class="col-sm-9 col-sm-offset-3 col-lg-10 col-lg-offset-2 main">
-        <br>
-        <form class="form-horizontal">
-          <div class="form-group">
-            <div class="col-lg-4 col-md-4 col-sm-4">
-              <input type="text"
-                class="w3-input w3-text-blue pull-right"
-                id="transactions-search-val"
-                name="transactions_search_val"
-                placeholder="Search for transaction.">
+    <div class="col-sm-9 col-sm-offset-3 col-lg-10 col-lg-offset-2">
+         <br>
+         <div class="w3-container">
+            <div class="panel-heading border-bottom-blue">
+              <i class="fa fa-arrows-h w3-text-green"></i> Transaction for <b><a
+                href="{% url 'app_admin:view_member_details' member_id=transaction.wallet.member.id %}">
+                 {{transaction.wallet.member.phone_number }}
+                 (   {{ transaction.wallet.member.user.first_name }}
+                    {{ transaction.wallet.member.user.last_name }} -
+                {{ transaction.wallet.member.user.email }})</a></b> account.
+
+
             </div>
-            <div class="col-lg-2 col-md-2 col-sm-2">
-              <a class="w3-btn w3-blue-gray pull-left" id="btn-search-transaction">
-                <i class="fa fa-search"></i>
-              </a>
+            <div class="panel-heading">
+                <table class="w3-table w3-striped">
+                    <tr>
+                        <td>Type</td>
+                        {% if  transaction.transaction_type == 'CREDIT'%}
+                        <td class="w3-text-green">{{ transaction.transaction_type}}</td>
+                            {% else %}
+                             <td class="w3-text-red">{{ transaction.transaction_type}}</td>
+                        {% endif %}
+                    </tr>
+                    <tr>
+                        <td>Time</td>
+                        <td>{{ transaction.transaction_time }}</td>
+                    </tr>
+                    <tr>
+                        <td>Description</td>
+                        <td>{{ transaction.transaction_desc }}</td>
+                    </tr>
+                    <tr>
+                        <td>Amount</td>
+                        <td>{{ transaction.transaction_amount|intcomma }}</td>
+                    </tr>
+                    <tr>
+                        <td>Transacted by</td>
+                        <td>{{ transaction.transacted_by }}</td>
+                    </tr>
+                    <tr>
+                        <td>Recipient</td>
+                        <td>{{ transaction.recipient }}</td>
+                    </tr>
+                    <tr>
+                        <td>Current balance</td>
+                        <td>{{ current_balance |intcomma}}</td>
+                    </tr>
+                </table>
             </div>
           </div>
-        </form>
-        <br>
-        <div class="w3-container">
-            <table class="w3-table w3-striped">
-                <thead class="w3-grey w3-text-white">
-                    <td>Transaction code</td>
-                    <td>Time</td>
-                    <td>Amount</td>
-                    <td>Transacted by</td>
-                    <td>Recipient</td>
-                    <td>Type</td>
-                    <td>Source</td>
-
-                </thead>
-                <tbody id="transactions-table">
-
-                </tbody>
-            </table>
-        </div>
-     </div>
+         <br>
+         <br>
+    </div>
 {% endblock %}
 
 {% block other_js %}
     <script>
-        var members_table = Backbone.View.extend({});
-    </script>
-
-    <script>
-        $(document).on('click', '#btn-search-transaction', function () {
-            var searchVal = $('#transactions-search-val').val();
-            var srvRqst = $.ajax({
-                url:"{% url 'app_admin:search_for_transaction' %}",
-                data: {
-                    search_val: searchVal,
-                    csrfmiddlewaretoken: '{{ csrf_token }}'
-                },
-                type: 'post',
-                datatype: 'json',
-                beforeSend: function () {}
-            });
-            srvRqst.done(function(response){
-                try {
-                    var responseObj = $.parseJSON(response);
-                    var html = '';
-                    for (var i = 0; i < responseObj.length; i++){
-                        var id = responseObj[i]['id'];
-                        var url = 'href="view_transaction_details/'+id+'/"';
-                        html += '<tr>'
-                            + '<td>'
-                                + '<a class="w3-text-blue cursor-pointer" '+url+'">' + responseObj[i]['transaction_code'] + '</a>'
-                            + '</td>'
-                            + '<td>' + responseObj[i]['time_of_transaction'] + '</td>'
-                            + '<td>' + responseObj[i]['amount'] + '</td>'
-                            + '<td>' + responseObj[i]['sender'] + '</td>'
-                            + '<td>' + responseObj[i]['recipient'] + '</td>'
-                            + '<td>' + responseObj[i]['transaction_type'] + '</td>'
-                            + '<td>' + responseObj[i]['source'] + '</td>'
-                            + '</tr>';
-                    }
-                    $('#transactions-table').html(html);
-                }catch(exp){}finally {}
-            });
-        });
+        var transaction = Backbone.View.extend({});
     </script>
 {% endblock %}

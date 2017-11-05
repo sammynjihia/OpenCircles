@@ -2,6 +2,8 @@
 from member.models import Member
 from wallet.models import Wallet, Transactions
 from django.db.models import Sum
+from django.db.models import Q
+from app_utility.sms_utils import Sms
 
 
 class TransactionUtils:
@@ -16,7 +18,18 @@ class TransactionUtils:
 
     @staticmethod
     def search_wallet_transactions(search_val):
-        return Transactions.objects.filter(transaction_code=search_val)
+        trx = None
+        try:
+            sms = Sms()
+            phone_number = sms.format_phone_number(search_val)
+            trx = Transactions.objects.filter(Q(Q(transaction_code=search_val)
+                                                | Q(wallet=Wallet.objects.get(member=Member
+                                                                              .objects.get(
+                                                 Q(Q(phone_number=phone_number)| Q(national_id=search_val))))))).order_by('-transaction_time')
+        except Exception as exp:
+            trx = Transactions.objects.filter(transaction_code=search_val).order_by('-transaction_time')
+            pass
+        return trx
 
     @staticmethod
     def get_transaction_by_id(id):

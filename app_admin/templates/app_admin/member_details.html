@@ -77,12 +77,68 @@
             </div>
 
             <div id="circles-details" class="tab-pane fade">
-               {{ circles }}
+                <table class="w3-table w3-striped">
+                    <thead class="w3-blue-gray w3-text-white">
+                        <tr>
+                            <td>Name</td>
+                            <td>Type</td>
+                            <td>Minimum share</td>
+                            <td>Circle account number</td>
+                            <td>Status</td>
+                            <td>Date joined</td>
+                            <td>Locked shares</td>
+                            <td>Available shares</td>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for obj in circles %}
+                            <tr>
+                            <td>{{ obj.circle_name }}</td>
+                            <td>{{ obj.circle_type }}</td>
+                            <td>{{ obj.minimum_share }}</td>
+                            <td>{{ obj.circle_acc_number }}</td>
+                                {% if obj.is_active %}
+                                    <td>Active</td>
+                                {% else %}
+                                    <td>Pending</td>
+                                {% endif %}
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
 
             <div id="wallet-transactions" class="tab-pane fade">
               <div class="row">
-               {{ transactions }}
+               <table class="w3-table w3-striped">
+                    <thead class="w3-blue-gray w3-text-white">
+                        <tr>
+                            <td>#</td>
+                            <td>Type</td>
+                            <td>Source</td>
+                            <td>Recipient</td>
+                            <td>Transacted by</td>
+                            <td>Time</td>
+                            <td>Amount</td>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for trx in transactions %}
+                            <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td>{{ trx.transaction_type }}</td>
+                            <td>{{ trx.source }}</td>
+                            <td>{{ trx.recipient }}</td>
+                            <td>{{ trx.transacted_by }}</td>
+                            <td>{{ trx.transaction_time }}</td>
+                            <td>{{ trx.transaction_amount|intcomma }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
               </div>
             </div>
        </div>

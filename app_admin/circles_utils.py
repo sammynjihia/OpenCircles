@@ -1,5 +1,8 @@
 import datetime
 from circle.models import Circle, CircleMember
+from shares.models import Shares, IntraCircleShareTransaction
+from django.db.models import Sum
+
 
 
 class CircleUtils:
@@ -27,6 +30,25 @@ class CircleUtils:
         else:
             circles = [obj.circle for obj in CircleMember.objects.filter(member=member)]
             return circles
+
+    @staticmethod
+    def get_all_circles():
+        return Circle.objects.all()
+
+    @staticmethod
+    def get_num_of_circle_members(circle):
+        return CircleMember.objects.filter(circle=circle).count()
+
+
+    @staticmethod
+    def get_total_shares_deposit(circle):
+        deposits = IntraCircleShareTransaction.objects.filter(
+            shares=Shares.objects.filter(circle=circle), transaction_type__icontains='DEPOSIT')\
+            .aggregate(Sum('num_of_shares'))
+        withdrawals = IntraCircleShareTransaction.objects.filter(
+            shares=Shares.objects.filter(circle=circle), transaction_type__icontains='WITHDRAW')\
+            .aggregate(Sum('num_of_shares'))
+        return deposits
 
 
 

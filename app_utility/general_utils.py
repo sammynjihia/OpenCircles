@@ -21,8 +21,9 @@ class General():
     def obfuscate(self, s):
         m = hashlib.sha256()
         m.update(s)
-        hash = base64.b64encode(m.digest())
-        return hash
+        m_hash = base64.b64encode(m.digest())
+        m_hash = m_hash.translate(None,'/=+')
+        return m_hash
 
     def generate_unique_identifier(self,prefix):
         # random_string = ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(8))

@@ -148,7 +148,7 @@ USE_I18N = True
 
 USE_L10N = True
 
-USE_TZ = True
+USE_TZ = False
 EXPIRY_TIME = timedelta(days=60)
 
 # Static files (CSS, JavaScript, Images)

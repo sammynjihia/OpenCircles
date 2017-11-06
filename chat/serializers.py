@@ -23,4 +23,5 @@ class MemberChatSerializer(serializers.ModelSerializer):
         fields = ['body','recipient','sender','time_sent']
 
     def get_time_sent(self,chat):
-        return chat.time_chat_sent.strftime("%Y-%m-%d %H:%M:%S")
+        time_sent = chat.time_chat_sent
+        return time_sent.strftime("%Y-%m-%d %H:%M:%S")

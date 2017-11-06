@@ -40,6 +40,7 @@ class LoanUtils:
         circle_member_objs = CircleMember.objects.filter(Q(Q(member=member_objs)
                                                            | Q(circle=Circle.objects.filter(circle_name__icontains=search_val))))
         loan_objs = LoanApplication.objects.filter(Q(Q(loan_code=search_val) | Q(circle_member=circle_member_objs)))
+        loan_objs = loan_objs.order_by('-time_of_application')
         return loan_objs
 
     @staticmethod
@@ -57,6 +58,10 @@ class LoanUtils:
     @staticmethod
     def get_loan_guarantors(loan):
         return GuarantorRequest.objects.filter(loan=loan)
+
+    @staticmethod
+    def get_loan_repayment(loan):
+        return LoanRepayment.objects.filter(amortization_schedule=LoanAmortizationSchedule.objects.filter(loan=loan))
 
 
 

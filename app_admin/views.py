@@ -181,10 +181,13 @@ def search_for_loan_applications(request):
 def view_loan_application_details(request, loan_code):
     loan = loan_utils.LoanUtils.get_loan_by_loan_code(loan_code)
     guarantors = loan_utils.LoanUtils.get_loan_guarantors(loan)
+    loan_repayment = loan_utils.LoanUtils.get_loan_repayment(loan)
     context = {
         'loan': loan,
         'guarantors': guarantors,
-        'need_guarantors': guarantors.exists()
+        'need_guarantors': guarantors.exists(),
+        'loan_repayment_exists': loan_repayment.exists(),
+        'loan_repayment': loan_repayment
     }
     return render(request, 'app_admin/loan_application.html', context)
 

@@ -113,7 +113,26 @@
              {% endif %}
             </div>
             <div id="repayment-details" class="tab-pane fade">
-
+                {% if loan_repayment_exists %}
+                    <table class="w3-table w3-striped">
+                        <thead class="w3-blue-gray w3-text-white">
+                            <tr>
+                                <td>#</td>
+                                <td>Amount</td>
+                                <td>Date</td>
+                            </tr>
+                        </thead>
+                        <tbody>
+                         {% for obj in loan_repayment %}
+                             <tr>
+                                <td>{{ forloop.counter }}</td>
+                                <td>{{ obj.amount|intcomma }}</td>
+                                <td>{{ obj.time_of_repayment }}</td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                {% endif %}
             </div>
        </div>
      </div>

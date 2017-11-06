@@ -1,7 +1,9 @@
 {% extends 'app_admin/base_dashboard.html' %}
 {% load static %}
 {% load humanize %}
-
+{% block current_page %}
+    <i class="fa fa-user"></i> Member details [{{member.phone_number }}]
+{% endblock %}
 {% block main_container %}
      <div class="col-sm-9 col-sm-offset-3 col-lg-10 col-lg-offset-2 main">
         <div class="container">
@@ -12,13 +14,18 @@
             </a>
           </li>
           <li>
+            <a data-toggle="tab" href="#next-of-kin">
+                <i class="fa fa-neuter"></i> Next of kin
+            </a>
+          </li>
+          <li>
             <a data-toggle="tab" href="#circles-details">
                 <i class="fa fa-briefcase"></i> Circles Details
             </a>
           </li>
           <li>
             <a data-toggle="tab" href="#wallet-transactions">
-              <i class="fa fa-money"></i> Wallet transactions
+              <i class="fa fa-money"></i> 100 most recent wallet transactions
             </a>
           </li>
        </ul>
@@ -76,6 +83,35 @@
                 </div>
             </div>
 
+             <div id="next-of-kin" class="tab-pane fade in">
+                <table class="w3-table w3-striped">
+                    <tr>
+                        <td>Name</td>
+                        <td>{{ next_of_kin.first_name }} {{ next_of_kin.last_name }}</td>
+                    </tr>
+                    <tr>
+                        <td>Gender</td>
+                        <td>{{ next_of_kin.gender }}</td>
+                    </tr>
+                    <tr>
+                        <td>Relationship</td>
+                        <td>{{ next_of_kin.relationship }}</td>
+                    </tr>
+                    <tr>
+                        <td>Date of birth</td>
+                        <td>{{ next_of_kin.date_of_birth }}</td>
+                    </tr>
+                    <tr>
+                        <td>Phone number</td>
+                        <td>{{ next_of_kin.phone_number }}</td>
+                    </tr>
+                    <tr>
+                        <td>Email</td>
+                        <td>{{ next_of_kin.email }}</td>
+                    </tr>
+                </table>
+             </div>
+
             <div id="circles-details" class="tab-pane fade">
                 <table class="w3-table w3-striped">
                     <thead class="w3-blue-gray w3-text-white">
@@ -117,6 +153,7 @@
                     <thead class="w3-blue-gray w3-text-white">
                         <tr>
                             <td>#</td>
+                            <td>Transaction Code</td>
                             <td>Type</td>
                             <td>Source</td>
                             <td>Recipient</td>
@@ -129,6 +166,11 @@
                         {% for trx in transactions %}
                             <tr>
                             <td>{{ forloop.counter }}</td>
+                            <td>
+                                <a class="w3-text-blue-gray" href="{% url 'app_admin:view_transaction_details' transaction_id=trx.id %}">
+                                    {{ trx.transaction_code }}
+                                </a>
+                            </td>
                             <td>{{ trx.transaction_type }}</td>
                             <td>{{ trx.source }}</td>
                             <td>{{ trx.recipient }}</td>

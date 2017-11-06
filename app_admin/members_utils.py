@@ -1,7 +1,7 @@
 import datetime
 
 from django.db.models import Q
-from member.models import Member
+from member.models import Member, Beneficiary
 from django.contrib.auth.models import User
 from app_utility import sms_utils
 
@@ -35,6 +35,15 @@ class MemberUtils:
         if not Member.objects.filter(id=id).exists():
             return None
         return Member.objects.get(id=id)
+
+    @staticmethod
+    def get_next_of_kin(member):
+        if Beneficiary.objects.filter(member=member).exists():
+            return Beneficiary.objects.get(member_id=member.id)
+        else:
+            return None
+
+
 
 
 

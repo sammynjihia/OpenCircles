@@ -2,6 +2,10 @@
 {% load static %}
 {% load humanize %}
 
+{% block current_page %}
+    <i class="fa fa-google-wallet"></i> Wallet transactions [{{transaction.transaction_code }}]
+{% endblock %}
+
 {% block main_container %}
     <div class="col-sm-9 col-sm-offset-3 col-lg-10 col-lg-offset-2">
          <br>
@@ -25,6 +29,10 @@
                             {% else %}
                              <td class="w3-text-red">{{ transaction.transaction_type}}</td>
                         {% endif %}
+                    </tr>
+                    <tr>
+                        <td>Source</td>
+                        <td>{{ transaction.source }}</td>
                     </tr>
                     <tr>
                         <td>Time</td>

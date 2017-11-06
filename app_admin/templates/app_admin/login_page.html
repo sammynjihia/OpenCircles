@@ -16,10 +16,10 @@
                     <p>
                         <label>Email</label>
                         <input class="w3-input w3-text-blue"
-                            type="email"
-                            id="email-address"
-                            placeholder="Email">
-                        <span id="email-address-response"></span>
+                            type="text"
+                            id="username"
+                            placeholder="Username">
+                        <span id="username-response"></span>
                     </p>
                     <p>
                         <label>Password</label>
@@ -47,22 +47,28 @@
         </div>
       </div>
     </div>
-    <script>
+
+
+{% endblock %}
+{% block other_js %}
+<script>
         $(document).on('click', '#btn-login', function(e){
             e.preventDefault();
-            $('#btn-login').prop('disabled', false);
-            var userName = $('#email-address').val();
+            $('#btn-login').prop('disabled', true);
+
+            var username = $('#username').val();
             var password = $('#password').val();
             var errorExists = false;
             var errorMessage = 'Network error.';
-            if(userName.trim().length < 3){
+
+            if(username.trim().length < 3){
                 errorExists = true;
-                $('#email-address').addClass('input-error');
+                $('#username').addClass('input-error');
             }else{
-                $('#email-address').removeClass('input-error');
+                $('#username').removeClass('input-error');
             }
 
-            if(password.length === 0){
+            if(password.length < 8){
                 errorExists = true;
                 $('#password').addClass('input-error');
             }else{
@@ -73,10 +79,12 @@
                 return;
             }
 
+
+
             var srvRqst = $.ajax({
-                url: "",
+                url: "{% url 'app_admin:login_admin' %}",
                 data: {
-                    user_name: userName,
+                    username: username,
                     password: password,
                     csrfmiddlewaretoken: '{{ csrf_token }}'
                 },

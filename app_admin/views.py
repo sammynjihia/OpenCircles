@@ -1,12 +1,16 @@
 import json
 
+from django.contrib.auth.models import User
+from django.contrib.auth import authenticate, get_user_model, login, logout
+from django.contrib.auth import update_session_auth_hash
+from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
 from django.http import HttpResponse
 from . import members_utils, cirles_utils, loan_utils, revenue_streams_utils, circle_withdrawal_utils, transactions_utils
+from . import chat_utils
 
 
 # Create your views here.
-
 
 def create_admin(request):
     pass
@@ -19,8 +23,31 @@ def lock_admin_acc(request):
 def login_page(request):
     return render(request, 'app_admin/login_page.html', {})
 
+
 def login_admin(request):
-    pass
+    password = request.POST.get('password')
+    username = request.POST.get('username')
+    return_data = {}
+    user = User.objects.get(username=username)
+
+    if user.is_active is False:
+        return_data['STATUS'] = '0'
+        return_data['MESSAGE'] = 'Account has been locked. Contact admin to unlock your account.'
+    else:
+        user = authenticate(username=username, password=password)
+
+        if user is not None:
+            login(request, user)
+            return_data['STATUS'] = '1'
+            return_data['URL'] = 'home'
+        else:
+            return_data['STATUS'] = '0'
+            return_data['MESSAGE'] = 'Invalid credentials.'
+
+    return HttpResponse(
+        json.dumps(return_data),
+        content_type="application/json"
+    )
 
 
 def home_page(request):
@@ -97,6 +124,7 @@ def view_member_details(request, member_id):
     member = members_utils.MemberUtils.get_member_from_id(member_id)
     context = {
         'member': member,
+        'next_of_kin': members_utils.MemberUtils.get_next_of_kin(member),
         'circles': cirles_utils.CircleUtils.get_circles_by_member(member),
         'transactions': transactions_utils.TransactionUtils.get_wallet_transaction_by_member(member)[:100]
     }
@@ -187,13 +215,45 @@ def view_loan_application_details(request, loan_code):
         'guarantors': guarantors,
         'need_guarantors': guarantors.exists(),
         'loan_repayment_exists': loan_repayment.exists(),
-        'loan_repayment': loan_repayment
+        'loan_repayment': loan_repayment,
+        'associated_transaction': transactions_utils.TransactionUtils.get_wallet_trx_by_loan(loan)
     }
     return render(request, 'app_admin/loan_application.html', context)
 
 
+def chats_list(request):
+    context = {
+        'chats': chat_utils.ChatUtils.get_pending_chats()
+    }
+    return render(request, 'app_admin/chats.html', context)
 
 
+def reply_to_chat(request):
+    chat_id = request.POST.get('chat_id')
+    body = request.POST.get('body')
+    reply_chat = chat_utils.ChatUtils.reply_to_chat(chat_id, body)
+    response = {
+        'status': 1 if reply_chat else 0,
+        'message': 'Sent' if reply_chat else 'Failed',
+    }
+    return HttpResponse(json.dumps(response))
+
+
+def search_for_chats(request):
+    search_val = request.POST.get('search_val')
+    chat_objs = chat_utils.ChatUtils.search_for_chats(search_val)
+    chats_list = []
+    for obj in chat_objs:
+        chats_list.append({
+            'id': obj.id,
+            'body': obj.body,
+            'time_chat_sent': obj.time_chat_sent.strftime('%Y-%m-%d %H-%m-%s'),
+            'member_name': "{} {} {}".format(obj.owner.user.first_name, obj.owner.user.last_name, obj.owner.other_name),
+            'image_url': "{}".format(obj.owner.passport_image.url),
+            'has_been_responded_to': 1 if obj.has_been_responded_to else 0,
+        })
+
+    return HttpResponse(json.dumps(chats_list))
 
 
 

@@ -1,0 +1,65 @@
+{% extends 'app_admin/base_dashboard.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block main_container %}
+    <div class="col-sm-9 col-sm-offset-3 col-lg-10 col-lg-offset-2">
+         <br>
+         <div class="w3-container">
+            <div class="panel-heading border-bottom-blue">
+              <i class="fa fa-arrows-h w3-text-green"></i> Transaction for <b><a
+                href="{% url 'app_admin:view_member_details' member_id=transaction.wallet.member.id %}">
+                 {{transaction.wallet.member.phone_number }}
+                 (   {{ transaction.wallet.member.user.first_name }}
+                    {{ transaction.wallet.member.user.last_name }} -
+                {{ transaction.wallet.member.user.email }})</a></b> account.
+
+
+            </div>
+            <div class="panel-heading">
+                <table class="w3-table w3-striped">
+                    <tr>
+                        <td>Type</td>
+                        {% if  transaction.transaction_type == 'CREDIT'%}
+                        <td class="w3-text-green">{{ transaction.transaction_type}}</td>
+                            {% else %}
+                             <td class="w3-text-red">{{ transaction.transaction_type}}</td>
+                        {% endif %}
+                    </tr>
+                    <tr>
+                        <td>Time</td>
+                        <td>{{ transaction.transaction_time }}</td>
+                    </tr>
+                    <tr>
+                        <td>Description</td>
+                        <td>{{ transaction.transaction_desc }}</td>
+                    </tr>
+                    <tr>
+                        <td>Amount</td>
+                        <td>{{ transaction.transaction_amount|intcomma }}</td>
+                    </tr>
+                    <tr>
+                        <td>Transacted by</td>
+                        <td>{{ transaction.transacted_by }}</td>
+                    </tr>
+                    <tr>
+                        <td>Recipient</td>
+                        <td>{{ transaction.recipient }}</td>
+                    </tr>
+                    <tr>
+                        <td>Current balance</td>
+                        <td>{{ current_balance |intcomma}}</td>
+                    </tr>
+                </table>
+            </div>
+          </div>
+         <br>
+         <br>
+    </div>
+{% endblock %}
+
+{% block other_js %}
+    <script>
+        var transaction = Backbone.View.extend({});
+    </script>
+{% endblock %}

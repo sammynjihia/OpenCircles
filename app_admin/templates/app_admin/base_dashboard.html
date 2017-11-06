@@ -1,0 +1,303 @@
+{% load staticfiles %}
+{% load humanize %}
+<!DOCTYPE html>
+<html lang="en">
+
+{% block head %}
+  <head>
+    <title>Opencircles</title>
+      <link rel="stylesheet" type="text/css" href="{% static 'app_admin/bootstrap/css/bootstrap.min.css' %}" />
+      <link rel="stylesheet" type="text/css" href="{% static 'app_admin/font-awesome/css/font-awesome.min.css' %}" />
+      <link rel="stylesheet" type="text/css" href="{% static 'app_admin/w3css/w3.css' %}" />
+      <link rel="stylesheet" type="text/css" href="{% static 'app_admin/custom_css/styles.css' %}" >
+  </head>
+{% endblock %}
+
+{% block body %}
+    <body>
+    <!--Nav bar-->
+    <nav class="navbar navbar navbar-fixed-top w3-white border-bottom-blue" role="navigation">
+        <div class="container-fluid">
+          <div class="navbar-header">
+            <button type="button"
+                class="navbar-toggle collapsed w3-text-black"
+                    data-toggle="collapse"
+                    data-target="#sidebar-collapse">
+                <span class="sr-only w3-text-black">Toggle navigation</span>
+                <span class="icon-bar w3-text-black"></span>
+                <span class="icon-bar w3-text-black"></span>
+                <span class="icon-bar w3-text-black"></span>
+            </button>
+            <a class="navbar-brand">
+              <span>Opencircles</span>
+            </a>
+
+            <ul class="user-menu nav-tabs">
+              <li>
+                <a class="cursor-pointer w3-text-black"><i class="fa fa-bell-o"></i> Chats </a>
+              </li>
+
+              <li class="dropdown pull-right">
+                <a class="dropdown-toggle w3-text-black cursor-pointer" data-toggle="dropdown">
+                  <i class="fa fa-cog"></i> Settings
+                </a>
+                  <ul class="dropdown-menu w3-text-black" role="menu">
+                    <li>
+                      <a href="#"> <i class="fa fa-key"></i>  Edit password </a>
+                    </li>
+                  </ul>
+                </li>
+              </ul>
+          </div>
+        </div>
+	</nav>
+	<!--Side bar-->
+  <div id="sidebar-collapse" class="col-sm-3 col-lg-2 sidebar">
+  <ul class="nav menu">
+    <li><br></li>
+    <li>
+      <a href="{% url 'app_admin:home' %}" class="w3-text-black">
+        <i class="fa fa-clock-o w3-text-deep-orange"></i>
+         Current readings
+      </a>
+    </li>
+    <li role="presentation" class="divider"></li>
+    <li>
+      <a href="{% url 'app_admin:members' %}" class="w3-text-black">
+        <i class="fa fa-users w3-text-blue-gray"></i>
+         Members
+      </a>
+    </li>
+    <li role="presentation" class="divider"></li>
+    <li>
+      <a href="" class="w3-text-black">
+        <i class="fa fa-circle-o-notch w3-text-brown"></i>
+         Circles
+      </a>
+    </li>
+    <li role="presentation" class="divider"></li>
+    <li class="parent ">
+      <a data-toggle="collapse" data-target="#sub-item-1" class="w3-text-black" href="#">
+          <i class="fa fa-arrows-h"></i>
+            Transactions
+      </a>
+      <ul class="children collapse" id="sub-item-1">
+        <li>
+          <a class="w3-text-black cursor-pointer" href="{% url 'app_admin:wallet_transactions' %}">
+            <i class="fa fa-google-wallet"></i>&nbsp;&nbsp;Wallet transactions
+          </a>
+        </li>
+        <li>
+          <a class="w3-text-black">
+              <i class="fa fa-line-chart"></i>&nbsp;&nbsp;Analytics
+          </a>
+        </li>
+        <li>
+          <a class="w3-text-black">
+              <i class="fa fa-mobile-phone"></i>&nbsp; M-PESA
+          </a>
+        </li>
+      </ul>
+    </li>
+    <li role="presentation" class="divider"></li>
+
+    <li class="parent ">
+      <a data-toggle="collapse" data-target="#loans-sub-items" class="w3-text-black" href="#">
+          <i class="fa fa-hand-grab-o"></i>
+            Loans
+      </a>
+      <ul class="children collapse" id="loans-sub-items">
+        <li>
+          <a class="w3-text-black" href="{% url 'app_admin:loan_applications' %}">
+            <i class="fa fa-clipboard"></i> Loan applications
+          </a>
+        </li>
+        <li>
+          <a class="w3-text-black">
+              <i class="fa fa-credit-card"></i> Loan repayments
+          </a>
+        </li>
+      </ul>
+    </li>
+    <li role="presentation" class="divider"></li>
+    <li class="parent ">
+      <a data-toggle="collapse" data-target="#sub-item-2" class="w3-text-black" href="#">
+          <i class="fa fa-money"></i>
+            Revenue
+      </a>
+      <ul class="children collapse" id="sub-item-2">
+        <li>
+          <a href="" class="w3-text-black">
+            <i class="fa fa-hand-peace-o"></i> Loan interest
+          </a>
+          <a href="" class="w3-text-black">
+            <i class="fa fa-circle"></i> Circle withdrawals
+          </a>
+        </li>
+      </ul>
+    </li>
+  </ul>
+  </div>
+  <!--/.sidebar-->
+    {% block main_container %}
+	 <div class="col-sm-9 col-sm-offset-3 col-lg-10 col-lg-offset-2 main">
+         <br>
+         <br>
+         <div class="w3-row" style="height: 300px;">
+          <div class="w3-col l6 m6 s6 w3-card-2 w3-container">
+            <div class="panel-heading border-bottom-blue">
+              <i class="fa fa-users w3-text-blue"></i> Members
+            </div>
+            <div class="panel-heading w3-xlarge" id="num-of-members-div">
+                {{ member.total_members|intcomma }}
+            </div>
+            <div class="w3-row">
+              <div class="w3-col l6 m6 s6 w3-container">
+                <div class="panel-heading w3-small">
+                  <b>Day's registration</b>
+                </div>
+                <div class="panel-heading  w3-small" id="members-day-reg-num-div">
+                    {{ member.registered_today|intcomma }}
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="w3-col l6 m6 s6 w3-card-2 w3-container">
+        <div class="panel-heading border-bottom-blue">
+          <i class="fa fa-circle-o-notch w3-text-brown"></i> Circles
+        </div>
+        <div class="panel-heading w3-xlarge" id="num-circles-div">
+            {{ circle.num_of_circles|intcomma }}
+        </div>
+        <div class="w3-row">
+          <div class="w3-col l6 m6 s6 w3-container">
+            <div class="panel-heading w3-small">
+              <b>Active circles</b>
+            </div>
+            <div class="panel-heading w3-small" id="num-of-active-circles-div">
+                {{ circle.num_of_active_circles|intcomma }}
+            </div>
+          </div>
+          <div class="w3-col l6 m6 s6 w3-container">
+            <div class="panel-heading w3-small">
+              <b>Circles registered today</b>
+            </div>
+            <div class="panel-heading w3-small" id="num-of-circles-reg--by-day-div">
+                {{ circle.num_of_circles_created_today|intcomma }}
+            </div>
+          </div>
+        </div>
+      </div>
+     </div>
+     <br>
+     <div class="w3-row" style="height: 300px;">
+      <div class="w3-col l6 m6 s6 w3-card-2 w3-container">
+        <div class="panel-heading border-bottom-blue">
+          <i class="fa fa-hand-paper-o w3-text-red"></i> Loans
+        </div>
+        <div class="panel-heading w3-xlarge" id="loans-applied-div">
+            {{ loan_application.total_loans_applied_today|intcomma }}
+        </div>
+        <div class="w3-row">
+          <div class="w3-col l4 m4 s4 w3-container">
+            <div class="panel-heading w3-small">
+              <b>No. of loans</b>
+            </div>
+            <div class="panel-heading  w3-small" id="num-of-loans-div">
+                {{ loan_application.num_of_loans_today|intcomma }}
+            </div>
+          </div>
+
+          <div class="w3-col l4 m4 s4 w3-container">
+            <div class="panel-heading w3-small">
+              <b>Approved loans</b>
+            </div>
+            <div class="panel-heading  w3-small" id="loans-approved-div">
+                {{ loan_application.amount_approved_today|intcomma }}
+            </div>
+          </div>
+
+          <div class="w3-col l4 m4 s4 w3-container">
+            <div class="panel-heading w3-small">
+              <b>Pending</b>
+            </div>
+            <div class="panel-heading  w3-small" id="loans-pending-div">
+                {{ loan_application.amount_pending_approval_today|intcomma }}
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="w3-col l6 m6 s6 w3-card-2 w3-container">
+        <div class="panel-heading border-bottom-blue">
+          <i class="fa fa-money w3-text-green"></i> Loan repayments
+        </div>
+        <div class="panel-heading w3-xlarge" id="loan-repayments-div">
+            {{ loan_repayment.total_loan_repaid_today|intcomma }}
+        </div>
+        <div class="w3-row">
+          <div class="w3-col l6 m6 s6 w3-container">
+            <div class="panel-heading w3-small">
+              <b>No. of loans repaid</b>
+            </div>
+            <div class="panel-heading w3-small" id="num-of-repayments-div">
+                {{ loan_repayment.num_of_repayments|intcomma }}
+            </div>
+          </div>
+          <div class="w3-col l6 m6 s6 w3-container">
+            <div class="panel-heading w3-small">
+              <b>Revenue</b>
+            </div>
+            <div class="panel-heading w3-tiny" id="loans-revenue-div">
+               {{ loan_repayment.revenue|intcomma }}
+            </div>
+          </div>
+        </div>
+  </div>
+     </div>
+     <br>
+     <div class="w3-row" style="height: 300px;">
+      <div class="w3-col l6 m6 s6 w3-card-2 w3-container">
+        <div class="panel-heading border-bottom-blue">
+          <i class="fa fa-arrows-h w3-text-black"></i> Shares withdrawal
+        </div>
+        <div class="panel-heading w3-xlarge" id="loans-applied-div">
+            {{ shares_withdrawal.total_withdrawals_today|intcomma }}
+        </div>
+        <div class="w3-row">
+          <div class="w3-col l6 m6 s6 w3-container">
+            <div class="panel-heading w3-small">
+              <b>No. of withdraws</b>
+            </div>
+            <div class="panel-heading  w3-small" id="num-of-loans-div">
+                {{ shares_withdrawal.num_of_withdrawals|intcomma }}
+            </div>
+          </div>
+
+          <div class="w3-col l6 m6 s6 w3-container">
+            <div class="panel-heading w3-small">
+              <b>Revenue</b>
+            </div>
+            <div class="panel-heading  w3-small" id="loans-approved-div">
+                {{ shares_withdrawal.revenue|intcomma }}
+            </div>
+          </div>
+        </div>
+      </div>
+     </div>
+    </div>
+
+    {% endblock %}
+    {% block default_js%}
+        <script src="{% static 'app_admin/jquery/jquery.js' %}"></script>
+        <script src="{% static 'app_admin/underscore_js/underscore-min.js' %}"></script>
+        <script src="{% static 'app_admin/backbone_js/backbone-min.js' %}"></script>
+        <script src="{%  static 'app_admin/bootstrap/js/bootstrap.min.js' %}"></script>
+    {% endblock %}
+
+    {% block other_js %}
+
+    {% endblock %}
+
+    </body>
+    {% endblock %}
+</html>

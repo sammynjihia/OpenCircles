@@ -40,6 +40,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.humanize',
+
     'rest_framework',
     'accounts.apps.AccountsConfig',
     'app_settings.apps.AppSettingsConfig',
@@ -51,6 +53,7 @@ INSTALLED_APPS = [
     'tool.apps.ToolConfig',
     'chat.apps.ChatConfig',
     'rest_framework.authtoken',
+    'app_admin.apps.AppAdminConfig'
 ]
 
 MIDDLEWARE = [
@@ -88,13 +91,28 @@ WSGI_APPLICATION = 'OpenCircles.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/1.11/ref/settings/#databases
 
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql_psycopg2',
+#         'NAME': config('DB_NAME'),
+#         'USER': config('DB_USER'),
+#         'PASSWORD': config('DB_PASSWORD'),
+#         'HOST': config('DB_HOST'),
+#         'PORT': '',
+#     }
+# }
+
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': config('DB_NAME'),
-        'USER': config('DB_USER'),
-        'PASSWORD': config('DB_PASSWORD'),
-        'HOST': config('DB_HOST'),
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+    },
+    'mysql_backup': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'open_circles',
+        'USER': 'open_circles',
+        'PASSWORD': 'open_circles',
+        'HOST': 'localhost',
         'PORT': '',
     }
 }

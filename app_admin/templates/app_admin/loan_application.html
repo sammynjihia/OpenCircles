@@ -1,0 +1,127 @@
+{% extends 'app_admin/base_dashboard.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block main_container %}
+     <div class="col-sm-9 col-sm-offset-3 col-lg-10 col-lg-offset-2 main">
+        <div class="container">
+        <ul class="nav nav-tabs">
+          <li class="active">
+            <a data-toggle="tab" href="#loan-details">
+              <i class="fa fa-bank"></i> Loan application details
+            </a>
+          </li>
+          <li>
+            <a data-toggle="tab" href="#guarantor-details">
+              <i class="fa fa-users"></i> Guarantors
+            </a>
+          </li>
+          <li>
+            <a data-toggle="tab" href="#repayment-details">
+              <i class="fa fa-money"></i> Loan repayment
+            </a>
+          </li>
+        </ul>
+
+        <div class="tab-content">
+            <div id="loan-details" class="tab-pane fade in active">
+                <table class="w3-table w3-striped">
+                    <tr>
+                        <td>Applicant</td>
+                        <td>
+                            <a href="{% url 'app_admin:view_member_details' member_id=loan.circle_member.member.id %}">
+                            {{loan.circle_member.member.phone_number }}
+                            ({{loan.circle_member.member.user.first_name }}
+                                {{loan.circle_member.member.user.last_name }} -
+                            {{ loan.circle_member.member.user.email }})
+                            </a>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Loan code</td>
+                        <td>{{ loan.loan_code }}</td>
+                    </tr>
+                    <tr>
+                        <td>Circle</td>
+                        <td>{{ loan.circle_member.circle.circle_name }}</td>
+                    </tr>
+                    <tr>
+                        <td>Time applied</td>
+                        <td>{{ loan.time_of_application }}</td>
+                    </tr>
+                    <tr>
+                        <td>Amount</td>
+                        <td>{{ loan.amount|intcomma }}</td>
+                    </tr>
+                    <tr>
+                        <td>Is approved</td>
+                        {% if loan.is_approved %}
+                        <td>YES  at {{ loan.time_approved }}</td>
+                        {% else %}
+                        <td>NO</td>
+                        {% endif %}
+                    </tr>
+                    <tr>
+                        <td>Is disbursed</td>
+                        {% if loan.is_disbursed %}
+                        <td>YES  at {{ loan.time_disbursed }}</td>
+                        {% else %}
+                        <td>NO</td>
+                        {% endif %}
+                    </tr>
+                    <tr>
+                        <td>Is fully repaid</td>
+                        {% if loan.is_fully_repaid %}
+                        <td>YES  at {{ loan.time_of_last_payment }}</td>
+                        {% else %}
+                        <td>NO</td>
+                        {% endif %}
+                    </tr>
+                </table>
+            </div>
+            <div id="guarantor-details" class="tab-pane fade">
+                {%  if need_guarantors %}
+                <table class="w3-table w3-striped">
+                    <thead class="w3-grey w3-text-white">
+                        <td>Name</td>
+                        <td>Amount</td>
+                        <td>Time requested</td>
+                        <td>Has accepted</td>
+                    </thead>
+                <tbody id="loans-table">
+                    {% for obj in guarantors %}
+                        <td class="w3-small">{{obj.circle_member.member.phone_number }}
+                            ({{obj.circle_member.member.user.first_name }}
+                                {{obj.circle_member.member.user.last_name }} -
+                            {{ obj.circle_member.member.user.email }})
+                        </td>
+                        <td>{{ obj.num_of_shares|intcomma }}</td>
+                        <td>{{ obj.time_requested }}</td>
+
+                        {% if obj.has_accepted == None %}
+                        <td class="w3-text-blue-gray">Request pending</td>
+                        {% elif obj.has_accepted == True %}
+                         <td class="w3-text-green">Guaranteed loan at {{ obj.time_accepted }}</td>
+                        {% elif obj.has_accepted == False %}
+                        <td class="w3-text-red">Declined at request at {{ obj.time_accepted }}</td>
+                        {% endif %}
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+              <b class="center w3-center">This loan does not need guarantors</b>
+             {% endif %}
+            </div>
+            <div id="repayment-details" class="tab-pane fade">
+
+            </div>
+       </div>
+     </div>
+     </div>
+{% endblock %}
+
+{% block other_js %}
+    <script>
+        var member_details = Backbone.View.extend({});
+    </script>
+{% endblock %}

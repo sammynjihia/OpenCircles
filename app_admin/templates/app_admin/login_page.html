@@ -1,0 +1,110 @@
+{% extends 'app_admin/base_index.html' %}
+{% load static %}
+
+{% block content %}
+    <div class="w3-container">
+      <div class="w3-row">
+        <div class=" w3-display-middle w3-col l4 m4 ">
+            <div class="w3-card-4">
+                <div class="w3-container w3-center w3-text-dark-grey border-bottom">
+                 <h4>Login</h4>
+                </div>
+                <form class="w3-container w3-padding-4" method="post">
+                    <br>
+                    <br>
+                  <div>
+                    <p>
+                        <label>Email</label>
+                        <input class="w3-input w3-text-blue"
+                            type="email"
+                            id="email-address"
+                            placeholder="Email">
+                        <span id="email-address-response"></span>
+                    </p>
+                    <p>
+                        <label>Password</label>
+                        <input class="w3-input w3-text-blue"
+                               type="password"
+                               id="password"
+                               placeholder="Password">
+                        <span class="w3-text-red" id="password-response"></span>
+                    </p>
+                    <div class="w3-padding-bottom w3-row">
+                        <div class="w3-col l6 s6 m6">
+                            <a class="w3-btn w3-blue-gray cursor-pointer active" id="btn-login">Login</a>
+                        </div>
+                        <div class="w3-col l6 s6 m6">
+                          <br>
+                            <a class="w3-text-blue w3-small pull-right">
+                              <i class="fa fa-question-circle-o"></i> Forgot password
+                            </a>
+                        </div>
+                    </div>
+                  </div>
+                </form>
+            </div>
+
+        </div>
+      </div>
+    </div>
+    <script>
+        $(document).on('click', '#btn-login', function(e){
+            e.preventDefault();
+            $('#btn-login').prop('disabled', false);
+            var userName = $('#email-address').val();
+            var password = $('#password').val();
+            var errorExists = false;
+            var errorMessage = 'Network error.';
+            if(userName.trim().length < 3){
+                errorExists = true;
+                $('#email-address').addClass('input-error');
+            }else{
+                $('#email-address').removeClass('input-error');
+            }
+
+            if(password.length === 0){
+                errorExists = true;
+                $('#password').addClass('input-error');
+            }else{
+                $('#password').removeClass('input-error');
+            }
+
+            if(errorExists === true){
+                return;
+            }
+
+            var srvRqst = $.ajax({
+                url: "",
+                data: {
+                    user_name: userName,
+                    password: password,
+                    csrfmiddlewaretoken: '{{ csrf_token }}'
+                },
+                type: 'post',
+                datatype: 'json',
+                beforeSend: function(){
+                    $('#btn-login').html('<i class="fa fa-circle-o-notch fa-spin"></i> Loading...');
+                }
+            });
+
+            srvRqst.done(function(response){
+                try{
+                    var responseObj = response;
+                    if(responseObj['STATUS'] === '1'){
+                        window.location.href = responseObj['URL'];
+                    }else{
+                        $('#password-response').html(responseObj['MESSAGE']);
+                    }
+                }catch(exp){
+                    $('#password-response').html(errorMessage);
+                }finally{
+                     $('#btn-login').html('login').prop('disabled', false);
+                }
+            });
+            srvRqst.fail(function(xJHQR, errThrown, errMsg){
+                $('#password-response').html(errorMessage);
+                $('#btn-login').html('login').prop('disabled', false);
+            });
+        });
+    </script>
+{% endblock %}

@@ -213,7 +213,7 @@ class Loan():
         print(loan)
         print(type(loan))
         interest = loan.loan_amortization.filter().aggregate(total=Sum('interest'))
-        interest = interest['total']
+        interest = round(interest['total'])
         print("total interest")
         print(interest)
         # interest for flemish

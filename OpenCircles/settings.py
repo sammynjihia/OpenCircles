@@ -91,31 +91,31 @@ WSGI_APPLICATION = 'OpenCircles.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/1.11/ref/settings/#databases
 
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-#         'NAME': config('DB_NAME'),
-#         'USER': config('DB_USER'),
-#         'PASSWORD': config('DB_PASSWORD'),
-#         'HOST': config('DB_HOST'),
-#         'PORT': '',
-#     }
-# }
-
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
-    },
-    'mysql_backup': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'open_circles',
-        'USER': 'open_circles',
-        'PASSWORD': 'open_circles',
-        'HOST': 'localhost',
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'NAME': config('DB_NAME'),
+        'USER': config('DB_USER'),
+        'PASSWORD': config('DB_PASSWORD'),
+        'HOST': config('DB_HOST'),
         'PORT': '',
     }
 }
+
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+#     },
+#     'mysql_backup': {
+#         'ENGINE': 'django.db.backends.mysql',
+#         'NAME': 'open_circles',
+#         'USER': 'open_circles',
+#         'PASSWORD': 'open_circles',
+#         'HOST': 'localhost',
+#         'PORT': '',
+#     }
+# }
 
 
 # Password validation
@@ -182,4 +182,10 @@ CELERY_BEAT_SCHEDULE = {
             'task': 'member.tasks.send_frequent_invitations',
             'schedule': crontab(hour=9, minute=30)
         }
+}
+
+REST_FRAMEWORK = {
+    'DEFAULT_RENDERER_CLASSES': (
+        'rest_framework.renderers.JSONRenderer',
+    )
 }

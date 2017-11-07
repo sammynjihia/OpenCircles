@@ -28,7 +28,7 @@ class Circle():
 
     def check_update_circle_status(self,circle):
         if not circle.is_active:
-            if CircleMember.objects.filter(circle=circle).count() >= 5:
+            if CircleMember.objects.filter(circle=circle).count() >= 2:
                 circle.is_active=True
                 circle.save()
                 return True

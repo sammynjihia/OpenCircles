@@ -132,16 +132,19 @@ class Circle():
 
     def send_circle_invitation(self, circle_invitations):
         for invite in circle_invitations:
+            print("invites")
             circle, member = invite.invited_by.circle, invite.invited_by.member
             if invite.is_member:
                 invited_member = Member.objects.get(phone_number=invite.phone_number)
                 DeclinedCircles.objects.filter(circle=circle,member=invited_member).delete()
                 registration_id = invited_member.device_token
+                print(registration_id)
                 if len(registration_id):
                     fcm_instance = fcm_utils.Fcm()
                     invited_by = "{} {}".format(member.user.first_name,member.user.last_name)
                     invited_serializer = circle.serializers.InvitedCircleSerializer(circle,context={"invited_by":invited_by})
                     fcm_data = {"request_type":"NEW_CIRCLE_INVITATION","circle":invited_serializer.data}
+                    print(fcm_data)
                     fcm_instance.data_push("single",registration_id,fcm_data)
                 else:
                     #send sms

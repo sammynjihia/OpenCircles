@@ -1,6 +1,6 @@
 from django.db.models import Sum
 from member.models import Member
-from circle.models import Circle as CircleModel,CircleMember,CircleInvitation
+from circle.models import Circle as CircleModel,CircleMember,CircleInvitation,DeclinedCircles
 from shares.models import Shares,IntraCircleShareTransaction
 from loan.models import LoanTariff,GuarantorRequest
 from app_utility import fcm_utils,sms_utils

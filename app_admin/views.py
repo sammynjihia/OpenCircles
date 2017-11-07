@@ -6,7 +6,7 @@ from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
 from django.http import HttpResponse
-from . import members_utils, cirles_utils, loan_utils, revenue_streams_utils, circle_withdrawal_utils, transactions_utils
+from . import members_utils, circles_utils, loan_utils, revenue_streams_utils, circle_withdrawal_utils, transactions_utils
 from . import chat_utils
 
 
@@ -254,7 +254,3 @@ def search_for_chats(request):
         })
 
     return HttpResponse(json.dumps(chats_list))
-
-
-
-

@@ -276,6 +276,8 @@ class Loan():
                     dec = dec[0:2]
                     new_amount = whole + "." + dec
                     amount = float(new_amount)
+                print(member.user.first_name)
+                print("amount earned ",amount)
                 wallet_instance = wallet_utils.Wallet()
                 transaction_code = general_instance.generate_unique_identifier('WTC')
                 wallet_balance = wallet_instance.calculate_wallet_balance(member.wallet) + amount

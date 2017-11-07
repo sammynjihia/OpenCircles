@@ -952,5 +952,12 @@ h1.page-header {
   cursor: pointer;
 }
 
+textarea{
+	resize: none;
+}
+
+.input-error{
+     border-bottom: #ff0000 2px solid;
+}
 
 

@@ -1,10 +1,8 @@
 {% extends 'app_admin/base_dashboard.html' %}
 {% load static %}
-
 {% block current_page %}
-    <i class="fa fa-list"></i> Wallet transactions
+    <i class="fa fa-circle-o-notch"></i> Circles list
 {% endblock %}
-
 {% block main_container %}
      <div class="col-sm-9 col-sm-offset-3 col-lg-10 col-lg-offset-2 main">
         <br>
@@ -13,12 +11,12 @@
             <div class="col-lg-4 col-md-4 col-sm-4">
               <input type="text"
                 class="w3-input w3-text-blue pull-right"
-                id="transactions-search-val"
-                name="transactions_search_val"
-                placeholder="Search for transaction.">
+                id="circle-search-val"
+                name="circle_search_val"
+                placeholder="Search for circles.">
             </div>
             <div class="col-lg-2 col-md-2 col-sm-2">
-              <a class="w3-btn w3-blue-gray pull-left" id="btn-search-transaction">
+              <a class="w3-btn w3-blue-gray pull-left" id="btn-search-cirlce">
                 <i class="fa fa-search"></i>
               </a>
             </div>
@@ -28,15 +26,14 @@
         <div class="w3-container">
             <table class="w3-table w3-striped">
                 <thead class="w3-grey w3-text-white">
-                    <td>Transaction code</td>
-                    <td>Time</td>
-                    <td>Amount</td>
-                    <td>Type</td>
-                    <td>Source</td>
-                    <td>Transacted by</td>
-                    <td>Recipient</td>
+                    <td>Name</td>
+                    <td>Date founded</td>
+                    <td>Founded by</td>
+                    <td># of members</td>
+                    <td>Total deposits</td>
+                    <td>Available shares</td>
                 </thead>
-                <tbody id="transactions-table">
+                <tbody id="circles-table">
 
                 </tbody>
             </table>
@@ -50,10 +47,10 @@
     </script>
 
     <script>
-        $(document).on('click', '#btn-search-transaction', function () {
-            var searchVal = $('#transactions-search-val').val();
+        $(document).on('click', '#btn-search-member', function () {
+            var searchVal = $('#member-search-val').val();
             var srvRqst = $.ajax({
-                url:"{% url 'app_admin:search_for_transaction' %}",
+                url:"{% url 'app_admin:search_for_member' %}",
                 data: {
                     search_val: searchVal,
                     csrfmiddlewaretoken: '{{ csrf_token }}'
@@ -66,22 +63,21 @@
                 try {
                     var responseObj = $.parseJSON(response);
                     var html = '';
-                    for (var i = 0; i < responseObj.length; i++){
+                    for (var i = 0; i < responseObj.length; i++) {
                         var id = responseObj[i]['id'];
-                        var url = 'href="view_transaction_details/'+id+'/"';
+                        var url = 'href="view_member_details/'+id+'/"';
                         html += '<tr>'
                             + '<td>'
-                                + '<a class="w3-text-blue cursor-pointer" '+url+'">' + responseObj[i]['transaction_code'] + '</a>'
+                                +'<a class="w3-text-blue cursor-pointer" '+url+'">' + responseObj[i]['name'] + '</a>'
                             + '</td>'
-                            + '<td>' + responseObj[i]['time_of_transaction'] + '</td>'
-                            + '<td>' + responseObj[i]['amount'] + '</td>'
-                            + '<td>' + responseObj[i]['transaction_type'] + '</td>'
-                            + '<td>' + responseObj[i]['source'] + '</td>'
-                            + '<td>' + responseObj[i]['sender'] + '</td>'
-                            + '<td>' + responseObj[i]['recipient'] + '</td>'
+                            + '<td>' + responseObj[i]['national_id'] + '</td>'
+                            + '<td>' + responseObj[i]['phone_number'] + '</td>'
+                            + '<td>' + responseObj[i]['email'] + '</td>'
+                            + '<td>' + responseObj[i]['gender'] + '</td>'
+                            + '<td>' + responseObj[i]['date_of_birth'] + '</td>'
                             + '</tr>';
                     }
-                    $('#transactions-table').html(html);
+                    $('#members-table').html(html);
                 }catch(exp){}finally {}
             });
         });

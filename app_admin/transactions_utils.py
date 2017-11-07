@@ -11,7 +11,7 @@ class TransactionUtils:
     def get_wallet_transaction_by_member(member):
         try:
             wallet = Wallet.objects.get(member=member)
-            trx_obj = Transactions.objects.filter(wallet=wallet)
+            trx_obj = Transactions.objects.filter(wallet=wallet).order_by('-transaction_time')
             return trx_obj
         except Exception as exp:
             return None
@@ -43,6 +43,17 @@ class TransactionUtils:
         trx_debit = Transactions.objects.filter(wallet=wallet, transaction_type__icontains='DEBIT')\
             .aggregate(total=Sum('transaction_amount'))['total']
         return trx_credit - trx_debit
+
+    @staticmethod
+    def get_wallet_trx_by_loan(loan):
+        trx = Transactions.objects.filter(transaction_desc__icontains=loan.loan_code, transaction_type__icontains='CREDIT')
+        if trx.exists():
+            return Transactions.objects.get(transaction_desc__icontains=loan.loan_code, transaction_type='CREDIT',
+                                            wallet=Wallet.objects.filter(member=loan.circle_member.member))
+        else:
+            return None
+
+
 
 
 

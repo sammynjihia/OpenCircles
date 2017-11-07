@@ -1,7 +1,9 @@
 {% extends 'app_admin/base_dashboard.html' %}
 {% load static %}
 {% load humanize %}
-
+{% block current_page %}
+    <i class="fa fa-hand-grab-o"></i> Loan application [{{ loan.loan_code }}]
+{% endblock %}
 {% block main_container %}
      <div class="col-sm-9 col-sm-offset-3 col-lg-10 col-lg-offset-2 main">
         <div class="container">
@@ -78,6 +80,46 @@
                         {% endif %}
                     </tr>
                 </table>
+
+                {% if associated_transaction is not None %}
+                    <br>
+                    <div class="center w3-center w3-text-blue"><b>Associated wallet transaction</b></div>
+                     <table class="w3-table w3-striped">
+                    <tr>
+                        <td>Type</td>
+                        {% if  associated_transaction.transaction_type == 'CREDIT'%}
+                        <td class="w3-text-green">{{ associated_transaction.transaction_type}}</td>
+                            {% else %}
+                             <td class="w3-text-red">{{ associated_transaction.transaction_type}}</td>
+                        {% endif %}
+                    </tr>
+                    <tr>
+                        <td>Time</td>
+                        <td>{{ associated_transaction.transaction_time }}</td>
+                    </tr>
+                    <tr>
+                        <td>Description</td>
+                        <td>{{ associated_transaction.transaction_desc }}</td>
+                    </tr>
+                    <tr>
+                        <td>Amount</td>
+                        <td>{{ associated_transaction.transaction_amount|intcomma }}</td>
+                    </tr>
+                    <tr>
+                        <td>Source</td>
+                        <td>{{ associated_transaction.source }}</td>
+                    </tr>
+                    <tr>
+                        <td>Transacted by</td>
+                        <td>{{ associated_transaction.transacted_by }}</td>
+                    </tr>
+                    <tr>
+                        <td>Recipient</td>
+                        <td>{{ associated_transaction.recipient }}</td>
+                    </tr>
+                </table>
+                {% endif %}
+
             </div>
             <div id="guarantor-details" class="tab-pane fade">
                 {%  if need_guarantors %}
@@ -113,7 +155,26 @@
              {% endif %}
             </div>
             <div id="repayment-details" class="tab-pane fade">
-
+                {% if loan_repayment_exists %}
+                    <table class="w3-table w3-striped">
+                        <thead class="w3-blue-gray w3-text-white">
+                            <tr>
+                                <td>#</td>
+                                <td>Amount</td>
+                                <td>Date</td>
+                            </tr>
+                        </thead>
+                        <tbody>
+                         {% for obj in loan_repayment %}
+                             <tr>
+                                <td>{{ forloop.counter }}</td>
+                                <td>{{ obj.amount|intcomma }}</td>
+                                <td>{{ obj.time_of_repayment }}</td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                {% endif %}
             </div>
        </div>
      </div>

@@ -28,13 +28,26 @@
                 <span class="icon-bar w3-text-black"></span>
                 <span class="icon-bar w3-text-black"></span>
             </button>
+
             <a class="navbar-brand">
               <span>Opencircles</span>
             </a>
 
+            <ul class="user-menu nav-tabs pull-left">
+              <li>
+                <a class="cursor-pointer w3-text-green">
+                    <b>
+                        {% block current_page %}
+                            <i class="fa fa-home"></i> Home
+                        {% endblock %}
+                    </b>
+                </a>
+              </li>
+            </ul>
+
             <ul class="user-menu nav-tabs">
               <li>
-                <a class="cursor-pointer w3-text-black"><i class="fa fa-bell-o"></i> Chats </a>
+                <a class="cursor-pointer w3-text-black" href="{% url 'app_admin:chats' %}"><i class="fa fa-bell-o"></i> Chats </a>
               </li>
 
               <li class="dropdown pull-right">
@@ -117,6 +130,12 @@
               <i class="fa fa-credit-card"></i> Loan repayments
           </a>
         </li>
+        <li>
+           <a class="w3-text-black">
+              <i class="fa fa-line-chart"></i>&nbsp;&nbsp;Loans analytics
+          </a>
+        </li>
+
       </ul>
     </li>
     <li role="presentation" class="divider"></li>

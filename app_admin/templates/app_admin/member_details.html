@@ -25,7 +25,7 @@
           </li>
           <li>
             <a data-toggle="tab" href="#wallet-transactions">
-              <i class="fa fa-money"></i> 100 most recent wallet transactions
+              <i class="fa fa-arrows-h"></i> 100 most recent wallet transactions
             </a>
           </li>
        </ul>
@@ -129,7 +129,11 @@
                     <tbody>
                         {% for obj in circles %}
                             <tr>
-                            <td>{{ obj.circle_name }}</td>
+                            <td>
+                                <a href="{% url 'app_admin:view_circle_details' circle_id=obj.id %}">
+                                    {{ obj.circle_name }} <span class="small"> ({{ obj.circle_acc_number }})</span>
+                                </a>
+                            </td>
                             <td>{{ obj.circle_type }}</td>
                             <td>{{ obj.minimum_share }}</td>
                             <td>{{ obj.circle_acc_number }}</td>

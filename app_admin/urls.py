@@ -6,6 +6,7 @@ app_name = 'app_admin'
 urlpatterns = [
     url(r'^login_page$', views.login_page, name='login_page'),
     url(r'^login_admin$', views.login_admin, name='login_admin'),
+    url(r'^logout_admin$', views.logout_admin, name='logout_admin'),
     url(r'^home$', views.home_page, name='home'),
     url(r'^members$', views.members_page, name='members'),
     url(r'^search_for_member$', views.search_for_member, name='search_for_member'),
@@ -20,7 +21,10 @@ urlpatterns = [
         name='view_loan_application_details'),
     url(r'^chats$', views.chats_list, name='chats'),
     url(r'^reply_to_chat', views.reply_to_chat, name='reply_to_chat'),
-    url(r'^search_for_chats$', views.search_for_chats, name='search_for_chats')
+    url(r'^search_for_chats$', views.search_for_chats, name='search_for_chats'),
+    url(r'^circles_list$', views.circles_list, name='circles_list'),
+    url(r'^view_circle_details/(?P<circle_id>[A-Za-z0-9]+)/$', views.view_circle_details,
+        name='view_circle_details'),
 
 ]
 

@@ -35,6 +35,14 @@
                         <td>{{ transaction.source }}</td>
                     </tr>
                     <tr>
+                        <td>Transacted by</td>
+                        <td>{{ transaction.transacted_by }}</td>
+                    </tr>
+                    <tr>
+                        <td>Recipient</td>
+                        <td>{{ transaction.recipient }}</td>
+                    </tr>
+                    <tr>
                         <td>Time</td>
                         <td>{{ transaction.transaction_time }}</td>
                     </tr>
@@ -45,14 +53,6 @@
                     <tr>
                         <td>Amount</td>
                         <td>{{ transaction.transaction_amount|intcomma }}</td>
-                    </tr>
-                    <tr>
-                        <td>Transacted by</td>
-                        <td>{{ transaction.transacted_by }}</td>
-                    </tr>
-                    <tr>
-                        <td>Recipient</td>
-                        <td>{{ transaction.recipient }}</td>
                     </tr>
                     <tr>
                         <td>Current balance</td>

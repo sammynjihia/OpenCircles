@@ -34,6 +34,7 @@
             </a>
 
             <ul class="user-menu nav-tabs pull-left">
+
               <li>
                 <a class="cursor-pointer w3-text-green">
                     <b>
@@ -52,11 +53,14 @@
 
               <li class="dropdown pull-right">
                 <a class="dropdown-toggle w3-text-black cursor-pointer" data-toggle="dropdown">
-                  <i class="fa fa-cog"></i> Settings
+                  <i class="fa fa-user-o"></i> {{ request.user.first_name }} {{ request.user.last_name }}
                 </a>
                   <ul class="dropdown-menu w3-text-black" role="menu">
                     <li>
                       <a href="#"> <i class="fa fa-key"></i>  Edit password </a>
+                    </li>
+                    <li>
+                      <a class="cursor-pointer" id="log-out"> <i class="fa fa-sign-out"></i>  Logout </a>
                     </li>
                   </ul>
                 </li>
@@ -71,7 +75,7 @@
     <li>
       <a href="{% url 'app_admin:home' %}" class="w3-text-black">
         <i class="fa fa-clock-o w3-text-deep-orange"></i>
-         Current readings
+         Day's readings
       </a>
     </li>
     <li role="presentation" class="divider"></li>
@@ -83,7 +87,7 @@
     </li>
     <li role="presentation" class="divider"></li>
     <li>
-      <a href="" class="w3-text-black">
+      <a href="{% url 'app_admin:circles_list' %}" class="w3-text-black">
         <i class="fa fa-circle-o-notch w3-text-brown"></i>
          Circles
       </a>
@@ -311,7 +315,33 @@
         <script src="{% static 'app_admin/underscore_js/underscore-min.js' %}"></script>
         <script src="{% static 'app_admin/backbone_js/backbone-min.js' %}"></script>
         <script src="{%  static 'app_admin/bootstrap/js/bootstrap.min.js' %}"></script>
+
+        <script>
+            $(document).on('click', '#log-out', function(e){
+                e.preventDefault();
+                var srvRqst = $.ajax({
+                url: "{% url 'app_admin:logout_admin' %}",
+                    data: {
+                        csrfmiddlewaretoken: '{{ csrf_token }}'
+                    },
+                    type: 'post',
+                    datatype: 'json'
+                });
+
+                srvRqst.done(function(response){
+                    try{
+                        var responseObj = response;
+                        if(responseObj['status'] === 1){
+                            window.location.href = responseObj['URL'];
+                        }
+                    }catch(exp){}
+            });
+            srvRqst.fail(function(xJHQR, errThrown, errMsg){
+            });
+            });
+        </script>
     {% endblock %}
+
 
     {% block other_js %}
 

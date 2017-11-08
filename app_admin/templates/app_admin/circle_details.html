@@ -1,0 +1,164 @@
+{% extends 'app_admin/base_dashboard.html' %}
+{% load static %}
+{% load humanize %}
+{% block current_page %}
+    <i class="fa fa-circle"></i> Circle details [{{circle.circle_name }} - {{circle.circle_acc_number }}]
+{% endblock %}
+{% block main_container %}
+     <div class="col-sm-9 col-sm-offset-3 col-lg-10 col-lg-offset-2 main">
+        <div class="container">
+        <ul class="nav nav-tabs">
+          <li class="active">
+            <a data-toggle="tab" href="#circle-details">
+              <i class="fa fa-user"></i> Circle details
+            </a>
+          </li>
+          <li>
+            <a data-toggle="tab" href="#financial-info">
+                <i class="fa fa-briefcase"></i> Financial info
+            </a>
+          </li>
+          <li>
+            <a data-toggle="tab" href="#members">
+                <i class="fa fa-users"></i> Members
+            </a>
+          </li>
+       </ul>
+
+        <div class="tab-content">
+            <div id="circle-details" class="tab-pane fade in active">
+                <div class="w3-container">
+                    <table class="w3-table w3-striped">
+                        <tr>
+                            <td>Name</td>
+                            <td>{{ circle.circle_name}} - {{ circle.circle_acc_number }}</td>
+                        </tr>
+                        <tr>
+                            <td>Circle type</td>
+                            <td>{{ circle.circle_type }}</td>
+                        </tr>
+                        <tr>
+                            <td>Time initiated</td>
+                            <td>{{ circle.time_initiated }}</td>
+                        </tr>
+                        <tr>
+                            <td>Initiated by</td>
+                            <td>
+                                <a href="{% url 'app_admin:view_member_details' member_id=circle.initiated_by.id %}">
+                                    {{ circle.initiated_by.user.first_name }} {{ circle.initiated_by.user.last_name }}
+                                    ({{ circle.initiated_by.phone_number }})
+                                </a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Minimum shares</td>
+                            <td>{{ circle.minimum_share|intcomma}}</td>
+                        </tr>
+                        <tr>
+                            <td>Number of members</td>
+                            <td>{{ number_of_member|intcomma }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <div id="financial-info" class="tab-pane fade in">
+                <br>
+                <div class="w3-row w3-margin-right"  style="height: 300px;">
+                  <div class="w3-col l6 m6 s6 w3-card-2 w3-container">
+                    <div class="panel-heading border-bottom-blue">
+                      <i class="fa fa-hand-paper-o w3-text-blue"></i> Loans
+                    </div>
+                    <div class="panel-heading w3-xlarge">
+                        {{ loans.loans_disbursed|intcomma }}
+                    </div>
+                    <div class="w3-row">
+                      <div class="w3-col l6 m6 s6 w3-container">
+                        <div class="panel-heading w3-small">
+                          <b>Repaid</b>
+                        </div>
+                        <div class="panel-heading  w3-small" id="members-day-reg-num-div">
+                            {{ loans.repaid|intcomma }}
+                        </div>
+                      </div>
+                      <div class="w3-col l6 m6 s6 w3-container">
+                        <div class="panel-heading w3-small">
+                          <b>Bad loans</b>
+                        </div>
+                        <div class="panel-heading  w3-small">
+                            {{ loans.bad_loans|intcomma }}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="w3-col l6 m6 s6 w3-card-2 w3-container">
+                    <div class="panel-heading border-bottom-blue">
+                      <i class="fa fa-pie-chart w3-text-brown"></i> Shares
+                    </div>
+                    <div class="panel-heading w3-xlarge" id="num-circles-div">
+                        {{ shares.total_shares|intcomma }}
+                    </div>
+                    <div class="w3-row">
+                      <div class="w3-col l6 m6 s6 w3-container">
+                        <div class="panel-heading w3-small">
+                          <b>Available shares</b>
+                        </div>
+                        <div class="panel-heading w3-small" id="num-of-active-circles-div">
+                            {{ shares.available_shares|intcomma }}
+                        </div>
+                      </div>
+                      <div class="w3-col l6 m6 s6 w3-container">
+                        <div class="panel-heading w3-small">
+                          <b>Locked shares</b>
+                        </div>
+                        <div class="panel-heading w3-small" id="num-of-circles-reg--by-day-div">
+                            {{ shares.locked_shares|intcomma }}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+            </div>
+
+            <div id="members" class="tab-pane fade">
+                <table class="w3-table w3-striped">
+                    <thead class="w3-blue-gray w3-text-white">
+                        <tr>
+                            <td>Name</td>
+                            <td>Date joined</td>
+                            <td>Available shares</td>
+                            <td>Active loans</td>
+                            <td>Total earnings</td>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for obj in circle_members %}
+                            <tr>
+                            <td>
+                                <a href="{% url 'app_admin:view_member_details' member_id=obj.member.id %}">
+                                    {{ obj.member.user.first_name }} {{ obj.member.user.last_name }}
+                                    ({{ obj.member.phone_number }})
+                                </a>
+                            </td>
+                            <td>{{ obj.time_joined }}</td>
+                            <td>{{ obj.available_shares }}</td>
+                            <td>{{ obj.active_loans }}</td>
+                            <td>{{ obj.amount_earned }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+       </div>
+     </div>
+
+     </div>
+     </div>
+{% endblock %}
+
+{% block other_js %}
+    <script>
+        var member_details = Backbone.View.extend({});
+    </script>
+{% endblock %}

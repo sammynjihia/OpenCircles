@@ -66,13 +66,14 @@ class LoanUtils:
 
     @staticmethod
     def get_total_loans_disbursed_by_circle(circle):
-        total = LoanApplication.objects.filter(circle_member__circle=circle, is_disbursed=True)\
+        total_loans = LoanApplication.objects.filter(circle_member__circle=circle, is_disbursed=True)\
             .aggregate(total=Sum('amount'))
-        return total['total'] if total['total'] is not None else 0
+        print(total_loans)
+        return total_loans['total'] if total_loans['total'] is not None else 0
 
     @staticmethod
     def get_total_repaid_loans_by_circle(circle):
-        total = LoanApplication.objects.filter(circle_member__circle = circle, is_disbursed=True, is_fully_repaid=True)\
+        total = LoanApplication.objects.filter(circle_member__circle=circle, is_disbursed=True, is_fully_repaid=True)\
             .aggregate(total=Sum('amount'))
         return total['total'] if total['total'] is not None else 0
 

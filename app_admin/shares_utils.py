@@ -31,13 +31,14 @@ class SharesUtils:
         withdrawals = IntraCircleShareTransaction.objects.filter(shares__circle_member__circle=circle,
                                                                  transaction_type='WITHDRAW')\
             .aggregate(total=Sum('num_of_shares'))
-        return withdrawals['total']
+        return withdrawals['total'] if withdrawals['total'] is not None else 0
 
     @staticmethod
     def get_circle_locked_shares(circle):
         locked_shares = IntraCircleShareTransaction.objects.filter(shares__circle_member__circle=circle,
                                                                    transaction_type='LOCKED')\
             .aggregate(total=Sum('num_of_shares'))
+
         locked_shares = locked_shares['total'] if locked_shares['total'] is not None else 0
 
         unlocked_shares = IntraCircleShareTransaction.objects.filter(shares__circle_member__circle=circle,

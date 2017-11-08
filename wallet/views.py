@@ -324,6 +324,9 @@ class MpesaB2CResultURL(APIView):
             post_file.write(str(type(data)))
             post_file.write("\n")
         result = json.loads(data)
+        with open('b2c_resulting.txt', 'a') as result_file:
+            result_file.write(str(result))
+            result_file.write("\n")
         print (json.dumps(result, indent=4, sort_keys=True))
 
         B2CResults = result["Result"]

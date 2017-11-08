@@ -54,6 +54,10 @@ class TransactionUtils:
             return None
 
 
+    @staticmethod
+    def get_mpesa_transactions_log(search_val):
+        pass
+
 
 
 

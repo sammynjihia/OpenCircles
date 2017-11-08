@@ -36,11 +36,10 @@ class LoanUtils:
     @staticmethod
     def search_for_loan(search_val):
         sms = Sms()
-        member_objs = Member.objects.filter(Q(Q(phone_number=sms.format_phone_number(search_val))
-                                              | Q(national_id=search_val)))
-        circle_member_objs = CircleMember.objects.filter(Q(Q(member=member_objs)
-                                                           | Q(circle=Circle.objects.filter(circle_name__icontains=search_val))))
-        loan_objs = LoanApplication.objects.filter(Q(Q(loan_code=search_val) | Q(circle_member=circle_member_objs)))
+        phone_number = sms.format_phone_number(search_val)
+        loan_objs = LoanApplication.objects.filter(Q(loan_code=search_val)
+                                                   | Q(circle_member__member__phone_number=phone_number)
+                                                   | Q(circle_member__member__national_id=search_val))
         loan_objs = loan_objs.order_by('-time_of_application')
         return loan_objs
 

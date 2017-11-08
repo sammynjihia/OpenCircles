@@ -204,6 +204,7 @@ def search_for_loan_applications(request):
     loans_list = []
     search_val = request.POST.get('search_val')
     loans_objs = loan_utils.LoanUtils.search_for_loan(search_val)
+
     for obj in loans_objs:
         member = obj.circle_member.member
         need_guarantors = 'NO'

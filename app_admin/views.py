@@ -1,4 +1,5 @@
 import json
+import datetime
 
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, get_user_model, login, logout
@@ -322,4 +323,39 @@ def view_circle_details(request, circle_id):
         }
     }
     return render(request, 'app_admin/circle_details.html', context)
+
+
+@login_required(login_url='app_admin:login_page')
+def search_revenue_stream_by_date(request):
+    start_date_str = request.POST.get('start_date_val').strip()
+    end_date_str = request.POST.get('end_date_val').strip()
+    start_date = None
+    if start_date_str is not None:
+        try:
+            start_date = datetime.datetime.strptime(start_date_str, '%Y-%m-%d')
+        except Exception as exp:
+            start_date = None
+
+    end_date = None
+    if end_date_str is not None:
+        try:
+            end_date = datetime.datetime.strptime(end_date_str, '%Y-%m-%d')
+        except Exception as exp:
+            end_date = None
+
+    context = {
+        'revenue_streams': revenue_streams_utils.RevenueStreamsUtils.get_revenue_by_date(start_date, end_date)
+    }
+    return render(request, 'app_admin/revenue_streams_list.html', context)
+
+
+@login_required(login_url='app_admin:login_page')
+def get_revenue_streams(request):
+    context = {
+        'revenue_streams': revenue_streams_utils.RevenueStreamsUtils.get_revenue_by_date()
+    }
+    return render(request, 'app_admin/revenue_streams_list.html', context)
+
+
+
 

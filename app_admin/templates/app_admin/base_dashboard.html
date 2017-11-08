@@ -9,6 +9,7 @@
       <link rel="stylesheet" type="text/css" href="{% static 'app_admin/bootstrap/css/bootstrap.min.css' %}" />
       <link rel="stylesheet" type="text/css" href="{% static 'app_admin/font-awesome/css/font-awesome.min.css' %}" />
       <link rel="stylesheet" type="text/css" href="{% static 'app_admin/w3css/w3.css' %}" />
+      <link rel="stylesheet" type="text/css" href="{% static 'app_admin/bootstrapdatetimepicker/bootstrap-datetimepicker.min.css' %}"/>
       <link rel="stylesheet" type="text/css" href="{% static 'app_admin/custom_css/styles.css' %}" >
   </head>
 {% endblock %}
@@ -150,11 +151,11 @@
       </a>
       <ul class="children collapse" id="sub-item-2">
         <li>
-          <a href="" class="w3-text-black">
-            <i class="fa fa-hand-peace-o"></i> Loan interest
+          <a href="{% url 'app_admin:get_revenue_streams' %}" class="w3-text-black">
+            <i class="fa fa-list-alt"></i> Revenue streams
           </a>
           <a href="" class="w3-text-black">
-            <i class="fa fa-circle"></i> Circle withdrawals
+            <i class="fa fa-bar-chart"></i> Analytics
           </a>
         </li>
       </ul>

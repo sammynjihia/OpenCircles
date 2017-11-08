@@ -5,6 +5,7 @@ from shares.models import Shares,IntraCircleShareTransaction
 from loan.models import LoanTariff,GuarantorRequest
 from app_utility import fcm_utils,sms_utils
 from django.db.models import Q
+from circle_utils import serializers
 
 import operator,re
 
@@ -143,8 +144,8 @@ class Circle():
                 if len(registration_id):
                     fcm_instance = fcm_utils.Fcm()
                     invited_by = "{} {}".format(member.user.first_name,member.user.last_name)
-                    self.import_func()
-                    invited_serializer = InvitedCircleSerializer(circle,context={"invited_by":invited_by})
+                    # self.import_func()
+                    invited_serializer = serializers.InvitedCircleSerializer(circle,context={"invited_by":invited_by})
                     fcm_data = {"request_type":"NEW_CIRCLE_INVITATION","circle":invited_serializer.data}
                     print(fcm_data)
                     fcm_instance.data_push("single",registration_id,fcm_data)

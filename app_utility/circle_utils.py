@@ -5,7 +5,7 @@ from shares.models import Shares,IntraCircleShareTransaction
 from loan.models import LoanTariff,GuarantorRequest
 from app_utility import fcm_utils,sms_utils
 from django.db.models import Q
-from circle_utils import serializers
+from circle import serializers
 
 import operator,re
 

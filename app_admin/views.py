@@ -342,7 +342,6 @@ def search_revenue_stream_by_date(request):
             end_date = datetime.datetime.strptime(end_date_str, '%Y-%m-%d')
         except Exception as exp:
             end_date = None
-
     context = {
         'revenue_streams': revenue_streams_utils.RevenueStreamsUtils.get_revenue_by_date(start_date, end_date)
     }

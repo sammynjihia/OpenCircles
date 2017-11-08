@@ -25,7 +25,7 @@ urlpatterns = [
     url(r'^circles_list$', views.circles_list, name='circles_list'),
     url(r'^view_circle_details/(?P<circle_id>[A-Za-z0-9]+)/$', views.view_circle_details,
         name='view_circle_details'),
-    url(r'^get_revenue_streams$', views.get_revenue_streams, name='get_revenue_streams'),
+    url(r'^get_revenue_streams$', views.get_revenue_streams,  name='get_revenue_streams'),
     url(r'^search_revenue_stream_by_date$',  views.search_revenue_stream_by_date, name='search_revenue_stream_by_date')
 
 ]

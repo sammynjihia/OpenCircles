@@ -83,7 +83,7 @@ class Beneficiary(models.Model):
     first_name = models.CharField(max_length=20, blank=False)
     last_name = models.CharField(max_length=20, blank=False)
     gender = models.CharField(max_length=7, choices=GENDER_CHOICES)
-    relationship = models.CharField(max_length=10, choices=RELATIONSHIP_CHOICES)
+    relationship = models.CharField(max_length=10)
     phone_number = models.CharField(max_length=20, blank=True)
     email = models.CharField(max_length=100, blank=True)
     date_of_birth = models.DateField(null=True)

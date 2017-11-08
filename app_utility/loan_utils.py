@@ -231,6 +231,7 @@ class Loan():
             guarantors = GuarantorRequest.objects.filter(loan=loan,has_accepted=True)
             loan_user = loan.circle_member.member.user
             fcm_instance = fcm_utils.Fcm()
+            guarantor_amount_disbursed = 0
             if guarantors.exists():
                 # create model RevenueStreams
                 guarantors_interest = (settings.GUARANTORS_INTEREST/100)*interest
@@ -238,18 +239,20 @@ class Loan():
                     circle_member = guarantor.circle_member
                     circle, member = circle_member.circle, circle_member.member
                     ms = "guarantor {} with fraction {}".format(member.user.first_name,guarantor.fraction_guaranteed )
-                    amount = guarantor.fraction_guaranteed * guarantors_interest
-                    print(ms)
-                    print(amount)
-                    print("truncated amount")
-                    print(float(format(amount,'.2f')))
-                    amount = round(amount,2)
+                    amount = float(guarantor.fraction_guaranteed * guarantors_interest)
+                    amount_str = str(amount).split('.')
+                    whole, dec = amount_str[0], amount_str[1]
+                    if dec > 2:
+                        dec = dec[0:2]
+                        new_amount = whole + "." + dec
+                        amount = float(new_amount)
                     wallet_instance = wallet_utils.Wallet()
                     transaction_code = general_instance.generate_unique_identifier('WTC')
                     wallet_balance = wallet_instance.calculate_wallet_balance(member.wallet) + amount
                     wallet_desc = "{} confirmed. You have received {} {} from circle {} as your guarantor interest of loan {} of {} {}.New wallet balance is {} {}.".format(transaction_code, member.currency, amount, circle.circle_name, loan.loan_code, loan_user.first_name, loan_user.last_name, member.currency, wallet_balance)
                     wallet_transaction = Transactions.objects.create(wallet= member.wallet, transaction_type="CREDIT", transaction_desc=wallet_desc, transaction_amount=amount, transaction_time=time_transacted, transacted_by=circle.circle_name, transaction_code=transaction_code)
                     created_objects.append(wallet_transaction)
+                    guarantor_amount_disbursed = guarantor_amount_disbursed + amount
                     wallet_transaction_serializer = WalletTransactionsSerializer(wallet_transaction)
                     registration_id = member.device_token
                     fcm_data = {"request_type":"CREDIT_WALLET","wallet_transaction":wallet_transaction_serializer.data}
@@ -260,27 +263,37 @@ class Loan():
             print("circle_member interest")
             print(circle_member_interest)
             circle_members = CircleMember.objects.filter(member__time_registered__lt=loan.time_of_application,circle=loan.circle_member.circle).exclude(member=loan_user.member)
+            member_amount_disbursed = 0
             for circle_member in circle_members:
                 circle, member = circle_member.circle,circle_member.member
                 shares = circle_member.shares.get()
                 fraction = shares_utils.Shares().get_circle_member_shares_fraction(shares,loan.time_of_application,loan_user.member)
                 ms = "circle member {} with fraction {}".format(member.user.first_name,fraction)
-                amount = circle_member_interest * fraction
-                print(ms)
-                print(amount)
-                print("truncated amount")
-                print(float(format(amount,'.2f')))
-                amount = round(amount,2)
+                amount = float(circle_member_interest * fraction)
+                amount_str = str(amount).split('.')
+                whole, dec = amount_str[0], amount_str[1]
+                if dec > 2:
+                    dec = dec[0:2]
+                    new_amount = whole + "." + dec
+                    amount = float(new_amount)
+                print(member.user.first_name)
+                print("amount earned ",amount)
                 wallet_instance = wallet_utils.Wallet()
                 transaction_code = general_instance.generate_unique_identifier('WTC')
                 wallet_balance = wallet_instance.calculate_wallet_balance(member.wallet) + amount
                 wallet_desc = "{} confirmed. You have received {} {} from circle {} as interest of loan {}.New wallet balance {} {}.".format(transaction_code, member.currency,amount, circle.circle_name, loan.loan_code, member.currency, wallet_balance)
                 wallet_transaction = Transactions.objects.create(wallet= member.wallet, transaction_type="CREDIT", transaction_desc=wallet_desc, transaction_amount=amount, transaction_time=time_transacted, transacted_by=circle.circle_name, transaction_code=transaction_code)
                 created_objects.append(wallet_transaction)
+                member_amount_disbursed += amount
                 wallet_transaction_serializer = WalletTransactionsSerializer(wallet_transaction)
                 registration_id = member.device_token
                 fcm_data = {"request_type":"CREDIT_WALLET","wallet_transaction":wallet_transaction_serializer.data}
                 fcm_instance.data_push("single",registration_id,fcm_data)
+            rem = float(interest - (flemish_revenue + guarantor_amount_disbursed + member_amount_disbursed))
+            print("Uncatered")
+            print(rem)
+            if rem != 0:
+                revenue = RevenueStreams.objects.create(stream_amount=rem,stream_type="LOAN INTEREST",stream_code=loan.loan_code,time_of_transaction=time_transacted,extra_info="Uncatered for")
         except Exception as e:
             print(str(e))
             general_instance.delete_created_objects(created_objects)

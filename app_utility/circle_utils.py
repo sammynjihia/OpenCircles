@@ -1,12 +1,11 @@
 from django.db.models import Sum
 from member.models import Member
-from circle.models import Circle as CircleModel,CircleMember,CircleInvitation
+from circle.models import Circle as CircleModel,CircleMember,CircleInvitation,DeclinedCircles
 from shares.models import Shares,IntraCircleShareTransaction
 from loan.models import LoanTariff,GuarantorRequest
 from app_utility import fcm_utils,sms_utils
 from django.db.models import Q
-
-import circle
+from circle import serializers
 
 import operator,re
 
@@ -28,7 +27,7 @@ class Circle():
 
     def check_update_circle_status(self,circle):
         if not circle.is_active:
-            if CircleMember.objects.filter(circle=circle).count() >= 5:
+            if CircleMember.objects.filter(circle=circle).count() >= 2:
                 circle.is_active=True
                 circle.save()
                 return True
@@ -130,18 +129,25 @@ class Circle():
         new_range = re.findall(r'\d+',loan_range)
         return new_range
 
+    def import_func(self):
+        from circle.serializers import InvitedCircleSerializer
+
     def send_circle_invitation(self, circle_invitations):
         for invite in circle_invitations:
+            print("invites")
             circle, member = invite.invited_by.circle, invite.invited_by.member
             if invite.is_member:
                 invited_member = Member.objects.get(phone_number=invite.phone_number)
                 DeclinedCircles.objects.filter(circle=circle,member=invited_member).delete()
                 registration_id = invited_member.device_token
+                print(registration_id)
                 if len(registration_id):
                     fcm_instance = fcm_utils.Fcm()
                     invited_by = "{} {}".format(member.user.first_name,member.user.last_name)
-                    invited_serializer = circle.serializers.InvitedCircleSerializer(circle,context={"invited_by":invited_by})
+                    # self.import_func()
+                    invited_serializer = serializers.InvitedCircleSerializer(circle,context={"invited_by":invited_by})
                     fcm_data = {"request_type":"NEW_CIRCLE_INVITATION","circle":invited_serializer.data}
+                    print(fcm_data)
                     fcm_instance.data_push("single",registration_id,fcm_data)
                 else:
                     #send sms

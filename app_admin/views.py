@@ -6,6 +6,7 @@ from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
 from django.http import HttpResponse
+
 from . import members_utils, circles_utils, loan_utils, revenue_streams_utils, shares_utils, transactions_utils
 from . import chat_utils
 
@@ -320,5 +321,4 @@ def view_circle_details(request, circle_id):
         }
     }
     return render(request, 'app_admin/circle_details.html', context)
-
 

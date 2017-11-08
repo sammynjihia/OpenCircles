@@ -4,7 +4,7 @@ from circle.models import CircleMember
 from django.db.models import Min,Max
 from django.conf import settings
 
-from app_utility import circle_utils
+from app_utility import circle_utils, general_utils
 
 class Shares():
     def validate_withdrawal_amount(self,amount):
@@ -48,7 +48,7 @@ class Shares():
             print("total circle shares")
             print(total_circle_shares)
             if total_circle_shares > 0:
-                circle_shares_fraction = float(format((circle_member_shares/total_circle_shares),'.3f'))
+                circle_shares_fraction = general_utils.General().get_decimal(circle_member_shares,total_circle_shares)
             else:
                 circle_shares_fraction = 0
             return circle_shares_fraction

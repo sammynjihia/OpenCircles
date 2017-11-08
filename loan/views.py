@@ -99,7 +99,7 @@ class LoanApplication(APIView):
                                     guarantor_objs = [ GuarantorRequest(loan=loan,
                                                                         circle_member=CircleMember.objects.get(
                                                                                         member=Member.objects.get(phone_number=guarantor["phone_number"]),circle=circle),
-                                                                        num_of_shares=guarantor["amount"], time_requested=datetime.datetime.today(),fraction_guaranteed=round(guarantor["amount"]/guaranteed_loan,2)
+                                                                        num_of_shares=guarantor["amount"], time_requested=datetime.datetime.today(),fraction_guaranteed=general_instance.get_decimal(guarantor["amount"],guaranteed_loan)
                                                                         ) for guarantor in guarantors]
                                     loan_guarantors = GuarantorRequest.objects.bulk_create(guarantor_objs)
                                     shares_desc = "{} confirmed.Shares worth {} {} locked to guarantee your loan {} of {} {}.".format(shares_transaction_code, member.currency, available_shares, loan_code, member.currency, loan_amount)
@@ -269,7 +269,7 @@ class LoanRepayment(APIView):
                                 #loan_instance.share_loan_interest(loan)
                                 print("loan being passed")
                                 print(loan)
-                                task_share_loan_interest.delay(loani)
+                                task_share_loan_interest.delay(loan.id)
 
                                 shares_transaction_serializer = SharesTransactionSerializer(shares_transaction)
                                 loan_repayment_serializer = LoanRepaymentSerializer(loan_repayment, context={"is_fully_repaid":True})

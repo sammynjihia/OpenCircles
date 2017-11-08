@@ -52,6 +52,7 @@ class RevenueStreams(models.Model):
     stream_amount = models.FloatField()
     stream_type = models.CharField(max_length=20,choices=STREAM_TYPE_CHOICE)
     time_of_transaction = models.DateTimeField()
+    extra_info = models.TextField(default="",null=True)
 
     class Meta():
         db_table = "RevenueStreams"

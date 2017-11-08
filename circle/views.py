@@ -24,7 +24,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.authentication import TokenAuthentication,BasicAuthentication
 from rest_framework.authtoken.models import Token
 
-from app_utility import circle_utils,wallet_utils,sms_utils,general_utils,fcm_utils,member_utils,shares_utils
+from app_utility import circle_utils,wallet_utils,sms_utils,general_utils,fcm_utils,member_utils,shares_utils,loan_utils
 
 import datetime,json,uuid
 
@@ -376,16 +376,19 @@ class JoinCircle(APIView):
                     loan_limit = loan_instance.calculate_loan_limit(circle,member)
                     fcm_instance = fcm_utils.Fcm()
                     old_circle_status = circle.is_active
+                    is_active = True
                     if not old_circle_status:
                         new_circle_status = circle_instance.check_update_circle_status(circle)
+                        is_active = False
                         if new_circle_status:
                             fcm_data = {"request_type":"UPDATE_CIRCLE_STATUS","circle_acc_number":circle.circle_acc_number,"is_active":True}
+                            is_active = True
                             registration_ids = fcm_instance.get_circle_members_token(circle,None)
                             fcm_instance.data_push("mutiple",registration_ids,fcm_data)
                             print(fcm_data)
-                            title = "Circle {}".format(circle.circle_name)
-                            message = "Circle {} has been activated.You can now purchase shares,apply for loan and earn interest on loan repayments.".format(circle.circle_name)
-                            fcm_instance.notification_push("multiple",registration_ids,title,message)
+                            # title = "Circle {}".format(circle.circle_name)
+                            # message = "Circle {} has been activated.You can now purchase shares,apply for loan and earn interest on loan repayments.".format(circle.circle_name)
+                            # fcm_instance.notification_push("multiple",registration_ids,title,message)
                     # unblock task
                     updating_loan_limit(circle.id,member.id)
                     #loan_instance.update_loan_limit(circle,member)
@@ -393,7 +396,7 @@ class JoinCircle(APIView):
                     registration_ids = fcm_instance.get_circle_members_token(circle,member)
                     fcm_instance.data_push("mutiple",registration_ids,fcm_data)
                     print(fcm_data)
-                    data = {"status":1,"wallet_transaction":wallet_serializer.data,"shares_transaction":shares_serializer.data,"loan_limit":loan_limit}
+                    data = {"status":1,"wallet_transaction":wallet_serializer.data,"shares_transaction":shares_serializer.data,"loan_limit":loan_limit,"is_active":is_active}
                     return Response(data,status=status.HTTP_200_OK)
                 except Exception,e:
                     print(str(e))

@@ -1,5 +1,6 @@
 {% extends 'app_admin/base_dashboard.html' %}
 {% load static %}
+{% load humanize%}
 {% block current_page %}
     <i class="fa fa-circle-o-notch"></i> Circles list
 {% endblock %}
@@ -26,15 +27,34 @@
         <div class="w3-container">
             <table class="w3-table w3-striped">
                 <thead class="w3-grey w3-text-white">
+                    <td>#</td>
                     <td>Name</td>
+                    <td>Type</td>
                     <td>Date founded</td>
                     <td>Founded by</td>
+                    <td>Minimum share</td>
                     <td># of members</td>
-                    <td>Total deposits</td>
+                    <td>Locked shares</td>
                     <td>Available shares</td>
                 </thead>
                 <tbody id="circles-table">
-
+                    {% for obj in circles %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td>
+                                <a href="{% url 'app_admin:view_circle_details' circle_id=obj.id %}">
+                                    {{ obj.circle_name }} <span class="small"> ({{ obj.circle_acc_number }})</span>
+                                </a>
+                            </td>
+                            <td>{{ obj.circle_type }}</td>
+                            <td>{{ obj.time_initiated}}</td>
+                            <td>{{ obj.initiated_by }}</td>
+                            <td>{{ obj.minimum_share }}</td>
+                            <td>{{ obj.number_of_members|intcomma }}</td>
+                            <td>{{ obj.locked_shares|intcomma }}</td>
+                            <td>{{ obj.available_shares|intcomma }}</td>
+                        </tr>
+                    {% endfor %}
                 </tbody>
             </table>
         </div>

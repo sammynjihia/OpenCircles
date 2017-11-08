@@ -36,19 +36,26 @@ class CircleUtils:
         return Circle.objects.all()
 
     @staticmethod
-    def get_num_of_circle_members(circle):
+    def get_circle_by_id(id):
+        return Circle.objects.get(id=id)
+
+    @staticmethod
+    def get_count_of_circle_members(circle):
         return CircleMember.objects.filter(circle=circle).count()
 
 
     @staticmethod
-    def get_total_shares_deposit(circle):
-        deposits = IntraCircleShareTransaction.objects.filter(
-            shares=Shares.objects.filter(circle=circle), transaction_type__icontains='DEPOSIT')\
-            .aggregate(Sum('num_of_shares'))
-        withdrawals = IntraCircleShareTransaction.objects.filter(
-            shares=Shares.objects.filter(circle=circle), transaction_type__icontains='WITHDRAW')\
-            .aggregate(Sum('num_of_shares'))
-        return deposits
+    def get_num_of_circle_members(circle):
+        return CircleMember.objects.filter(circle=circle).count()
+
+    @staticmethod
+    def get_circle_members(circle):
+        return CircleMember.objects.filter(circle=circle)
+
+
+
+
+
 
 
 

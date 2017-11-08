@@ -6,7 +6,7 @@ from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
 from django.http import HttpResponse
-from . import members_utils, cirles_utils, loan_utils, revenue_streams_utils, circle_withdrawal_utils, transactions_utils
+from . import members_utils, circles_utils, loan_utils, revenue_streams_utils, shares_utils, transactions_utils
 from . import chat_utils
 
 
@@ -50,6 +50,16 @@ def login_admin(request):
     )
 
 
+@login_required(login_url='app_admin:login_page')
+def logout_admin(request):
+    logout(request)
+    return HttpResponse(
+        json.dumps({'status': 1, 'URL': 'login_page'}),
+        content_type="application/json"
+    )
+
+
+@login_required(login_url='app_admin:login_page')
 def home_page(request):
     context = {
         'member': {
@@ -57,9 +67,9 @@ def home_page(request):
             'registered_today': members_utils.MemberUtils.get_num_of_members_registered__by_day()
         },
         'circle': {
-            'num_of_circles': cirles_utils.CircleUtils.get_num_of_circles(),
-            'num_of_active_circles': cirles_utils.CircleUtils.get_num_of_active_circles(),
-            'num_of_circles_created_today': cirles_utils.CircleUtils.get_num_of_circles_registered__by_day()
+            'num_of_circles': circles_utils.CircleUtils.get_num_of_circles(),
+            'num_of_active_circles': circles_utils.CircleUtils.get_num_of_active_circles(),
+            'num_of_circles_created_today': circles_utils.CircleUtils.get_num_of_circles_registered__by_day()
         },
         'loan_application': {
             'total_loans_applied_today': sum([x[0] for x in
@@ -84,9 +94,9 @@ def home_page(request):
                     .values_list('stream_amount')])
         },
         'shares_withdrawal': {
-            'total_withdrawals_today': sum([x[0] for x in circle_withdrawal_utils.CircleWithdrawalUtils.get_shares_withdrawal_by_date()
+            'total_withdrawals_today': sum([x[0] for x in shares_utils.SharesUtils.get_shares_withdrawal_by_date()
                                 .values_list('num_of_shares')]),
-            'num_of_withdrawals': circle_withdrawal_utils.CircleWithdrawalUtils.get_shares_withdrawal_by_date().count(),
+            'num_of_withdrawals': shares_utils.SharesUtils.get_shares_withdrawal_by_date().count(),
             'revenue': sum([x[0] for x in revenue_streams_utils.RevenueStreamsUtils.get_revenue_streams_by_date()
                            .filter(stream_type__icontains='SHARES')
                            .values_list('stream_amount')])
@@ -95,11 +105,13 @@ def home_page(request):
     return render(request, 'app_admin/base_dashboard.html', context)
 
 
+@login_required(login_url='app_admin:login_page')
 def members_page(request):
     context = {}
     return render(request, 'app_admin/members.html', context)
 
 
+@login_required(login_url='app_admin:login_page')
 def search_for_member(request):
     search_val = request.POST.get('search_val')
     members_obj = members_utils.MemberUtils.search_for_member(search_val)
@@ -119,23 +131,26 @@ def search_for_member(request):
     return HttpResponse(json.dumps(members_list))
 
 
+@login_required(login_url='app_admin:login_page')
 def view_member_details(request, member_id):
     request.session['member_id'] = member_id
     member = members_utils.MemberUtils.get_member_from_id(member_id)
     context = {
         'member': member,
         'next_of_kin': members_utils.MemberUtils.get_next_of_kin(member),
-        'circles': cirles_utils.CircleUtils.get_circles_by_member(member),
+        'circles': circles_utils.CircleUtils.get_circles_by_member(member),
         'transactions': transactions_utils.TransactionUtils.get_wallet_transaction_by_member(member)[:100]
     }
     return render(request, 'app_admin/member_details.html', context)
 
 
+@login_required(login_url='app_admin:login_page')
 def wallet_transactions(request):
     context = {}
     return render(request, 'app_admin/wallet_transactions_list.html', context)
 
 
+@login_required(login_url='app_admin:login_page')
 def search_for_transaction(request):
     transactions = []
     search_val = request.POST.get('search_val')
@@ -165,6 +180,7 @@ def search_for_transaction(request):
     return HttpResponse(json.dumps(transactions))
 
 
+@login_required(login_url='app_admin:login_page')
 def view_transaction_details(request, transaction_id):
     request.session['transaction_id'] = transaction_id
     trx = transactions_utils.TransactionUtils.get_transaction_by_id(transaction_id)
@@ -175,12 +191,14 @@ def view_transaction_details(request, transaction_id):
     return render(request, 'app_admin/wallet_transaction.html', context)
 
 
+@login_required(login_url='app_admin:login_page')
 def loan_applications(request):
     context = {}
     template = 'app_admin/loan_applications_list.html'
     return render(request, template, context)
 
 
+@login_required(login_url='app_admin:login_page')
 def search_for_loan_applications(request):
     loans_list = []
     search_val = request.POST.get('search_val')
@@ -206,6 +224,7 @@ def search_for_loan_applications(request):
     return HttpResponse(json.dumps(loans_list))
 
 
+@login_required(login_url='app_admin:login_page')
 def view_loan_application_details(request, loan_code):
     loan = loan_utils.LoanUtils.get_loan_by_loan_code(loan_code)
     guarantors = loan_utils.LoanUtils.get_loan_guarantors(loan)
@@ -221,6 +240,7 @@ def view_loan_application_details(request, loan_code):
     return render(request, 'app_admin/loan_application.html', context)
 
 
+@login_required(login_url='app_admin:login_page')
 def chats_list(request):
     context = {
         'chats': chat_utils.ChatUtils.get_pending_chats()
@@ -228,6 +248,7 @@ def chats_list(request):
     return render(request, 'app_admin/chats.html', context)
 
 
+@login_required(login_url='app_admin:login_page')
 def reply_to_chat(request):
     chat_id = request.POST.get('chat_id')
     body = request.POST.get('body')
@@ -239,6 +260,7 @@ def reply_to_chat(request):
     return HttpResponse(json.dumps(response))
 
 
+@login_required(login_url='app_admin:login_page')
 def search_for_chats(request):
     search_val = request.POST.get('search_val')
     chat_objs = chat_utils.ChatUtils.search_for_chats(search_val)
@@ -256,5 +278,47 @@ def search_for_chats(request):
     return HttpResponse(json.dumps(chats_list))
 
 
+@login_required(login_url='app_admin:login_page')
+def circles_list(request):
+    circle_objs = circles_utils.CircleUtils.get_all_circles()
+    lis_of_cirlces = []
+    for obj in circle_objs:
+        lis_of_cirlces.append({
+            'id': obj.id,
+            'circle_name': obj.circle_name,
+            'circle_acc_number': obj.circle_acc_number,
+            'circle_type': obj.circle_type,
+            'time_initiated': obj.time_initiated,
+            'initiated_by': "{} {}".format(obj.initiated_by.user.first_name, obj.initiated_by.user.last_name),
+            'minimum_share': obj.minimum_share,
+            'number_of_members': circles_utils.CircleUtils.get_num_of_circle_members(obj),
+            'total_deposits': shares_utils.SharesUtils.get_total_shares_deposit(obj),
+            'total_withdrawals': shares_utils.SharesUtils.get_total_withdrawals(obj),
+            'locked_shares': shares_utils.SharesUtils.get_circle_locked_shares(obj),
+            'available_shares': shares_utils.SharesUtils.get_circles_available_shares(obj),
+        })
+    return render(request, 'app_admin/circles_list.html', {'circles': lis_of_cirlces})
+
+
+@login_required(login_url='app_admin:login_page')
+def view_circle_details(request, circle_id):
+    circle = circles_utils.CircleUtils.get_circle_by_id(circle_id)
+    members_count = circles_utils.CircleUtils.get_count_of_circle_members(circle)
+    context = {
+        'circle': circle,
+        'number_of_member': members_count,
+        'circle_members': circles_utils.CircleUtils.get_circle_members(circle),
+        'loans': {
+            'loans_disbursed': loan_utils.LoanUtils.get_total_loans_disbursed_by_circle(circle),
+            'repaid': loan_utils.LoanUtils.get_total_repaid_loans_by_circle(circle),
+            'bad_loans': loan_utils.LoanUtils.get_bad_loans_by_circle(circle)
+        },
+        'shares': {
+            'total_shares':  shares_utils.SharesUtils.get_circles_total_shares(circle),
+            'available_shares': shares_utils.SharesUtils.get_circles_available_shares(circle),
+            'locked_shares': shares_utils.SharesUtils.get_circle_locked_shares(circle)
+        }
+    }
+    return render(request, 'app_admin/circle_details.html', context)
 
 

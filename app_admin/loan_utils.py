@@ -3,6 +3,7 @@ from loan.models import LoanApplication, LoanTariff, LoanRepayment, GuarantorReq
 from circle.models import Circle, CircleMember
 from member.models import Member
 from django.db.models import Q
+from django.db.models import Sum
 from app_utility.sms_utils import Sms
 
 
@@ -62,6 +63,30 @@ class LoanUtils:
     @staticmethod
     def get_loan_repayment(loan):
         return LoanRepayment.objects.filter(amortization_schedule=LoanAmortizationSchedule.objects.filter(loan=loan))
+
+    @staticmethod
+    def get_total_loans_disbursed_by_circle(circle):
+        total = LoanApplication.objects.filter(circle_member=CircleMember
+                                               .objects.filter(circle=circle), is_disbursed=True)\
+            .aggregate(Sum('amount'))['amount__sum']
+        return total
+
+    @staticmethod
+    def get_total_repaid_loans_by_circle(circle):
+        total = LoanApplication.objects.filter(circle_member=CircleMember
+                                               .objects.filter(circle=circle), is_disbursed=True, is_fully_repaid=True)\
+            .aggregate(Sum('amount'))['amount__sum']
+        return total
+
+    @staticmethod
+    def get_bad_loans_by_circle(circle):
+        # circle_loans = LoanApplication.objects.filter(circle_member__circle=circle, is_disbursed=True, is_fully_repaid=False)
+        # non_repaid_principal = circle_loans.loan_amortization.filter(repayment_date__lt=datetime.datetime.now(), loan_repayment=None).aggregate(Sum('principal'))['principal__sum']
+        # repaid_principal = circle_loans.loan_amortization.filter(~Q(loan_repayment=None)).aggregate(Sum('principal'))['principal__sum']
+        # loan_amount = circle_loans.aggregate(Sum('amount'))['amount__sum']
+        # return loan_amount - (repaid_principal - non_repaid_principal)
+        return None
+
 
 
 

@@ -28,6 +28,7 @@ class Fcm():
         else:
             circle_members = CircleMember.objects.filter(circle=circle).exclude(member=member)
         registration_ids= [cm.member.device_token for cm in circle_members if len(cm.member.device_token) > 0]
+        print(registration_ids)
         return registration_ids
 
     def get_invited_circle_member_token(self,circle,member):

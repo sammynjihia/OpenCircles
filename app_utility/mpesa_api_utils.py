@@ -105,10 +105,12 @@ class MpesaUtils():
 
         response = requests.post(api_url, json = request, headers=headers)
         result = response.json()
-        with open('b2c_checkout_post_file.txt', 'a') as post_file:
+        with open('b2c_checking_out_post_file.txt', 'a') as post_file:
+            post_file.write("hello")
+            post_file.write("\n")
             post_file.write(result)
             post_file.write("\n")
-            post_file.write(str(type(result)))
+            post_file.write(type(result))
             post_file.write("\n")
         return  result
 

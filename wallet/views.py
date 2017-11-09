@@ -156,7 +156,7 @@ class MpesaToWallet(APIView):
 
             elif result["ResponseCode"] == '0':
                 # If response from the request is ResponseCode 0 then request was accepted for processing successfully
-                data = {"status": 1, "message": "{}. Wait for mpesa prompt".format(result["ResponseDescription"])}
+                data = {"status": 1, "message": "Your request has been accepted successfully. Wait for m-pesa to process this transaction."}
                 return Response(data, status=status.HTTP_200_OK)
 
             else:
@@ -188,7 +188,14 @@ class WalletToMpesa(APIView):
             valid, message = validty.validate_account(request, pin, amount)
             if valid:
                 if 200 <= amount <=70000:
-                    result = mpesaAPI.mpesa_b2c_checkout(amount, phone_number)
+                    # btwn 200-1000 = ksh 15
+                    # 1001 - 70000 = ksh 22
+                    if 200 <= amount <= 1000:
+                        amount = amount + 15
+                        result = mpesaAPI.mpesa_b2c_checkout(amount, phone_number)
+                    else:
+                        amount = amount + 22
+                        result = mpesaAPI.mpesa_b2c_checkout(amount, phone_number)
 
                     if "errorCode" in result.keys():
                         # If errorCode in response, then request not successful, error occured
@@ -206,7 +213,7 @@ class WalletToMpesa(APIView):
                                                                  Recipient_PhoneNumber=recepient_PhoneNumber)
                         b2c_Transaction_log.save()
                         print (result["ResponseDescription"])
-                        data = {"status": 1, "message": result["ResponseDescription"]}
+                        data = {"status": 1, "message": "Your request has been accepted successfully. Wait for m-pesa to process this transaction."}
                         return Response(data, status=status.HTTP_200_OK)
 
                     else:
@@ -324,9 +331,6 @@ class MpesaB2CResultURL(APIView):
             post_file.write(str(type(data)))
             post_file.write("\n")
         result = json.loads(data)
-        with open('b2c_resulting.txt', 'a') as result_file:
-            result_file.write(str(result))
-            result_file.write("\n")
         print (json.dumps(result, indent=4, sort_keys=True))
 
         B2CResults = result["Result"]
@@ -608,7 +612,7 @@ class WalletToPayBill(APIView):
                                                                  AccountNumber=account_Number)
                         b2b_Transaction_log.save()
                         print(result["ResponseDescription"])
-                        data = {"status": 1, "message": result["ResponseDescription"]}
+                        data = {"status": 1, "message": "Your request has been accepted successfully. Wait for m-pesa to process this transaction."}
                         return Response(data, status=status.HTTP_200_OK)
 
                     else:

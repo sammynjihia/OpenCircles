@@ -58,131 +58,135 @@ class LoanApplication(APIView):
             guarantors = serializer.validated_data['guarantors']
             circle = Circle.objects.get(circle_acc_number=serializer.validated_data['circle_acc_number'])
             if circle.is_active:
-                if request.user.check_password(pin):
-                    loan_instance = loan_utils.Loan()
-                    valid,response = loan_instance.validate_loan_amount(request,loan_amount,circle)
-                    if valid:
-                        member=request.user.member
-                        circle_member = CircleMember.objects.get(circle=circle,member=member)
-                        circle_loan_code = "LN{}".format(circle.circle_acc_number)
-                        loans = loanapplication.objects.filter(loan_code__startswith = circle_loan_code)
-                        if loans.exists():
-                            latest_loan = loans.latest('id')
-                            value = latest_loan.loan_code[len(circle_loan_code):]
-                            new_value = int(value) + 1
-                            new_value = str(new_value)
-                            value = new_value if len(new_value)>1 else new_value.zfill(2)
-                            loan_code = circle_loan_code+value
-                        else:
-                            loan_code = circle_loan_code+"01"
-                        try:
-                            loan_tariff = LoanTariff.objects.get(Q(max_amount__gte=loan_amount) & Q(min_amount__lte=loan_amount) & Q(circle=circle))
-                        except LoanTariff.DoesNotExist:
-                            data = {"status":0,"message":"Unable to process loan.The circle has no loan tariff."}
-                            return Response(data,status=status.HTTP_200_OK)
-                        general_instance = general_utils.General()
-                        annual_interest_rate =  loan_tariff.monthly_interest_rate * 12
-                        loan = loanapplication.objects.create(loan_code=loan_code,circle_member=circle_member,amount=loan_amount,interest_rate=loan_tariff.monthly_interest_rate,num_of_repayment_cycles=loan_tariff.num_of_months,loan_tariff=loan_tariff)
-                        created_objects.append(loan)
-                        guarantors = guarantors[0]
-                        shares_transaction_code = general_instance.generate_unique_identifier('STL')
-                        shares_desc = "{} confirmed.Shares worth {} {} locked to guarantee your loan {} of {} {}.".format(shares_transaction_code, member.currency, loan_amount, loan_code, member.currency, loan_amount)
-                        shares = circle_member.shares.get()
-                        circle_instance = circle_utils.Circle()
-                        available_shares =  circle_instance.get_available_circle_member_shares(circle,member)
-                        print(available_shares)
-                        if loan_amount > available_shares:
-                            if len(guarantors):
-                                try:
-                                    guaranteed_loan = loan_amount - available_shares
-                                    print(guaranteed_loan)
-                                    guarantor_objs = [ GuarantorRequest(loan=loan,
-                                                                        circle_member=CircleMember.objects.get(
-                                                                                        member=Member.objects.get(phone_number=guarantor["phone_number"]),circle=circle),
-                                                                        num_of_shares=guarantor["amount"], time_requested=datetime.datetime.today(),fraction_guaranteed=general_instance.get_decimal(guarantor["amount"],guaranteed_loan)
-                                                                        ) for guarantor in guarantors]
-                                    loan_guarantors = GuarantorRequest.objects.bulk_create(guarantor_objs)
-                                    shares_desc = "{} confirmed.Shares worth {} {} locked to guarantee your loan {} of {} {}.".format(shares_transaction_code, member.currency, available_shares, loan_code, member.currency, loan_amount)
-                                    shares_transaction = IntraCircleShareTransaction.objects.create(shares=shares,transaction_type="LOCKED", num_of_shares=available_shares, transaction_desc=shares_desc, transaction_code=shares_transaction_code)
-                                    created_objects.append(shares_transaction)
-                                    locked_shares = LockedShares.objects.create(shares_transaction=shares_transaction,loan=loan)
-                                    created_objects.append(locked_shares)
-                                    loan_limit = loan_instance.calculate_loan_limit(circle,member)
-                                    shares_transaction_serializer = SharesTransactionSerializer(shares_transaction)
-                                    loan_guarantors_serializer = LoanGuarantorsSerializer(loan_guarantors,many=True)
-                                    loan_serializer = LoansSerializer(loan)
-                                    data = {"status":1,"shares_transaction":shares_transaction_serializer.data,"message":"Loan application successfully received.Waiting for guarantors approval","loan":loan_serializer.data,"loan_limit":loan_limit,"loan_guarantors":loan_guarantors_serializer.data}
-                                    guarantors_id = [ guarantor.id for guarantor in loan_guarantors]
-                                    # unblock task, not fully done
-                                    # loan_instance.send_guarantee_requests(loan_guarantors,member)
-                                    #Below is the celery task, get the guarantors id.
-                                    sending_guarantee_requests.delay(guarantors_id, member.id)
-
-                                    # unblock task, Done
-                                    # loan_instance.update_loan_limit(circle,member)
-                                    updating_loan_limit.delay(circle.id, member.id)
-                                except Exception as e:
-                                    print(str(e))
-                                    instance = general_utils.General()
-                                    instance.delete_created_objects(created_objects)
-                                    data = {"status": 0, "message":"Unable to process loan"}
-                                    return Response(data, status=status.HTTP_200_OK)
-                                fcm_available_shares = circle_instance.get_guarantor_available_shares(circle, member)
-                                fcm_instance = fcm_utils.Fcm()
-                                fcm_data = {"request_type":"UPDATE_AVAILABLE_SHARES","circle_acc_number":circle.circle_acc_number,"phone_number":member.phone_number,"available_shares":fcm_available_shares}
-                                registration_ids = fcm_instance.get_circle_members_token(circle,member)
-                                fcm_instance.data_push("multiple",registration_ids,fcm_data)
-                                return Response(data, status=status.HTTP_200_OK)
-                            data = {"status":0,"message":"Loan can not be processed.Guarantors needed"}
-                            return Response(data,status=status.HTTP_200_OK)
-                        try:
+                circle_member = CircleMember.objects.get(circle=circle,member=request.user.member)
+                if circle_member.is_active:
+                    if request.user.check_password(pin):
+                        loan_instance = loan_utils.Loan()
+                        valid,response = loan_instance.validate_loan_amount(request,loan_amount,circle)
+                        if valid:
+                            member=request.user.member
+                            circle_member = CircleMember.objects.get(circle=circle,member=member)
+                            circle_loan_code = "LN{}".format(circle.circle_acc_number)
+                            loans = loanapplication.objects.filter(loan_code__startswith = circle_loan_code)
+                            if loans.exists():
+                                latest_loan = loans.latest('id')
+                                value = latest_loan.loan_code[len(circle_loan_code):]
+                                new_value = int(value) + 1
+                                new_value = str(new_value)
+                                value = new_value if len(new_value)>1 else new_value.zfill(2)
+                                loan_code = circle_loan_code+value
+                            else:
+                                loan_code = circle_loan_code+"01"
+                            try:
+                                loan_tariff = LoanTariff.objects.get(Q(max_amount__gte=loan_amount) & Q(min_amount__lte=loan_amount) & Q(circle=circle))
+                            except LoanTariff.DoesNotExist:
+                                data = {"status":0,"message":"Unable to process loan.The circle has no loan tariff."}
+                                return Response(data,status=status.HTTP_200_OK)
                             general_instance = general_utils.General()
-                            wallet_instance = wallet_utils.Wallet()
-                            shares_transaction = IntraCircleShareTransaction.objects.create(shares=shares,transaction_type="LOCKED",num_of_shares=loan_amount,transaction_desc=shares_desc,transaction_code=shares_transaction_code)
-                            created_objects.append(shares_transaction)
-                            locked_shares = LockedShares.objects.create(shares_transaction=shares_transaction,loan=loan)
-                            created_objects.append(locked_shares)
-                            time_processed = datetime.datetime.now()
-                            wallet_balance = wallet_instance.calculate_wallet_balance(member.wallet) + loan_amount
-                            wallet_transaction_code = general_instance.generate_unique_identifier('WTC')
-                            wallet_desc ="{} confirmed.You have received your loan {} of {} {} from circle {}.New wallet balance is {} {}.".format(wallet_transaction_code, loan.loan_code, member.currency, loan_amount, circle.circle_name, member.currency, wallet_balance )
-                            wallet_transaction = Transactions.objects.create(wallet= member.wallet, transaction_type='CREDIT', transaction_time = time_processed,transaction_desc=wallet_desc, transaction_amount= loan_amount, transacted_by = circle.circle_name,transaction_code=wallet_transaction_code, source="loan")
-                            created_objects.append(wallet_transaction)
-                            loan.is_approved = True
-                            loan.is_disbursed = True
-                            loan.time_disbursed = time_processed
-                            loan.time_approved = time_processed
-                            loan.save()
-                            wallet_transaction_serializer = WalletTransactionsSerializer(wallet_transaction)
-                            shares_transaction_serializer = SharesTransactionSerializer(shares_transaction)
-                            loan_serializer = LoansSerializer(loan)
-                            loan_limit = loan_instance.calculate_loan_limit(circle, member)
-                            loan_amortization = loan_instance.amortization_schedule(annual_interest_rate, loan_amount,loan_tariff.num_of_months, loan.time_approved.date())
-                            loan_amortization['loan'] = loan
-                            loan_amortization_schedule = LoanAmortizationSchedule(**loan_amortization)
-                            loan_amortization_schedule.save()
-                            created_objects.append(loan_amortization_schedule)
-                            message = "Your loan of {} {} has been successfully processed.Your wallet has been credited with KES {}".format(member.currency,loan_amount,loan_amount)
-                            full_amortization_schedule = json.dumps(loan_instance.full_amortization_schedule(annual_interest_rate, loan_amount,loan_tariff.num_of_months, loan.time_approved.date()))
-                            data = {"status":1,"loan":loan_serializer.data,"wallet_transaction":wallet_transaction_serializer.data,"shares_transaction":shares_transaction_serializer.data,"loan_limit":loan_limit,"full_amortization_schedule":full_amortization_schedule,"message":message}
-                        except Exception as e:
-                            print(str(e))
-                            instance = general_utils.General()
-                            instance.delete_created_objects(created_objects)
-                            data = {"status": 0, "message":"Unable to process loan"}
+                            annual_interest_rate =  loan_tariff.monthly_interest_rate * 12
+                            loan = loanapplication.objects.create(loan_code=loan_code,circle_member=circle_member,amount=loan_amount,interest_rate=loan_tariff.monthly_interest_rate,num_of_repayment_cycles=loan_tariff.num_of_months,loan_tariff=loan_tariff)
+                            created_objects.append(loan)
+                            guarantors = guarantors[0]
+                            shares_transaction_code = general_instance.generate_unique_identifier('STL')
+                            shares_desc = "{} confirmed.Shares worth {} {} locked to guarantee your loan {} of {} {}.".format(shares_transaction_code, member.currency, loan_amount, loan_code, member.currency, loan_amount)
+                            shares = circle_member.shares.get()
+                            circle_instance = circle_utils.Circle()
+                            available_shares =  circle_instance.get_available_circle_member_shares(circle,member)
+                            print(available_shares)
+                            if loan_amount > available_shares:
+                                if len(guarantors):
+                                    try:
+                                        guaranteed_loan = loan_amount - available_shares
+                                        print(guaranteed_loan)
+                                        guarantor_objs = [ GuarantorRequest(loan=loan,
+                                                                            circle_member=CircleMember.objects.get(
+                                                                                            member=Member.objects.get(phone_number=guarantor["phone_number"]),circle=circle),
+                                                                            num_of_shares=guarantor["amount"], time_requested=datetime.datetime.today(),fraction_guaranteed=general_instance.get_decimal(guarantor["amount"],guaranteed_loan)
+                                                                            ) for guarantor in guarantors]
+                                        loan_guarantors = GuarantorRequest.objects.bulk_create(guarantor_objs)
+                                        shares_desc = "{} confirmed.Shares worth {} {} locked to guarantee your loan {} of {} {}.".format(shares_transaction_code, member.currency, available_shares, loan_code, member.currency, loan_amount)
+                                        shares_transaction = IntraCircleShareTransaction.objects.create(shares=shares,transaction_type="LOCKED", num_of_shares=available_shares, transaction_desc=shares_desc, transaction_code=shares_transaction_code)
+                                        created_objects.append(shares_transaction)
+                                        locked_shares = LockedShares.objects.create(shares_transaction=shares_transaction,loan=loan)
+                                        created_objects.append(locked_shares)
+                                        loan_limit = loan_instance.calculate_loan_limit(circle,member)
+                                        shares_transaction_serializer = SharesTransactionSerializer(shares_transaction)
+                                        loan_guarantors_serializer = LoanGuarantorsSerializer(loan_guarantors,many=True)
+                                        loan_serializer = LoansSerializer(loan)
+                                        data = {"status":1,"shares_transaction":shares_transaction_serializer.data,"message":"Loan application successfully received.Waiting for guarantors approval","loan":loan_serializer.data,"loan_limit":loan_limit,"loan_guarantors":loan_guarantors_serializer.data}
+                                        guarantors_id = [ guarantor.id for guarantor in loan_guarantors]
+                                        # unblock task, not fully done
+                                        # loan_instance.send_guarantee_requests(loan_guarantors,member)
+                                        #Below is the celery task, get the guarantors id.
+                                        sending_guarantee_requests.delay(guarantors_id, member.id)
+
+                                        # unblock task, Done
+                                        # loan_instance.update_loan_limit(circle,member)
+                                        updating_loan_limit.delay(circle.id, member.id)
+                                    except Exception as e:
+                                        print(str(e))
+                                        instance = general_utils.General()
+                                        instance.delete_created_objects(created_objects)
+                                        data = {"status": 0, "message":"Unable to process loan"}
+                                        return Response(data, status=status.HTTP_200_OK)
+                                    fcm_available_shares = circle_instance.get_guarantor_available_shares(circle, member)
+                                    fcm_instance = fcm_utils.Fcm()
+                                    fcm_data = {"request_type":"UPDATE_AVAILABLE_SHARES","circle_acc_number":circle.circle_acc_number,"phone_number":member.phone_number,"available_shares":fcm_available_shares}
+                                    registration_ids = fcm_instance.get_circle_members_token(circle,member)
+                                    fcm_instance.data_push("multiple",registration_ids,fcm_data)
+                                    return Response(data, status=status.HTTP_200_OK)
+                                data = {"status":0,"message":"Loan can not be processed.Guarantors needed"}
+                                return Response(data,status=status.HTTP_200_OK)
+                            try:
+                                general_instance = general_utils.General()
+                                wallet_instance = wallet_utils.Wallet()
+                                shares_transaction = IntraCircleShareTransaction.objects.create(shares=shares,transaction_type="LOCKED",num_of_shares=loan_amount,transaction_desc=shares_desc,transaction_code=shares_transaction_code)
+                                created_objects.append(shares_transaction)
+                                locked_shares = LockedShares.objects.create(shares_transaction=shares_transaction,loan=loan)
+                                created_objects.append(locked_shares)
+                                time_processed = datetime.datetime.now()
+                                wallet_balance = wallet_instance.calculate_wallet_balance(member.wallet) + loan_amount
+                                wallet_transaction_code = general_instance.generate_unique_identifier('WTC')
+                                wallet_desc ="{} confirmed.You have received your loan {} of {} {} from circle {}.New wallet balance is {} {}.".format(wallet_transaction_code, loan.loan_code, member.currency, loan_amount, circle.circle_name, member.currency, wallet_balance )
+                                wallet_transaction = Transactions.objects.create(wallet= member.wallet, transaction_type='CREDIT', transaction_time = time_processed,transaction_desc=wallet_desc, transaction_amount= loan_amount, transacted_by = circle.circle_name,transaction_code=wallet_transaction_code, source="loan")
+                                created_objects.append(wallet_transaction)
+                                loan.is_approved = True
+                                loan.is_disbursed = True
+                                loan.time_disbursed = time_processed
+                                loan.time_approved = time_processed
+                                loan.save()
+                                wallet_transaction_serializer = WalletTransactionsSerializer(wallet_transaction)
+                                shares_transaction_serializer = SharesTransactionSerializer(shares_transaction)
+                                loan_serializer = LoansSerializer(loan)
+                                loan_limit = loan_instance.calculate_loan_limit(circle, member)
+                                loan_amortization = loan_instance.amortization_schedule(annual_interest_rate, loan_amount,loan_tariff.num_of_months, loan.time_approved.date())
+                                loan_amortization['loan'] = loan
+                                loan_amortization_schedule = LoanAmortizationSchedule(**loan_amortization)
+                                loan_amortization_schedule.save()
+                                created_objects.append(loan_amortization_schedule)
+                                message = "Your loan of {} {} has been successfully processed.Your wallet has been credited with KES {}".format(member.currency,loan_amount,loan_amount)
+                                full_amortization_schedule = json.dumps(loan_instance.full_amortization_schedule(annual_interest_rate, loan_amount,loan_tariff.num_of_months, loan.time_approved.date()))
+                                data = {"status":1,"loan":loan_serializer.data,"wallet_transaction":wallet_transaction_serializer.data,"shares_transaction":shares_transaction_serializer.data,"loan_limit":loan_limit,"full_amortization_schedule":full_amortization_schedule,"message":message}
+                            except Exception as e:
+                                print(str(e))
+                                instance = general_utils.General()
+                                instance.delete_created_objects(created_objects)
+                                data = {"status": 0, "message":"Unable to process loan"}
+                                return Response(data, status=status.HTTP_200_OK)
+                            fcm_available_shares = circle_instance.get_guarantor_available_shares(circle, member)
+                            fcm_instance = fcm_utils.Fcm()
+                            fcm_data = {"request_type":"UPDATE_AVAILABLE_SHARES","circle_acc_number":circle.circle_acc_number,"phone_number":member.phone_number,"available_shares":fcm_available_shares}
+                            registration_id = fcm_instance.get_circle_members_token(circle,member)
+                            fcm_instance.data_push("multiple",registration_id,fcm_data)
+                            # unblock task, Done
+                            # loan_instance.update_loan_limit(circle,member)
+                            updating_loan_limit.delay(circle.id, member.id)
                             return Response(data, status=status.HTTP_200_OK)
-                        fcm_available_shares = circle_instance.get_guarantor_available_shares(circle, member)
-                        fcm_instance = fcm_utils.Fcm()
-                        fcm_data = {"request_type":"UPDATE_AVAILABLE_SHARES","circle_acc_number":circle.circle_acc_number,"phone_number":member.phone_number,"available_shares":fcm_available_shares}
-                        registration_id = fcm_instance.get_circle_members_token(circle,member)
-                        fcm_instance.data_push("multiple",registration_id,fcm_data)
-                        # unblock task, Done
-                        # loan_instance.update_loan_limit(circle,member)
-                        updating_loan_limit.delay(circle.id, member.id)
-                        return Response(data, status=status.HTTP_200_OK)
-                    data = {"status":0,"message":response}
+                        data = {"status":0,"message":response}
+                        return Response(data,status=status.HTTP_200_OK)
+                    data = {"status":0,"message":"Incorrect pin"}
                     return Response(data,status=status.HTTP_200_OK)
-                data = {"status":0,"message":"Incorrect pin"}
+                data = {"status":0,"message":"Unable to process loan.Your account is currently deactivated."}
                 return Response(data,status=status.HTTP_200_OK)
             data = {"status":0,"message":"Unable to process loan.Circle is inactive."}
             return Response(data,status=status.HTTP_200_OK)
@@ -280,6 +284,14 @@ class LoanRepayment(APIView):
                                 data = {"status":1,"message":"You have completed your loan.","wallet_transaction":wallet_transaction_serializer.data,"shares_transaction":shares_transaction_serializer.data,"loan_repayment":loan_repayment_serializer.data,'loan_limit':loan_limit}
                                 loan.is_fully_repaid = True
                                 loan.time_of_last_payment = loan_repayment.time_of_repayment
+                                circle_m = CircleMember.objects.get(circle=circle,member=member)
+                                if not circle_m.is_active:
+                                    circle_m.is_active=True
+                                    circle_m.save()
+                                    fcm_instance = fcm_utils.Fcm()
+                                    fcm_data = {"request_type":"UPDATE_CIRCLE_MEMBER_STATUS", "phone_number":member.phone_number, "circle_acc_number":circle.circle_acc_number, 'is_active':True}
+                                    registration_ids = fcm_instance.get_circle_members_token(circle,None)
+                                    fcm_instance.data_push("multiple", registration_ids, fcm_data)
                                 loan.save()
                             else:
                                 ending_balance = latest_loan_amortize.ending_balance - extra_principal

@@ -2,12 +2,15 @@ from django.db.models import Sum
 from member.models import Member
 from circle.models import Circle as CircleModel,CircleMember,CircleInvitation,DeclinedCircles
 from shares.models import Shares,IntraCircleShareTransaction
-from loan.models import LoanTariff,GuarantorRequest
+from loan.models import LoanTariff,GuarantorRequest,LoanApplication
 from app_utility import fcm_utils,sms_utils
 from django.db.models import Q
 from circle import serializers
 
-import operator,re
+from dateutil.relativedelta import relativedelta
+
+
+import operator, re, datetime
 
 class Circle():
     def get_suggested_circles(self,unjoined_circles,contacts,request,suggested_num):
@@ -27,7 +30,7 @@ class Circle():
 
     def check_update_circle_status(self,circle):
         if not circle.is_active:
-            if CircleMember.objects.filter(circle=circle).count() >= 2:
+            if CircleMember.objects.filter(circle=circle).count() >= 5:
                 circle.is_active=True
                 circle.save()
                 return True
@@ -158,3 +161,27 @@ class Circle():
                 # sms_instance.sendsms(invite.phone_number,message)
             invite.is_sent = True
             invite.save()
+
+    def deactivate_circle_member(self):
+        loans = LoanApplication.objects.filter(is_approved=True, is_disbursed=True, is_fully_repaid=False).exclude(loan_tariff=None)
+        for loan in loans:
+            print(loan)
+            member = loan.circle_member.member
+            circle = loan.circle_member.circle
+            loan_tariff = loan.loan_tariff
+            if loan_tariff is None:
+                loan_tariff = LoanTariff.objects.get(max_amount__gte=loan.amount,min_amount__lte=loan.amount,circle=circle)
+            num_of_months = loan_tariff.num_of_months
+            date_of_payment = loan.time_of_application.date() + relativedelta(months=num_of_months)
+            today = datetime.datetime.now().date()
+            if today > date_of_payment:
+                title = "Circle {} account deactivation".format(circle.circle_name)
+                message = "Your account has been deactivated due to late repayment of loan {}. Kindly repay your loan to continue saving, borrowing loans and earning interests from other circle members' loans.".format(loan.loan_code)
+                CircleMember.objects.filter(circle=circle,member=member).update(is_active=False)
+                fcm_instance = fcm_utils.Fcm()
+                registration_id = member.device_token
+                fcm_data = {"request_type":"SYSTEM_WARNING_MSG","title":title,"message":message,"time":today}
+                fcm_instance.data_push("single", registration_id, fcm_data)
+                fcm_data = {"request_type":"UPDATE_CIRCLE_MEMBER_STATUS", "phone_number":member.phone_number, "circle_acc_number":circle.circle_acc_number, 'is_active':False}
+                registration_ids = fcm_instance.get_circle_members_token(circle,None)
+                fcm_instance.data_push("multiple", registration_ids, fcm_data)

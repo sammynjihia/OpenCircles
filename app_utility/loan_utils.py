@@ -262,7 +262,7 @@ class Loan():
             circle_member_interest = interest - flemish_revenue - guarantors_interest
             print("circle_member interest")
             print(circle_member_interest)
-            circle_members = CircleMember.objects.filter(member__time_registered__lt=loan.time_of_application,circle=loan.circle_member.circle).exclude(member=loan_user.member)
+            circle_members = CircleMember.objects.filter(member__time_registered__lt=loan.time_of_application,circle=loan.circle_member.circle,is_active=True).exclude(member=loan_user.member)
             member_amount_disbursed = 0
             for circle_member in circle_members:
                 circle, member = circle_member.circle,circle_member.member

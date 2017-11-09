@@ -430,7 +430,7 @@ function loadOptionMemberInSection(obj, isParent){
 
         $('div#' + escapeSelector(obj.name) + '.member h2.title').html(function() {
                 var title = $.trim($(this).text());
-                return $('<a href="/' + getBasePath() + obj.fullname + '" ' + (isParent ? '' : 'class="noChildren"') + '>' + title + '</a>').click(function(e){
+                return $('<a href=' + getBasePath() + obj.fullname + '"/" ' + (isParent ? '' : 'class="noChildren"') + '>' + title + '</a>').click(function(e){
                         memberClick(obj.fullname, e);
                 });
         });
@@ -452,7 +452,7 @@ function loadObjectMemberInSection(obj) {
 
         $('div#' + escapeSelector(obj.name) + '.member h2.title').html(function() {
                 var title = $.trim($(this).text());
-                return $('<a href="/' + getBasePath() + obj.fullname + '" class="noChildren">' + title + '</a>').click(function(e){
+                return $('<a href=' + getBasePath() + obj.fullname + '"/" class="noChildren">' + title + '</a>').click(function(e){
                         memberClick(obj.fullname, e);
                 });
         });
@@ -529,12 +529,12 @@ function loadChildren(name, silent, callback) {
 
 
 					$menuItem = $('<div class="menuitem collapsed"></div>');
-					$menuLink = $('<a href="/' + getBasePath() + name + '">' + val.title + '</a>').appendTo($menuItem);
+					$menuLink = $('<a href=' + getBasePath() + name + '"/">' + val.title + '</a>').appendTo($menuItem);
 
 					$menuLink.click(function (e) {
 						memberClick(val.fullname, e);
 					});
-					$plus = $('<a href="/' + getBasePath() + name + '" class="plus"></a>').appendTo($menuItem);
+					$plus = $('<a href=' + getBasePath() + name + '"/" class="plus"></a>').appendTo($menuItem);
 					$plus.click(function (e) {
 						e.preventDefault();
 						if ($plus.parent().hasClass('collapsed')) {
@@ -557,7 +557,7 @@ function loadChildren(name, silent, callback) {
 						title = val.title;
 					}
 
-					$menuLink = $('<a href="/' + getBasePath() + name + '">' + title + '</a>').appendTo($div);
+					$menuLink = $('<a href=' + getBasePath() + name + '"/">' + title + '</a>').appendTo($div);
 					$menuLink.click(function (e) {
 						hideSidebar();
 						memberClick(name, e);
@@ -752,7 +752,7 @@ function addFirstLevelMenuItem(key, val, type) {
 		$menuItem.append(menuItemPrefix);
 	}
 
-	$menuLink = $('<a href="/' + getBasePath() + sectionId + '">' + title + '</a>')
+	$menuLink = $('<a href=' + getBasePath() + sectionId + '"/">' + title + '</a>')
 		.appendTo($menuItem)
 		.click(function(e){
 			memberClick(sectionId, e);
@@ -760,7 +760,7 @@ function addFirstLevelMenuItem(key, val, type) {
 		});
 
 	if (val.isParent) {
-		$plus = $('<a href="/' + getBasePath() + sectionId + '" class="plus"></a>')
+		$plus = $('<a href=' + getBasePath() + sectionId + '"/" class="plus"></a>')
 			.appendTo($menuItem)
 			.click(function (e) {
 				e.preventDefault();

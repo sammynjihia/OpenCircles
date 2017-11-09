@@ -1,0 +1,78 @@
+{% extends 'app_admin/base_dashboard.html' %}
+{% load static %}
+{% load humanize %}
+{% block current_page %}
+    <i class="fa fa-lsit"></i> Revenue streams
+{% endblock %}
+{% block main_container %}
+     <div class="col-sm-9 col-sm-offset-3 col-lg-10 col-lg-offset-2 main">
+        <br>
+        <form class="form-horizontal" method="post" action="{% url 'app_admin:search_revenue_stream_by_date' %}">
+          {% csrf_token %}
+          <div class="form-group">
+            <div class="col-lg-4 col-md-4 col-sm-4">
+              <input type="text"
+                class="w3-input w3-text-blue pull-right datepicker-required"
+                id="start-date-val"
+                name="start_date_val"
+                placeholder="Start date.">
+            </div>
+            <div class="col-lg-4 col-md-4 col-sm-4">
+              <input type="text"
+                class="w3-input w3-text-blue pull-right datepicker-required"
+                id="end-date-val"
+                name="end_date_val"
+                placeholder="End date.">
+            </div>
+            <div class="col-lg-2 col-md-2 col-sm-2">
+              <button class="w3-btn w3-blue-gray pull-left" id="btn-search-for-revenues" type="submit">
+                <i class="fa fa-search"></i>
+              </button>
+            </div>
+          </div>
+        </form>
+        <br>
+        <div class="w3-container">
+            <table class="w3-table w3-striped">
+                <thead class="w3-grey w3-text-white">
+                    <tr>
+                        <td>#</td>
+                        <td>Amount</td>
+                        <td>Type</td>
+                        <td>Time</td>
+                        <td>Extra info</td>
+                    </tr>
+                </thead>
+                <tbody id="revenue-streams-table">
+                    {% for obj in revenue_streams %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td>{{ obj.stream_amount|intcomma }}</td>
+                            <td>{{ obj.stream_type }}</td>
+                            <td>{{ obj.time_of_transaction }}</td>
+                            <td>{{ obj.extra_info}}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+     </div>
+{% endblock %}
+
+{% block other_js %}
+      <script src="{% static 'app_admin/bootstrapdatetimepicker/transition.min.js' %}"></script>
+      <script src="{% static 'app_admin/bootstrapdatetimepicker/moment.min.js' %}"></script>
+      <script src="{% static 'app_admin/bootstrapdatetimepicker/bootstrap-datetimepicker.min.js' %}"></script>
+      <script>
+        $('.datepicker-required').datetimepicker({
+            sideBySide:true,
+            collapse:true,
+            format: 'YYYY-MM-DD'
+        });
+        (function(){
+            document.onload = function() {
+                $('#subscriber-subscription-form').trigger('reset');
+            };
+        })();
+  </script>
+{% endblock %}

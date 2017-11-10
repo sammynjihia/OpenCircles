@@ -378,6 +378,7 @@ class MpesaB2CResultURL(APIView):
                 mpesa_transactions.save()
                 serializer = WalletTransactionsSerializer(mpesa_transactions)
                 instance = fcm_utils.Fcm()
+                registration_id = member.device_token
                 fcm_data = {"request_type": "WALLET_TO_MPESA_TRANSACTION",
                             "transaction": serializer.data}
                 data = {"status": 1, "wallet_transaction": serializer.data}

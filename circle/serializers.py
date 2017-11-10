@@ -202,10 +202,11 @@ class CircleMemberSerializer(serializers.ModelSerializer):
     available_shares = serializers.SerializerMethodField()
     allow_guarantor_request = serializers.SerializerMethodField()
     allow_public_guarantees_request = serializers.SerializerMethodField()
+    is_active = serializers.SerializerMethodField()
 
     class Meta:
         model = Member
-        fields = ['first_name','surname','other_name','email','gender','country','phone_number','national_id','currency','date_of_birth','time_registered','is_self','available_shares','allow_guarantor_request','allow_public_guarantees_request']
+        fields = ['first_name','surname','other_name','email','gender','country','phone_number','national_id','currency','date_of_birth','time_registered','is_self','available_shares','allow_guarantor_request','allow_public_guarantees_request', 'is_active']
 
     def get_time_registered(self,member):
          date = member.time_registered
@@ -215,6 +216,11 @@ class CircleMemberSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         is_self = True if request.user.member.national_id == member.national_id else False
         return is_self
+
+    def get_is_active(self,member):
+        circle = self.context.get('circle')
+        circle_member = CircleMember.objects.get(circle=circle, member=member)
+        return circle_member.is_active
 
     def get_available_shares(self,member):
         circle = self.context.get('circle')
@@ -278,10 +284,11 @@ class UnloggedCircleMemberSerializer(serializers.ModelSerializer):
     available_shares = serializers.SerializerMethodField()
     allow_public_guarantees_request = serializers.SerializerMethodField()
     allow_guarantor_request = serializers.SerializerMethodField()
+    is_active = serializers.SerializerMethodField()
 
     class Meta:
         model = Member
-        fields = ['first_name','surname','other_name','email','gender','country','phone_number','national_id','currency','date_of_birth','time_registered','is_self','available_shares','allow_public_guarantees_request','allow_guarantor_request']
+        fields = ['first_name','surname','other_name','email','gender','country','phone_number','national_id','currency','date_of_birth','time_registered','is_self','available_shares','allow_public_guarantees_request','allow_guarantor_request','is_active']
 
 
     def get_time_registered(self,member):
@@ -291,6 +298,11 @@ class UnloggedCircleMemberSerializer(serializers.ModelSerializer):
     def get_is_self(self,member):
         is_self = False
         return is_self
+
+    def get_is_active(self,member):
+        circle = self.context.get('circle')
+        circle_member = CircleMember.objects.get(circle=circle, member=member)
+        return circle_member.is_active
 
     def get_available_shares(self,member):
         circle = self.context.get('circle')

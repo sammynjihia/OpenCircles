@@ -156,7 +156,7 @@ class MpesaToWallet(APIView):
 
             elif result["ResponseCode"] == '0':
                 # If response from the request is ResponseCode 0 then request was accepted for processing successfully
-                data = {"status": 1, "message": "{}. Wait for mpesa prompt".format(result["ResponseDescription"])}
+                data = {"status": 1, "message": "Your request has been accepted successfully. Wait for m-pesa to process this transaction."}
                 return Response(data, status=status.HTTP_200_OK)
 
             else:
@@ -185,11 +185,19 @@ class WalletToMpesa(APIView):
             phone_number = phone_number_raw.strip('+')
 
             validty = wallet_utils.Wallet()
-            valid, message = validty.validate_account(request, pin, amount)
+            charges = 0
+            if amount >= 10 and amount <= 1000:
+                charges = 15
+            elif amount >= 1001 and amount <= 70000 :
+                charges = 22
+            else:
+                data = {"status":0, "message":"Amount must be between KES 100 and 70000"}
+                return Response(data,status=status.HTTP_200_OK)
+            wallet_amount = amount + charges
+            valid, message = validty.validate_account(request, pin, wallet_amount)
             if valid:
-                if 200 <= amount <=70000:
+                try:
                     result = mpesaAPI.mpesa_b2c_checkout(amount, phone_number)
-
                     if "errorCode" in result.keys():
                         # If errorCode in response, then request not successful, error occured
                         data = {"status":0, "message": result["errorMessage"] }
@@ -206,16 +214,16 @@ class WalletToMpesa(APIView):
                                                                  Recipient_PhoneNumber=recepient_PhoneNumber)
                         b2c_Transaction_log.save()
                         print (result["ResponseDescription"])
-                        data = {"status": 1, "message": result["ResponseDescription"]}
+                        data = {"status": 1, "message": "Your request has been accepted successfully. Wait for m-pesa to process this transaction."}
                         return Response(data, status=status.HTTP_200_OK)
 
                     else:
                         #If response was unexpected then request not sent, an error occured.
                         data = {"status": 0, "message": "Sorry! Request not sent"}
                         return Response(data, status=status.HTTP_200_OK)
-
-                data = {"status":0, "message": "Transaction unsuccessful, amount is not in the range of 200-70000"}
-                return Response(data, status=status.HTTP_200_OK)
+                except Exception as e:
+                    data = {"status":0, "message":"This transaction can not be completed at the moment.Kindly try again later."}
+                    return Response(data, status=status.HTTP_200_OK)
             data = {"status":0, "message":message}
             return Response(data, status=status.HTTP_200_OK)
 
@@ -324,9 +332,6 @@ class MpesaB2CResultURL(APIView):
             post_file.write(str(type(data)))
             post_file.write("\n")
         result = json.loads(data)
-        with open('b2c_resulting.txt', 'a') as result_file:
-            result_file.write(str(result))
-            result_file.write("\n")
         print (json.dumps(result, indent=4, sort_keys=True))
 
         B2CResults = result["Result"]
@@ -347,8 +352,7 @@ class MpesaB2CResultURL(APIView):
             data = {"status": 0, "message": "Database transaction unsuccessful, object already exist"}
             return Response(data, status=status.HTTP_200_OK)
 
-
-        if ResultCode == '0':
+        if ResultCode == 0:
             TransactionID = B2CResults["TransactionID"]
             ResultParameters = B2CResults["ResultParameters"]["ResultParameter"]
             mpesa_data ={n['Key']:n['Value'] for n in ResultParameters for key,value in n.iteritems() if value in
@@ -399,7 +403,7 @@ class MpesaB2CResultURL(APIView):
                 data = {"status": 0, "message": "Unable to process transaction"}
                 return Response(data, status=status.HTTP_200_OK)
 
-        elif ResultCode == '2' :
+        elif ResultCode == 2 :
             instance = fcm_utils.Fcm()
             try:
                 member = Member.objects.get(phone_number=initiatorPhoneNumber)
@@ -586,7 +590,7 @@ class WalletToPayBill(APIView):
             validty = wallet_utils.Wallet()
             valid, message = validty.validate_account(request, pin, amount)
             if valid:
-                if 200 <= amount <=70000:
+                if 100 <= amount <=70000:
                     result = mpesaAPI.mpesa_b2b_checkout(amount, account_number, paybill_number)
 
                     if "errorCode" in result.keys():
@@ -608,7 +612,7 @@ class WalletToPayBill(APIView):
                                                                  AccountNumber=account_Number)
                         b2b_Transaction_log.save()
                         print(result["ResponseDescription"])
-                        data = {"status": 1, "message": result["ResponseDescription"]}
+                        data = {"status": 1, "message": "Your request has been accepted successfully. Wait for m-pesa to process this transaction."}
                         return Response(data, status=status.HTTP_200_OK)
 
                     else:
@@ -639,6 +643,11 @@ class MpesaB2BResultURL(APIView):
         result = json.loads(data)
         print("####################Response from mpesa from the MpesaB2BResultURL#############################")
         print(json.dumps(result, indent=4, sort_keys=True))
+        with open('b2b_result_post_file.txt', 'a') as post_file:
+            post_file.write(str(result))
+            post_file.write("\n")
+            post_file.write(str(type(result)))
+            post_file.write("\n")
 
         B2BResults = result["Result"]
         OriginatorConversationID = B2BResults["OriginatorConversationID"]
@@ -647,6 +656,12 @@ class MpesaB2BResultURL(APIView):
         TransactionID = B2BResults["TransactionID"]
         PhoneNumber = B2BTransaction_log.objects.get(OriginatorConversationID=OriginatorConversationID)
         initiatorPhoneNumber = PhoneNumber.Initiator_PhoneNumber
+
+        with open('b2b_result_code_file.txt', 'a') as post_file:
+            post_file.write(str(ResultCode))
+            post_file.write("\n")
+            post_file.write(str(type(ResultCode)))
+            post_file.write("\n")
 
         try:
             mpesa_transaction = MpesaTransaction_logs(OriginatorConversationID=OriginatorConversationID, ResultCode=ResultCode,
@@ -662,7 +677,7 @@ class MpesaB2BResultURL(APIView):
             data = {"status": 0, "message": "Database transaction unsuccessful, object already exist"}
             return Response(data, status=status.HTTP_200_OK)
 
-        if ResultCode == '0':
+        if ResultCode == 0:
             # do something
             TransactionID = B2BResults["TransactionID"]
             ResultParameters = B2BResults["ResultParameters"]["ResultParameter"]
@@ -679,18 +694,16 @@ class MpesaB2BResultURL(APIView):
             created_objects = []
 
             try:
-
                 try:
                     member=Member.objects.get(phone_number=initiatorPhoneNumber)
                 except Member.DoesNotExist as exp:
                     with open('B2B_member_fetched_failed.txt', 'a') as result_file:
                         result_file.write(str(exp))
                         result_file.write("\n")
-
                     general_instance, wallet_instance = general_utils.General(), wallet_utils.Wallet()
                     wallet = member.wallet
                     wallet_balance =  wallet_instance.calculate_wallet_balance(wallet) - transactionAmount
-                    transaction_desc = "{} confirmed.{} {} has been sent to {} for account {} from your wallet at {}.New wallet balance is {} {}." \
+                    transaction_desc = "{} confirmed.{} {} has been sent to {} for account {} from your wallet at {}. New wallet balance is {} {}." \
                         .format(transactionReceipt, member.currency, transactionAmount, receiverPartyPublicName, BillReferenceNumber, transactionDateTime, member.currency, wallet_balance)
 
                     mpesa_transactions = Transactions(wallet=wallet, transaction_type="DEBIT",

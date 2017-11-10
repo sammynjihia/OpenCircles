@@ -495,6 +495,7 @@ class MpesaC2BConfirmationURL(APIView):
         phonenumber.sendsms(transacted_by_msisdn, message)
         serializer = WalletTransactionsSerializer(mpesa_transactions)
         instance = fcm_utils.Fcm()
+        registration_id = member.device_token
         fcm_data = {"request_type": "MPESA_TO_WALLET_TRANSACTION",
                     "transaction": serializer.data}
         instance.data_push("single", registration_id, fcm_data)

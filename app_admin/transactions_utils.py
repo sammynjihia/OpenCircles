@@ -1,4 +1,4 @@
-
+import datetime
 from member.models import Member
 from wallet.models import Wallet, Transactions, AdminMpesaTransaction_logs
 from django.db.models import Sum
@@ -56,6 +56,35 @@ class TransactionUtils:
     @staticmethod
     def get_mpesa_transactions_log():
         return AdminMpesaTransaction_logs.objects.all().order_by('-transaction_time')
+
+    @staticmethod
+    def search_for_mpesa_transaction(transaction_code=None, start_date=None, end_date=None):
+        if transaction_code is None and start_date is None and end_date is None:
+            return TransactionUtils.get_mpesa_transactions_log()
+
+        if transaction_code is not None and start_date is None and end_date is None:
+            return AdminMpesaTransaction_logs.objects.filter(TransactioID=transaction_code).order_by('-transaction_time')
+
+        if transaction_code is None and start_date is not None and end_date is None:
+            return AdminMpesaTransaction_logs.objects.filter(transaction_time__gte=start_date)\
+                .order_by('-transaction_time')
+
+        if transaction_code is None and start_date is None and end_date is not None:
+            return AdminMpesaTransaction_logs.objects.filter(transaction_time__lte=end_date)\
+                .order_by('-transaction_time')
+
+        if transaction_code is not None and start_date is not None and end_date is not None:
+            return AdminMpesaTransaction_logs.objects.filter(TransactioID=transaction_code,
+                                                             transaction_time__range=(datetime.datetime.combine(start_date, datetime.time.min),
+                datetime.datetime.combine(end_date, datetime.time.max))) \
+                .order_by('-transaction_time')
+
+        if transaction_code is None and start_date is not None and end_date is not None:
+            return AdminMpesaTransaction_logs.objects.filter(transaction_time__range=(datetime.datetime.combine(start_date, datetime.time.min),
+                datetime.datetime.combine(end_date, datetime.time.max))) \
+                .order_by('-transaction_time')
+
+
 
 
 

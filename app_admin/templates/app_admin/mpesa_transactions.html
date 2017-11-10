@@ -1,5 +1,6 @@
 {% extends 'app_admin/base_dashboard.html' %}
 {% load static %}
+{% load humanize %}
 {% block current_page %}
     <i class="fa fa-arrows-h"></i> M-PESA Transactions
 {% endblock %}
@@ -9,21 +10,21 @@
         <form class="form-horizontal" method="post" action="{% url 'app_admin:search_for_mpesa_transaction' %}">
           {% csrf_token %}
           <div class="form-group">
-            <div class="col-lg-4 col-md-4 col-sm-4">
+            <div class="col-lg-2 col-md-2 col-sm-2">
               <input type="text"
                 class="w3-input w3-text-blue pull-right"
                 id="transaction code"
                 name="transaction_code"
                 placeholder="Transaction code.">
             </div>
-            <div class="col-lg-4 col-md-4 col-sm-4">
+            <div class="col-lg-3 col-md-3 col-sm-3">
               <input type="text"
                 class="w3-input w3-text-blue pull-right datepicker-required"
                 id="start-date-val"
                 name="start_date_val"
                 placeholder="Start date.">
             </div>
-            <div class="col-lg-4 col-md-4 col-sm-4">
+            <div class="col-lg-3 col-md-3 col-sm-3">
               <input type="text"
                 class="w3-input w3-text-blue pull-right datepicker-required"
                 id="end-date-val"
@@ -37,26 +38,26 @@
             </div>
           </div>
         </form>
-        <div class="w3-container">
+        <div>
             <table class="w3-table w3-striped">
                 <thead class="w3-grey w3-text-white">
                     <tr>
                         <td>Time</td>
                         <td>Transaction ID</td>
                         <td>Transaction Type</td>
-                        <td>Response</td>
+                        <td>Amount</td>
+                        <td>Resonse</td>
                     </tr>
                 </thead>
                 <tbody id="transactions-table">
                     {% for obj in transactions %}
                         <tr>
-                            <td>{{ obj.transaction_time }}</td>
-                            <td>{{ obj.TransactioID }}</td>
-                            <td>{{ obj.TransactionType }}</td>
+                            <td>{{ obj.time }}</td>
+                            <td>{{ obj.transaction_code }}</td>
+                            <td>{{ obj.type }}</td>
+                            <td>{{ obj.amount|intcomma }}</td>
                             <td>
-                                <textarea rows="3">
-                                    {{ obj.Response }}
-                                </textarea>
+                                <textarea rows="3" style="width: 100%">{{ obj.response }}</textarea>
                             </td>
                      </tr>
                     {% endfor %}

@@ -106,13 +106,13 @@
           </a>
         </li>
         <li>
-          <a class="w3-text-black">
-              <i class="fa fa-line-chart"></i>&nbsp;&nbsp;Analytics
+          <a class="w3-text-black" href="{% url 'app_admin:mpesa_transactions' %}">
+              <i class="fa fa-mobile-phone"></i>&nbsp; M-PESA transactions
           </a>
         </li>
         <li>
-          <a class="w3-text-black" href="{% url 'app_admin:mpesa_transactions' %}">
-              <i class="fa fa-mobile-phone"></i>&nbsp; M-PESA Transactions
+          <a class="w3-text-black">
+              <i class="fa fa-line-chart"></i>&nbsp;&nbsp;Analytics
           </a>
         </li>
       </ul>
@@ -342,7 +342,6 @@
             });
         </script>
     {% endblock %}
-
 
     {% block other_js %}
 

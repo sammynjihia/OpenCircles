@@ -364,7 +364,7 @@ class MpesaB2CResultURL(APIView):
                     member = Member.objects.get(phone_number=initiatorPhoneNumber)
 
                 except Member.DoesNotExist as exp:
-                    data = {"status":0,"User does not exist."}
+                    data = {"status":0, "message":"User does not exist."}
                     return Response(data, status=status.HTTP_200_OK)
                 general_instance, wallet_instance = general_utils.General(), wallet_utils.Wallet()
                 wallet = member.wallet

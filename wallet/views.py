@@ -414,7 +414,7 @@ class MpesaB2CResultURL(APIView):
                     .format(transactionReceipt, member.currency, transactionAmount, receiverPartyPublicName, transactionDateTime, member.currency, wallet_balance)
                 mpesa_transactions = Transactions(wallet=wallet, transaction_type="DEBIT",
                                                   transaction_desc=transaction_desc,
-                                                  transacted_by=wallet.acc_no, transaction_amount=transactionAmount,transation_code=general_instance.generate_unique_identifier('WTD'))
+                                                  transacted_by=wallet.acc_no, transaction_amount=transactionAmount,transaction_code=general_instance.generate_unique_identifier('WTD'))
                 mpesa_transactions.save()
                 with open('db_file.txt', 'a') as db_file:
                     db_file.write("Transaction {}, saved successfully ".format(transactionReceipt))

@@ -26,15 +26,26 @@
         <div class="w3-container">
             <table class="w3-table w3-striped">
                 <thead class="w3-grey w3-text-white">
-                    <td>Name</td>
-                    <td>National ID</td>
-                    <td>Phone number</td>
-                    <td>Email</td>
-                    <td>Gender</td>
-                    <td>Date of birth</td>
+                    <tr>
+                        <td>Name</td>
+                        <td>National ID</td>
+                        <td>Phone number</td>
+                        <td>Email</td>
+                        <td>Gender</td>
+                        <td>Date of birth</td>
+                    </tr>
                 </thead>
                 <tbody id="members-table">
-
+                    {% for obj in members %}
+                        <tr>
+                            <td>{{ obj.user.first_name }} {{ obj.user.last_name }} {{ obj.other_name }}</td>
+                            <td>{{ obj.national_id }}</td>
+                            <td>{{ obj.phone_number }}</td>
+                            <td>{{ obj.email }}</td>
+                            <td>{{ obj.gender }}</td>
+                            <td>{{ obj.date_of_birth }}</td>
+                     </tr>
+                    {% endfor %}
                 </tbody>
             </table>
         </div>

@@ -352,7 +352,7 @@ class MpesaB2CResultURL(APIView):
             data = {"status": 0, "message": "Database transaction unsuccessful, object already exist"}
             return Response(data, status=status.HTTP_200_OK)
 
-        if ResultCode == '0':
+        if ResultCode == 0:
             TransactionID = B2CResults["TransactionID"]
             ResultParameters = B2CResults["ResultParameters"]["ResultParameter"]
             mpesa_data ={n['Key']:n['Value'] for n in ResultParameters for key,value in n.iteritems() if value in
@@ -403,7 +403,7 @@ class MpesaB2CResultURL(APIView):
                 data = {"status": 0, "message": "Unable to process transaction"}
                 return Response(data, status=status.HTTP_200_OK)
 
-        elif ResultCode == '2' :
+        elif ResultCode == 2 :
             instance = fcm_utils.Fcm()
             try:
                 member = Member.objects.get(phone_number=initiatorPhoneNumber)
@@ -677,7 +677,7 @@ class MpesaB2BResultURL(APIView):
             data = {"status": 0, "message": "Database transaction unsuccessful, object already exist"}
             return Response(data, status=status.HTTP_200_OK)
 
-        if ResultCode == '0':
+        if ResultCode == 0:
             # do something
             TransactionID = B2BResults["TransactionID"]
             ResultParameters = B2BResults["ResultParameters"]["ResultParameter"]

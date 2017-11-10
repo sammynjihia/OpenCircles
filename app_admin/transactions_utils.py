@@ -55,7 +55,7 @@ class TransactionUtils:
 
     @staticmethod
     def get_mpesa_transactions_log():
-        return AdminMpesaTransaction_logs.objects.all()
+        return AdminMpesaTransaction_logs.objects.all().order_by('-transaction_time')
 
 
 

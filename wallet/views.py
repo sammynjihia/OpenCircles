@@ -356,6 +356,12 @@ class MpesaB2CResultURL(APIView):
             post_file.write("made it here before if")
             post_file.write("\n")
 
+        with open('b2c_resulturl_before_if_result_code_file.txt', 'a') as post_file:
+            post_file.write(str(ResultCode))
+            post_file.write("\n")
+            post_file.write(str(type(ResultCode)))
+            post_file.write("\n")
+
         if ResultCode == 0:
             with open('b2c_resulturl_after_if_post_file.txt', 'a') as post_file:
                 post_file.write(str(ResultCode))
@@ -429,7 +435,7 @@ class MpesaB2CResultURL(APIView):
                 with open('b2c_resulturl_saving_except_file.txt', 'a') as post_file:
                     post_file.write(str(e))
                     post_file.write("\n")
-                    
+
                 data = {"status": 0, "message": "Unable to process transaction"}
                 return Response(data, status=status.HTTP_200_OK)
 

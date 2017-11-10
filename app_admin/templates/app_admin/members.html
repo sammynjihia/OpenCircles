@@ -38,7 +38,11 @@
                 <tbody id="members-table">
                     {% for obj in members %}
                         <tr>
-                            <td>{{ obj.user.first_name }} {{ obj.user.last_name }} {{ obj.other_name }}</td>
+                            <td>
+                               <a href="{% url 'app_admin:view_member_details' member_id=obj.id %}">
+                                {{ obj.user.first_name }} {{ obj.user.last_name }} {{ obj.other_name }}
+                               </a>
+                            </td>
                             <td>{{ obj.national_id }}</td>
                             <td>{{ obj.phone_number }}</td>
                             <td>{{ obj.email }}</td>

@@ -62,9 +62,11 @@ class MpesaTransaction_logs(models.Model):
     OriginatorConversationID = models.CharField(max_length=100, unique=True)
     ResultCode = models.CharField(max_length=5)
     ResultDesc = models.CharField(max_length=250)
+    transaction_time = models.DateTimeField(auto_now=True)
 
 
 class AdminMpesaTransaction_logs(models.Model):
     TransactioID = models.CharField(max_length=100, unique=True)
     TransactionType = models.CharField(max_length=15)
     Response = models.TextField(max_length=1000)
+    transaction_time = models.DateTimeField(auto_now=True)

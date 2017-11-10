@@ -185,18 +185,19 @@ class WalletToMpesa(APIView):
             phone_number = phone_number_raw.strip('+')
 
             validty = wallet_utils.Wallet()
-            valid, message = validty.validate_account(request, pin, amount)
+            charges = 0
+            if 100 <= amount <= 1000:
+                charges = 15
+            elif amount >= 1001 && amount <= 70000 :
+                charges = 22
+            else:
+                data = {"status":0, "message":"Amount must be between KES 100 and 70000"}
+                return Response(data,status=status.HTTP_200_OK)
+            wallet_amount = amount + charges
+            valid, message = validty.validate_account(request, pin, wallet_amount)
             if valid:
-                if 100 <= amount <=70000:
-                    # btwn 200-1000 = ksh 15
-                    # 1001 - 70000 = ksh 22
-                    if 100 <= amount <= 1000:
-                        amount = amount + 15
-                        result = mpesaAPI.mpesa_b2c_checkout(amount, phone_number)
-                    else:
-                        amount = amount + 22
-                        result = mpesaAPI.mpesa_b2c_checkout(amount, phone_number)
-
+                try:
+                    result = mpesaAPI.mpesa_b2c_checkout(amount, phone_number)
                     if "errorCode" in result.keys():
                         # If errorCode in response, then request not successful, error occured
                         data = {"status":0, "message": result["errorMessage"] }
@@ -220,9 +221,9 @@ class WalletToMpesa(APIView):
                         #If response was unexpected then request not sent, an error occured.
                         data = {"status": 0, "message": "Sorry! Request not sent"}
                         return Response(data, status=status.HTTP_200_OK)
-
-                data = {"status":0, "message": "Transaction unsuccessful, amount is not in the range of 200-70000"}
-                return Response(data, status=status.HTTP_200_OK)
+                except Exception as e:
+                    data = {"status":0, "message":"This transaction can not be completed at the moment.Kindly try again later."}
+                    return Response(data, status=status.HTTP_200_OK)
             data = {"status":0, "message":message}
             return Response(data, status=status.HTTP_200_OK)
 
@@ -644,7 +645,7 @@ class MpesaB2BResultURL(APIView):
         print("####################Response from mpesa from the MpesaB2BResultURL#############################")
         print(json.dumps(result, indent=4, sort_keys=True))
         with open('b2b_result_post_file.txt', 'a') as post_file:
-            post_file.write(result)
+            post_file.write(str(result))
             post_file.write("\n")
             post_file.write(str(type(result)))
             post_file.write("\n")
@@ -658,7 +659,7 @@ class MpesaB2BResultURL(APIView):
         initiatorPhoneNumber = PhoneNumber.Initiator_PhoneNumber
 
         with open('b2b_result_code_file.txt', 'a') as post_file:
-            post_file.write(ResultCode)
+            post_file.write(str(ResultCode))
             post_file.write("\n")
             post_file.write(str(type(ResultCode)))
             post_file.write("\n")

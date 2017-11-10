@@ -186,7 +186,7 @@ class WalletToMpesa(APIView):
 
             validty = wallet_utils.Wallet()
             charges = 0
-            if amount >= 100 and amount <= 1000:
+            if amount >= 10 and amount <= 1000:
                 charges = 15
             elif amount >= 1001 and amount <= 70000 :
                 charges = 22

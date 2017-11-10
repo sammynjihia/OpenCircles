@@ -236,9 +236,11 @@ def search_for_mpesa_transaction(request):
         transaction_code = request.POST.get('transaction_code').strip()
         start_date_val = request.POST.get('start_date_val').strip()
         end_date_val = request.POST.get('end_date_val').strip()
+
         if len(transaction_code) == 0:
             transaction_code = None
         start_date = None
+
         if start_date_val is not None:
             try:
                 start_date = datetime.datetime.strptime(start_date_val, '%Y-%m-%d')
@@ -251,6 +253,7 @@ def search_for_mpesa_transaction(request):
                 end_date = datetime.datetime.strptime(end_date_val, '%Y-%m-%d')
             except Exception as exp:
                 end_date = None
+
         mpesa_trx_obj = transactions_utils.TransactionUtils.search_for_mpesa_transaction(transaction_code, start_date,
                                                                                       end_date)
     else:

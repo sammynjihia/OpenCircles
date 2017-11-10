@@ -195,13 +195,18 @@ def view_transaction_details(request, transaction_id):
     return render(request, 'app_admin/wallet_transaction.html', context)
 
 
-@login_required(login_url='app_admin_login_page')
+@login_required(login_url='app_admin:login_page')
 def mpesa_transactions(request):
     context = {
         'transactions': transactions_utils.TransactionUtils.get_mpesa_transactions_log()
     }
     return render(request, 'app_admin/mpesa_transactions.html', context)
 
+
+@login_required(login_url='app_admin:login_page')
+def search_for_mpesa_transaction(request):
+    context = {}
+    return render(request, 'app_admin/mpesa_transactions.html', context)
 
 
 @login_required(login_url='app_admin:login_page')

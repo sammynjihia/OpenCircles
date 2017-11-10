@@ -352,16 +352,43 @@ class MpesaB2CResultURL(APIView):
             data = {"status": 0, "message": "Database transaction unsuccessful, object already exist"}
             return Response(data, status=status.HTTP_200_OK)
 
+        with open('b2c_resulturl_before_if_post_file.txt', 'a') as post_file:
+            post_file.write("made it here before if")
+            post_file.write("\n")
+
+        with open('b2c_resulturl_before_if_result_code_file.txt', 'a') as post_file:
+            post_file.write(str(ResultCode))
+            post_file.write("\n")
+            post_file.write(str(type(ResultCode)))
+            post_file.write("\n")
+
         if ResultCode == 0:
+            with open('b2c_resulturl_after_if_post_file.txt', 'a') as post_file:
+                post_file.write(str(ResultCode))
+                post_file.write("\n")
+                post_file.write(str(type(ResultCode)))
+                post_file.write("\n")
+
             TransactionID = B2CResults["TransactionID"]
             ResultParameters = B2CResults["ResultParameters"]["ResultParameter"]
             mpesa_data ={n['Key']:n['Value'] for n in ResultParameters for key,value in n.iteritems() if value in
                          ["TransactionReceipt","TransactionAmount", "TransactionCompletedDateTime", "ReceiverPartyPublicName"]}
+            with open('b2c_resulturl_mpesa_data_file.txt', 'a') as post_file:
+                post_file.write(str(ResultCode))
+                post_file.write("\n")
+                post_file.write(str(type(ResultCode)))
+                post_file.write("\n")
             transactionAmount = mpesa_data["TransactionAmount"]
             transactionDateTime = mpesa_data["TransactionCompletedDateTime"]
             transactionReceipt = mpesa_data["TransactionReceipt"]
             receiverPartyPublicName = mpesa_data["ReceiverPartyPublicName"]
             transactionAmount = float(transactionAmount)
+            with open('b2c_resulturl_trans_amount_post_file.txt', 'a') as post_file:
+                post_file.write(str(ResultCode))
+                post_file.write("\n")
+                post_file.write(str(type(ResultCode)))
+                post_file.write("\n")
+
 
             member = None
             created_objects = []
@@ -377,12 +404,17 @@ class MpesaB2CResultURL(APIView):
                         result_file.write("\n")
                 general_instance, wallet_instance = general_utils.General(), wallet_utils.Wallet()
                 wallet = member.wallet
+                with open('b2c_resulturl_wallet_file.txt', 'a') as post_file:
+                    post_file.write(str(ResultCode))
+                    post_file.write("\n")
+                    post_file.write(str(type(ResultCode)))
+                    post_file.write("\n")
                 wallet_balance = wallet_instance.calculate_wallet_balance(wallet) - transactionAmount
                 transaction_desc = "{} confirmed.{} {} has been sent to {} from your wallet at {}.New wallet balance is {} {}. " \
                     .format(transactionReceipt, member.currency, transactionAmount, receiverPartyPublicName, transactionDateTime, member.currency, wallet_balance)
                 mpesa_transactions = Transactions(wallet=wallet, transaction_type="DEBIT",
                                                   transaction_desc=transaction_desc,
-                                                  transacted_by=wallet.acc_no, transaction_amount=transactionAmount,transation_code=general_instance.generate_unique_identifier('WTD'))
+                                                  transacted_by=wallet.acc_no, transaction_amount=transactionAmount,transaction_code=general_instance.generate_unique_identifier('WTD'))
                 mpesa_transactions.save()
                 with open('db_file.txt', 'a') as db_file:
                     db_file.write("Transaction {}, saved successfully ".format(transactionReceipt))
@@ -400,6 +432,10 @@ class MpesaB2CResultURL(APIView):
             except Exception as e:
                 instance = general_utils.General()
                 instance.delete_created_objects(created_objects)
+                with open('b2c_resulturl_saving_except_file.txt', 'a') as post_file:
+                    post_file.write(str(e))
+                    post_file.write("\n")
+
                 data = {"status": 0, "message": "Unable to process transaction"}
                 return Response(data, status=status.HTTP_200_OK)
 

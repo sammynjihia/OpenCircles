@@ -186,9 +186,9 @@ class WalletToMpesa(APIView):
 
             validty = wallet_utils.Wallet()
             charges = 0
-            if 100 <= amount <= 1000:
+            if amount >= 100 and amount <= 1000:
                 charges = 15
-            elif amount >= 1001 && amount <= 70000 :
+            elif amount >= 1001 and amount <= 70000 :
                 charges = 22
             else:
                 data = {"status":0, "message":"Amount must be between KES 100 and 70000"}
@@ -351,7 +351,6 @@ class MpesaB2CResultURL(APIView):
         except ValidationError as e:
             data = {"status": 0, "message": "Database transaction unsuccessful, object already exist"}
             return Response(data, status=status.HTTP_200_OK)
-
 
         if ResultCode == '0':
             TransactionID = B2CResults["TransactionID"]
@@ -695,18 +694,16 @@ class MpesaB2BResultURL(APIView):
             created_objects = []
 
             try:
-
                 try:
                     member=Member.objects.get(phone_number=initiatorPhoneNumber)
                 except Member.DoesNotExist as exp:
                     with open('B2B_member_fetched_failed.txt', 'a') as result_file:
                         result_file.write(str(exp))
                         result_file.write("\n")
-
                     general_instance, wallet_instance = general_utils.General(), wallet_utils.Wallet()
                     wallet = member.wallet
                     wallet_balance =  wallet_instance.calculate_wallet_balance(wallet) - transactionAmount
-                    transaction_desc = "{} confirmed.{} {} has been sent to {} for account {} from your wallet at {}.New wallet balance is {} {}." \
+                    transaction_desc = "{} confirmed.{} {} has been sent to {} for account {} from your wallet at {}. New wallet balance is {} {}." \
                         .format(transactionReceipt, member.currency, transactionAmount, receiverPartyPublicName, BillReferenceNumber, transactionDateTime, member.currency, wallet_balance)
 
                     mpesa_transactions = Transactions(wallet=wallet, transaction_type="DEBIT",

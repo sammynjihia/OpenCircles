@@ -1,6 +1,6 @@
 
 from member.models import Member
-from wallet.models import Wallet, Transactions
+from wallet.models import Wallet, Transactions, AdminMpesaTransaction_logs
 from django.db.models import Sum
 from django.db.models import Q
 from app_utility.sms_utils import Sms
@@ -53,10 +53,9 @@ class TransactionUtils:
         else:
             return None
 
-
     @staticmethod
-    def get_mpesa_transactions_log(search_val):
-        pass
+    def get_mpesa_transactions_log():
+        return AdminMpesaTransaction_logs.objects.all()
 
 
 

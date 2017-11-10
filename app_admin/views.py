@@ -109,7 +109,9 @@ def home_page(request):
 
 @login_required(login_url='app_admin:login_page')
 def members_page(request):
-    context = {}
+    context = {
+        'members': members_utils.MemberUtils.get_all_members()
+    }
     return render(request, 'app_admin/members.html', context)
 
 
@@ -191,6 +193,15 @@ def view_transaction_details(request, transaction_id):
         'current_balance': transactions_utils.TransactionUtils.get_wallet_balance_wallet_id(trx.wallet.id)
     }
     return render(request, 'app_admin/wallet_transaction.html', context)
+
+
+@login_required(login_url='app_admin_login_page')
+def mpesa_transactions(request):
+    context = {
+        'transactions': transactions_utils.TransactionUtils.get_mpesa_transactions_log()
+    }
+    return render(request, 'app_admin/mpesa_transactions.html', context)
+
 
 
 @login_required(login_url='app_admin:login_page')

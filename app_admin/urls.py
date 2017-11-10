@@ -15,6 +15,7 @@ urlpatterns = [
     url(r'^search_for_transaction$', views.search_for_transaction, name='search_for_transaction'),
     url(r'^view_transaction_details/(?P<transaction_id>[0-9]+)/$', views.view_transaction_details,
         name='view_transaction_details'),
+    url(r'^mpesa_transactions$', views.mpesa_transactions, name = 'mpesa_transactions'),
     url(r'^loan_applications$', views.loan_applications, name='loan_applications'),
     url(r'^search_for_loan_applications$', views.search_for_loan_applications, name='search_for_loan_applications'),
     url(r'^view_loan_application_details/(?P<loan_code>[A-Za-z0-9]+)/$', views.view_loan_application_details,

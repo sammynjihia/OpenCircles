@@ -22,6 +22,10 @@ class MemberUtils:
                             datetime.datetime.combine(search_date, datetime.time.max))).count()
 
     @staticmethod
+    def get_all_members():
+        return Member.objects.all()
+
+    @staticmethod
     def search_for_member(search_val):
         search_val = search_val.strip()
         sms = sms_utils.Sms()

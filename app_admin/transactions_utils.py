@@ -40,8 +40,10 @@ class TransactionUtils:
         wallet = Wallet.objects.get(id=id)
         trx_credit = Transactions.objects.filter(wallet=wallet, transaction_type__icontains='CREDIT')\
             .aggregate(total=Sum('transaction_amount'))['total']
+        trx_credit = trx_credit if trx_credit is not None else 0
         trx_debit = Transactions.objects.filter(wallet=wallet, transaction_type__icontains='DEBIT')\
             .aggregate(total=Sum('transaction_amount'))['total']
+        trx_debit = trx_debit if trx_debit is not None else 0
         return trx_credit - trx_debit
 
     @staticmethod

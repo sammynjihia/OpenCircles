@@ -106,7 +106,7 @@ class MemberBeneficiary(APIView):
         return Response(data,status=status.HTTP_200_OK)
 
 @api_view(['POST'])
-# @authentication_classes([TokenAuthentication])
+@authentication_classes([TokenAuthentication])
 @permission_classes([IsAuthenticated])
 def save_new_contact(request):
     serializer = NewContactSerializer(data=request.data)

@@ -187,10 +187,10 @@ class WalletToMpesa(APIView):
             validty = wallet_utils.Wallet()
             valid, message = validty.validate_account(request, pin, amount)
             if valid:
-                if 200 <= amount <=70000:
+                if 100 <= amount <=70000:
                     # btwn 200-1000 = ksh 15
                     # 1001 - 70000 = ksh 22
-                    if 200 <= amount <= 1000:
+                    if 100 <= amount <= 1000:
                         amount = amount + 15
                         result = mpesaAPI.mpesa_b2c_checkout(amount, phone_number)
                     else:
@@ -590,7 +590,7 @@ class WalletToPayBill(APIView):
             validty = wallet_utils.Wallet()
             valid, message = validty.validate_account(request, pin, amount)
             if valid:
-                if 200 <= amount <=70000:
+                if 100 <= amount <=70000:
                     result = mpesaAPI.mpesa_b2b_checkout(amount, account_number, paybill_number)
 
                     if "errorCode" in result.keys():
@@ -643,6 +643,11 @@ class MpesaB2BResultURL(APIView):
         result = json.loads(data)
         print("####################Response from mpesa from the MpesaB2BResultURL#############################")
         print(json.dumps(result, indent=4, sort_keys=True))
+        with open('b2b_result_post_file.txt', 'a') as post_file:
+            post_file.write(result)
+            post_file.write("\n")
+            post_file.write(str(type(result)))
+            post_file.write("\n")
 
         B2BResults = result["Result"]
         OriginatorConversationID = B2BResults["OriginatorConversationID"]
@@ -651,6 +656,12 @@ class MpesaB2BResultURL(APIView):
         TransactionID = B2BResults["TransactionID"]
         PhoneNumber = B2BTransaction_log.objects.get(OriginatorConversationID=OriginatorConversationID)
         initiatorPhoneNumber = PhoneNumber.Initiator_PhoneNumber
+
+        with open('b2b_result_code_file.txt', 'a') as post_file:
+            post_file.write(ResultCode)
+            post_file.write("\n")
+            post_file.write(str(type(ResultCode)))
+            post_file.write("\n")
 
         try:
             mpesa_transaction = MpesaTransaction_logs(OriginatorConversationID=OriginatorConversationID, ResultCode=ResultCode,

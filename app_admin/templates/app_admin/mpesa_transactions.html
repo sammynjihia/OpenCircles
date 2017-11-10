@@ -37,7 +37,11 @@
                         <tr>
                             <td>{{ obj.TransactioID }}</td>
                             <td>{{ obj.TransactionType }}</td>
-                            <td>{{ obj.Response }}</td>
+                            <td>
+                                <textarea rows="3">
+                                    {{ obj.Response }}
+                                </textarea>
+                            </td>
                      </tr>
                     {% endfor %}
                 </tbody>

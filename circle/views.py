@@ -96,18 +96,15 @@ class CircleCreation(APIView):
                     registration_ids = fcm_instance.get_invited_circle_member_token(circle,member)
                     circle_instance = circle_utils.Circle()
                     loan_tariffs = circle_instance.save_loan_tariff(circle,circle_loan_tariff)
-                    if len(registration_ids):
-                        title = circle.circle_name
-                        message = "{} {} invited you to join circle {}.".format(member.user.first_name,member.user.last_name,title)
-                        device =  "multiple"
-                        invited_by = "{} {}".format(request.user.first_name,request.user.last_name)
-                        invited_serializer = InvitedCircleSerializer(circle,context={"invited_by":invited_by})
-                        print(invited_serializer.data)
-                        fcm_data = {"request_type":"NEW_CIRCLE_INVITATION","circle":invited_serializer.data}
-                        fcm_instance.notification_push(device,registration_ids,title,message)
-                        fcm_instance.data_push(device,registration_ids,fcm_data)
-                        print(fcm_data)
-                    data={"status":1,"circle":circle_serializer.data,"wallet_transaction":wallet_serializer.data,"shares_transaction":shares_serializer.data,"message":"Circle created successfully.Circle will be activated when members join."}
+                    # if len(registration_ids):
+                    #     device =  "multiple"
+                    #     invited_by = "{} {}".format(request.user.first_name,request.user.last_name)
+                    #     invited_serializer = InvitedCircleSerializer(circle,context={"invited_by":invited_by})
+                    #     fcm_data = {"request_type":"NEW_CIRCLE_INVITATION","circle":invited_serializer.data}
+                    #     fcm_instance.notification_push(device,registration_ids,title,message)
+                    #     fcm_instance.data_push(device,registration_ids,fcm_data)
+                    #     print(fcm_data)
+                    data={"status":1,"circle":circle_serializer.data,"wallet_transaction":wallet_serializer.data,"shares_transaction":shares_serializer.data,"message":"Circle created successfully.Circle will be activated when atleast four members  join."}
                     return Response(data,status=status.HTTP_201_CREATED)
                 except Exception as e:
                     print(str(e))
@@ -359,8 +356,8 @@ class JoinCircle(APIView):
                     wallet_transaction_code = general_instance.generate_unique_identifier('WTD')
                     shares_transaction_code = general_instance.generate_unique_identifier('STD')
                     wallet_balance = wallet_instance.calculate_wallet_balance(member.wallet) - amount
-                    wallet_desc = "{} confirmed.You have purchased shares worth {} {} in circle {}.New wallet balance is {} {}.".format(wallet_transaction_code, member.currency, amount, circle.circle_name, member.currency, wallet_balance)
-                    shares_desc = "{} confirmed.You have purchased shares worth {} {}".format(shares_transaction_code,member.currency,amount)
+                    wallet_desc = "{} confirmed. You have purchased shares worth {} {} in circle {}. New wallet balance is {} {}.".format(wallet_transaction_code, member.currency, amount, circle.circle_name, member.currency, wallet_balance)
+                    shares_desc = "{} confirmed. You have purchased shares worth {} {}".format(shares_transaction_code, member.currency, amount)
                     circle_instance = circle_utils.Circle()
                     circle_member = CircleMember.objects.create(circle=circle,member=member)
                     created_objects.append(circle_member)
@@ -376,12 +373,11 @@ class JoinCircle(APIView):
                     loan_limit = loan_instance.calculate_loan_limit(circle,member)
                     fcm_instance = fcm_utils.Fcm()
                     old_circle_status = circle.is_active
-                    is_active = True
+                    is_active = old_circle_status
                     if not old_circle_status:
                         new_circle_status = circle_instance.check_update_circle_status(circle)
-                        is_active = False
                         if new_circle_status:
-                            fcm_data = {"request_type":"UPDATE_CIRCLE_STATUS","circle_acc_number":circle.circle_acc_number,"is_active":True}
+                            fcm_data = {"request_type":"UPDATE_CIRCLE_STATUS", "circle_acc_number":circle.circle_acc_number, "is_active":True}
                             is_active = True
                             registration_ids = fcm_instance.get_circle_members_token(circle,None)
                             fcm_instance.data_push("mutiple",registration_ids,fcm_data)
@@ -421,8 +417,8 @@ class CircleInvite(APIView):
         serializer = CircleInviteSerializer(data=request.data)
         if serializer.is_valid():
             circle = Circle.objects.get(circle_acc_number=serializer.validated_data['circle_acc_number'])
-            instance = sms_utils.Sms()
-            phone = instance.format_phone_number(serializer.validated_data['phone_number'])
+            sms_instance = sms_utils.Sms()
+            phone = sms_instance.format_phone_number(serializer.validated_data['phone_number'])
             circle_member = CircleMember.objects.get(member=request.user.member,circle=circle)
             try:
                 invited_circle_member = CircleMember.objects.get(circle=circle,member=Member.objects.filter(phone_number=phone))
@@ -439,7 +435,7 @@ class CircleInvite(APIView):
                     created_objects = []
                     try:
                         member_instance = member_utils.OpenCircleMember()
-                        circle_invite = CircleInvitation.objects.create(phone_number=phone,invited_by=circle_member,is_member=member_instance.get_is_member(phone))
+                        circle_invite = CircleInvitation.objects.create(phone_number=phone, invited_by=circle_member, is_member=member_instance.get_is_member(phone))
                         created_objects.append(circle_invite)
                         try:
                             invited_member = Member.objects.get(phone_number=phone)
@@ -456,11 +452,12 @@ class CircleInvite(APIView):
                                 print(fcm_data)
                             else:
                                 #send sms
-                                message = "{} has invited you to join circle {}.".format(request.user.first_name,circle.circle_name)
+                                message = "{} {} has invited you to join circle {} on Opencircles.".format(request.user.first_name, request.user.last_name, circle.circle_name)
+                                #sms_instance.sendsms(phone, message)
                         except Member.DoesNotExist:
                             #send sms
-                            message = ""
-                            #sms_instance.sendsms(to,message)
+                            message = "{} {} has invited you to join circle {} on Opencircles. Join Opencircles today to be part of the revolutionized community of borrowers and lenders. Opencircles is currently available on google play store.".format(request.user.first_name, request.user.last_name, circle.circle_name)
+                            #sms_instance.sendsms(phone, message)
                         ms ="Invitation to {} has been sent.".format(phone)
                         data = {"status":1,"message":ms}
                     except Exception as e:

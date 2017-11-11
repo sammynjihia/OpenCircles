@@ -135,7 +135,6 @@ class Circle():
 
     def send_circle_invitation(self, circle_invitations):
         for invite in circle_invitations:
-            print("invites")
             circle, member = invite.invited_by.circle, invite.invited_by.member
             if invite.is_member:
                 invited_member = Member.objects.get(phone_number=invite.phone_number)

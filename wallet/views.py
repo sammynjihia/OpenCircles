@@ -402,6 +402,8 @@ class MpesaB2CResultURL(APIView):
                 return Response(data, status=status.HTTP_200_OK)
 
         elif ResultCode == 2 :
+            admin_mpesa_transaction.is_committed = None
+            admin_mpesa_transaction.save()
             instance = fcm_utils.Fcm()
             try:
                 member = Member.objects.get(phone_number=initiatorPhoneNumber)
@@ -422,6 +424,8 @@ class MpesaB2CResultURL(APIView):
             return Response(data, status=status.HTTP_200_OK)
 
         else:
+            admin_mpesa_transaction.is_committed = None
+            admin_mpesa_transaction.save()
             instance = fcm_utils.Fcm()
             try:
                 member = Member.objects.get(phone_number=initiatorPhoneNumber)

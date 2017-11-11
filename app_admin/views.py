@@ -197,21 +197,110 @@ def view_transaction_details(request, transaction_id):
 
 @login_required(login_url='app_admin:login_page')
 def mpesa_transactions(request):
+    mpesa_trx_obj = transactions_utils.TransactionUtils.get_mpesa_transactions_log()
+    mpesa_trx_list = []
+
+    for obj in mpesa_trx_obj:
+        amount = 0
+        try:
+            res_json = json.loads(obj.Response.strip())
+            if obj.TransactionType.strip() == 'C2B':
+                amount = res_json['TransAmount']
+            elif obj.TransactionType.strip() == 'B2C':
+                res_params = res_json['Result']['ResultParameters']['ResultParameter']
+                for param in res_params:
+                    if param['Key'] == 'TransactionAmount':
+                        amount = param['Value']
+                        break
+        except Exception as e:
+            print(str(e))
+            pass
+
+        mpesa_trx_list.append({
+            'transaction_code': obj.TransactioID,
+            'type': obj.TransactionType,
+            'time': obj.transaction_time,
+            'amount': amount,
+            'response': obj.Response
+        })
+
     context = {
-        'transactions': transactions_utils.TransactionUtils.get_mpesa_transactions_log()
+        'transactions': mpesa_trx_list
     }
     return render(request, 'app_admin/mpesa_transactions.html', context)
 
 
 @login_required(login_url='app_admin:login_page')
 def search_for_mpesa_transaction(request):
-    context = {}
+    if request.method == 'POST':
+        transaction_code = request.POST.get('transaction_code').strip()
+        start_date_val = request.POST.get('start_date_val').strip()
+        end_date_val = request.POST.get('end_date_val').strip()
+
+        if len(transaction_code) == 0:
+            transaction_code = None
+        start_date = None
+
+        if start_date_val is not None:
+            try:
+                start_date = datetime.datetime.strptime(start_date_val, '%Y-%m-%d')
+            except Exception as exp:
+                start_date = None
+
+        end_date = None
+        if end_date_val is not None:
+            try:
+                end_date = datetime.datetime.strptime(end_date_val, '%Y-%m-%d')
+            except Exception as exp:
+                end_date = None
+
+        mpesa_trx_obj = transactions_utils.TransactionUtils.search_for_mpesa_transaction(transaction_code, start_date,
+                                                                                      end_date)
+    else:
+        mpesa_trx_obj = transactions_utils.TransactionUtils.get_mpesa_transactions_log()
+
+    if mpesa_trx_obj is None:
+        return render(request, 'app_admin/mpesa_transactions.html', {})
+
+    mpesa_trx_list = []
+
+    for obj in mpesa_trx_obj:
+        amount = 0
+        try:
+            res_json = json.loads(obj.Response.strip())
+            if obj.TransactionType.strip() == 'C2B':
+                amount = res_json['TransAmount']
+            elif obj.TransactionType.strip() == 'B2C':
+                res_params = res_json['Result']['ResultParameters']['ResultParameter']
+                for param in res_params:
+                    if param['Key'] == 'TransactionAmount':
+                        amount = param['Value']
+                        break
+        except Exception as e:
+            print(str(e))
+            pass
+
+        mpesa_trx_list.append({
+            'transaction_code': obj.TransactioID,
+            'type': obj.TransactionType,
+            'time': obj.transaction_time,
+            'amount': amount,
+            'response': obj.Response
+        })
+
+
+
+    context = {
+        'transactions': mpesa_trx_list
+    }
     return render(request, 'app_admin/mpesa_transactions.html', context)
 
 
 @login_required(login_url='app_admin:login_page')
 def loan_applications(request):
-    context = {}
+    context = {
+        'loans': loan_utils.LoanUtils.get_months_loans()
+    }
     template = 'app_admin/loan_applications_list.html'
     return render(request, template, context)
 

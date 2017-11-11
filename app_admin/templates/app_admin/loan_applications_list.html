@@ -1,5 +1,6 @@
 {% extends 'app_admin/base_dashboard.html' %}
 {% load static %}
+{% load humanize %}
 {% block current_page %}
     <i class="fa fa-hand-grab-o"></i> Loan application list
 {% endblock %}
@@ -26,18 +27,40 @@
         <div class="w3-container">
             <table class="w3-table w3-striped">
                 <thead class="w3-grey w3-text-white">
-                    <td>Loan code</td>
-                    <td>Circle</td>
-                    <td>Applicant</td>
-                    <td>Time</td>
-                    <td>Amount</td>
-                    <td>Need guarantors</td>
-                    <td>Is approved</td>
-                    <td>Is disbursed</td>
-                    <td>Is fully repaid</td>
+                    <tr>
+                        <td>Loan code</td>
+                        <td>Circle</td>
+                        <td>Applicant</td>
+                        <td>Time</td>
+                        <td>Amount</td>
+                        <td>Is approved</td>
+                        <td>Is disbursed</td>
+                        <td>Is fully repaid</td>
+                    </tr>
                 </thead>
                 <tbody id="loans-table">
-
+                    {% for obj in loans %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'app_admin:view_loan_application_details' loan_code=obj.loan_code %}">
+                                    {{ obj.loan_code }}
+                                </a>
+                            </td>
+                            <td>{{ obj.circle_member.circle.circle_name }}</td>
+                            <td>
+                                <a href="{% url 'app_admin:view_member_details' member_id=obj.circle_member.member.id %}">
+                                {{ obj.cirlce_member.member.phone_number }}
+                                {{ obj.cirlce_member.member.user.first_name }}
+                                {{ obj.cirlce_member.member.user.last_name }}
+                                </a>
+                            </td>
+                            <td>{{ obj.time_of_application }}</td>
+                            <td>{{ obj.amount|intcomma }}</td>
+                            <td>{{ obj.is_approved }}</td>
+                            <td>{{ obj.is_disbursed }}</td>
+                            <td>{{ obj.is_fully_repaid }}</td>
+                        </tr>
+                    {% endfor %}
                 </tbody>
             </table>
         </div>
@@ -76,7 +99,6 @@
                             + '<td>' + responseObj[i]['applicant'] + '</td>'
                             + '<td>' + responseObj[i]['time'] + '</td>'
                             + '<td>' + responseObj[i]['amount'] + '</td>'
-                            + '<td>' + responseObj[i]['need_guarantors'] + '</td>'
                             + '<td>' + responseObj[i]['is_approved'] + '</td>'
                             + '<td>' + responseObj[i]['is_disbursed'] + '</td>'
                             + '<td>' + responseObj[i]['is_fully_repaid'] + '</td>'

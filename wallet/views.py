@@ -85,8 +85,7 @@ class WallettoWalletTranfer(APIView):
                         data = {"status":0,"message":"Unable to process transaction"}
                         return Response(data,status=status.HTTP_200_OK)
                     instance = fcm_utils.Fcm()
-                    registration_id,title,message = recipient.device_token,"Wallet","%s %s has credited your wallet with %s %s"%(request.user.first_name,request.user.last_name,request.user.member.currency,amount)
-                    instance.notification_push("single",registration_id,title,message)
+                    registration_id = recipient.device_token
                     recipient_wallet_transaction = WalletTransactionsSerializer(recipient_transaction)
                     fcm_data = {"request_type":"WALLET_TO_WALLET_TRANSACTION","wallet_transaction":recipient_wallet_transaction.data}
                     sender_wallet_transaction = WalletTransactionsSerializer(sender_transaction)
@@ -378,6 +377,7 @@ class MpesaB2CResultURL(APIView):
                 RevenueStreams.objects.create(stream_amount=1, stream_type="SMS CHARGES", stream_code=transactionReceipt, time_of_transaction=transactionDateTime)
                 serializer = WalletTransactionsSerializer(mpesa_transactions)
                 instance = fcm_utils.Fcm()
+                registration_id = member.device_token
                 fcm_data = {"request_type": "WALLET_TO_MPESA_TRANSACTION",
                             "transaction": serializer.data}
                 data = {"status": 1, "wallet_transaction": serializer.data}

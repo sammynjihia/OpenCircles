@@ -34,7 +34,6 @@ class Shares():
             if total_circle_shares > 0:
                 circle_shares_fraction = float(format((circle_member_shares/total_circle_shares),'.3f'))
             shares.fraction = circle_shares_fraction
-            # shares.circle_name = c.circle.circle_name
             shares.save()
 
     def get_circle_member_shares_fraction(self,shares,time_constraint,excluded_member):
@@ -42,11 +41,7 @@ class Shares():
             circle_instance = circle_utils.Circle()
             circle, member = shares.circle_member.circle, shares.circle_member.member
             circle_member_shares = circle_instance.get_total_circle_member_shares(circle,member,time_constraint)
-            print("member shares")
-            print(circle_member_shares)
             total_circle_shares = circle_instance.get_total_circle_shares(circle,time_constraint,excluded_member)
-            print("total circle shares")
-            print(total_circle_shares)
             if total_circle_shares > 0:
                 circle_shares_fraction = general_utils.General().get_decimal(circle_member_shares,total_circle_shares)
             else:
@@ -58,14 +53,11 @@ class Shares():
             circle_instance = circle_utils.Circle()
             circle, member = shares.circle_member.circle, shares.circle_member.member
             total_circle_shares = circle_instance.get_total_circle_shares(circle,None,None)
-            print(total_circle_shares)
             circle_members = CircleMember.objects.filter(circle=circle)
             for circle_member in circle_members:
                 shares = circle_member.shares.get()
                 member = circle_member.member
-                print(member.user.first_name)
                 circle_member_shares = circle_instance.get_total_circle_member_shares(circle,member,None)
-                print(circle_member_shares)
                 if total_circle_shares > 0:
                     circle_shares_fraction = float(format((circle_member_shares/total_circle_shares),'.3f'))
                 else:

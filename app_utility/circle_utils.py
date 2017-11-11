@@ -1,4 +1,6 @@
 from django.db.models import Sum
+from django.conf import settings
+
 from member.models import Member
 from circle.models import Circle as CircleModel,CircleMember,CircleInvitation,DeclinedCircles
 from shares.models import Shares,IntraCircleShareTransaction
@@ -30,7 +32,7 @@ class Circle():
 
     def check_update_circle_status(self,circle):
         if not circle.is_active:
-            if CircleMember.objects.filter(circle=circle).count() >= 5:
+            if CircleMember.objects.filter(circle=circle).count() >= settings.MIN_NUM_CIRCLE_MEMBER:
                 circle.is_active=True
                 circle.save()
                 return True
@@ -40,7 +42,6 @@ class Circle():
     def get_invited_circles(self,request,unjoined_circles):
         circles_ids = CircleInvitation.objects.filter(phone_number=request.user.member.phone_number,status="Pending").values_list("invited_by__circle",flat=True)
         invited_circles = CircleModel.objects.filter(id__in = circles_ids)
-        # invited_circles = [circle for circle in circles if circle in unjoined_circles]
         return invited_circles
 
 
@@ -132,32 +133,26 @@ class Circle():
         new_range = re.findall(r'\d+',loan_range)
         return new_range
 
-    def import_func(self):
-        from circle.serializers import InvitedCircleSerializer
-
     def send_circle_invitation(self, circle_invitations):
         for invite in circle_invitations:
-            print("invites")
             circle, member = invite.invited_by.circle, invite.invited_by.member
             if invite.is_member:
                 invited_member = Member.objects.get(phone_number=invite.phone_number)
                 DeclinedCircles.objects.filter(circle=circle,member=invited_member).delete()
                 registration_id = invited_member.device_token
-                print(registration_id)
                 if len(registration_id):
                     fcm_instance = fcm_utils.Fcm()
                     invited_by = "{} {}".format(member.user.first_name,member.user.last_name)
-                    # self.import_func()
                     invited_serializer = serializers.InvitedCircleSerializer(circle,context={"invited_by":invited_by})
                     fcm_data = {"request_type":"NEW_CIRCLE_INVITATION","circle":invited_serializer.data}
                     print(fcm_data)
                     fcm_instance.data_push("single",registration_id,fcm_data)
                 else:
                     #send sms
-                    message = "{} has invited you to join circle {}.".format(member.user.first_name, member.user.last_name, circle.circle_name)
+                    message = "{} {} has invited you to join circle {} on Opencircles.".format(member.user.first_name, member.user.last_name, circle.circle_name)
             else:
                 #send sms
-                message =  ""
+                message =  "{} {} has invited you to join circle {} on Opencircles. Join Opencircles today to be part of the revolutionized community of borrowers and lenders. Opencircles is currently available on google play store.".format(member.user.first_name, member.user.last_name, circle.circle_name)
                 # sms_instance.sendsms(invite.phone_number,message)
             invite.is_sent = True
             invite.save()
@@ -176,10 +171,11 @@ class Circle():
             today = datetime.datetime.now().date()
             if today > date_of_payment:
                 title = "Circle {} account deactivation".format(circle.circle_name)
-                message = "Your account has been deactivated due to late repayment of loan {}. Kindly repay your loan to continue saving, borrowing loans and earning interests from other circle members' loans.".format(loan.loan_code)
+                message = "Your account has been deactivated due to late repayment of loan {}. Kindly repay your loan to continue saving, borrowing and earning interests from other circle members' loans.".format(loan.loan_code)
                 CircleMember.objects.filter(circle=circle,member=member).update(is_active=False)
                 fcm_instance = fcm_utils.Fcm()
                 registration_id = member.device_token
+                curr_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 fcm_data = {"request_type":"SYSTEM_WARNING_MSG","title":title,"message":message,"time":today}
                 fcm_instance.data_push("single", registration_id, fcm_data)
                 fcm_data = {"request_type":"UPDATE_CIRCLE_MEMBER_STATUS", "phone_number":member.phone_number, "circle_acc_number":circle.circle_acc_number, 'is_active':False}

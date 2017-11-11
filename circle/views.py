@@ -92,8 +92,8 @@ class CircleCreation(APIView):
                     wallet_serializer = WalletTransactionsSerializer(wallet_transaction)
                     shares_serializer = SharesTransactionSerializer(shares_transaction)
                     circle_serializer = CircleSerializer(circle,context={'request':request})
-                    fcm_instance = fcm_utils.Fcm()
-                    registration_ids = fcm_instance.get_invited_circle_member_token(circle,member)
+                    # fcm_instance = fcm_utils.Fcm()
+                    # registration_ids = fcm_instance.get_invited_circle_member_token(circle,member)
                     circle_instance = circle_utils.Circle()
                     loan_tariffs = circle_instance.save_loan_tariff(circle,circle_loan_tariff)
                     # if len(registration_ids):

@@ -507,9 +507,7 @@ class MpesaC2BConfirmationURL(APIView):
                                                           transacted_by=transacted_by, transaction_amount=transaction_amount,
                                                           transaction_code=transaction_id,
                                                           source="MPESA C2B")
-        admin_mpesa_transaction = AdminMpesaTransaction_logs(TransactioID=transaction_id, TransactionType='C2B',
-                                                             Response=data, is_committed=True)
-        admin_mpesa_transaction.save()
+        
         message = "{} confirmed. You have successfully credited wallet account {} with {} {} on OPENCIRCLES ".format(transaction_id, wallet_account, member.currency, transaction_amount)
         phonenumber.sendsms(transacted_by_msisdn, message)
         serializer = WalletTransactionsSerializer(mpesa_transactions)

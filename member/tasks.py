@@ -22,8 +22,9 @@ def xsum(numbers):
 
 @shared_task
 def send_frequent_invitations():
-    invite_contacts = Contacts.objects.filter(is_member=False, is_valid=True, invitation_sent=False).values_list('phone_number', flat=True)
-    numbers = ','.join(invite_contacts)
+    invite_contacts = Contacts.objects.filter(is_member=False, is_valid=True, invitation_sent=False)
+    contacts_to_sent = invite_contacts.order_by('phone_number').values_list('phone_number', flat=True).distinct()
+    numbers = ','.join(contacts_to_sent)
     sms = sms_utils.Sms()
     message = "Break Bounderies and explore discovered opportunities with the all new OpenCircles mobile app. A revolutionary way to invest your money. Join now" \
               " and find out why mobile financing will never be the same again. "

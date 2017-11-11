@@ -15,7 +15,7 @@ from rest_framework.reverse import reverse
 
 from .serializers import *
 
-from .models import Transactions,Wallet, B2CTransaction_log, B2BTransaction_log, MpesaTransaction_logs, AdminMpesaTransaction_logs
+from .models import Transactions,Wallet, B2CTransaction_log, B2BTransaction_log, MpesaTransaction_logs, AdminMpesaTransaction_logs, RevenueStreams
 from member.models import Member
 from django.core.exceptions import ValidationError
 
@@ -188,9 +188,9 @@ class WalletToMpesa(APIView):
             validty = wallet_utils.Wallet()
             charges = 0
             if amount >= settings.MIN_MPESA and amount <= 1000:
-                charges = 15
+                charges = 16
             elif amount >= 1001 and amount <= settings.MAX_MPESA:
-                charges = 22
+                charges = 23
             else:
                 data = {"status":0, "message":"Amount must be between KES 100 and 70000"}
                 return Response(data,status=status.HTTP_200_OK)
@@ -352,17 +352,16 @@ class MpesaB2CResultURL(APIView):
             transactionAmount = float(transactionAmount)
             charges = 0
             if transactionAmount >= settings.MIN_MPESA and transactionAmount <= 1000:
-                charges = 15
+                charges = 16
                 transactionAmount += charges
             else:
-                charges = 22
+                charges = 23
                 transactionAmount += charges
             member = None
             created_objects = []
             try:
                 try:
                     member = Member.objects.get(phone_number=initiatorPhoneNumber)
-
                 except Member.DoesNotExist as exp:
                     data = {"status":0, "message":"User does not exist."}
                     return Response(data, status=status.HTTP_200_OK)
@@ -376,6 +375,7 @@ class MpesaB2CResultURL(APIView):
                                                   transaction_desc=transaction_desc,
                                                   transacted_by=wallet.acc_no, transaction_amount=transactionAmount,transaction_code=transactionReceipt, source="MPESA B2C")
                 mpesa_transactions.save()
+                RevenueStreams.objects.create(stream_amount=1, stream_type="SMS CHARGES", stream_code=transactionReceipt, time_of_transaction=transactionDateTime)
                 serializer = WalletTransactionsSerializer(mpesa_transactions)
                 instance = fcm_utils.Fcm()
                 fcm_data = {"request_type": "WALLET_TO_MPESA_TRANSACTION",
@@ -471,10 +471,10 @@ class MpesaC2BConfirmationURL(APIView):
         transaction_amount = float(amount)
         phonenumber = sms_utils.Sms()
         wallet_account = phonenumber.format_phone_number(phone_number)
-
+        admin_mpesa_transaction = AdminMpesaTransaction_logs(TransactioID=transaction_id, TransactionType='C2B', Response=data)
         member = None
         mpesa_transactions = None
-
+        admin_mpesa_transaction.save()
         #Check for existence of member with that wallet account
         try:
             member = Member.objects.get(phone_number=wallet_account)
@@ -499,8 +499,6 @@ class MpesaC2BConfirmationURL(APIView):
         fcm_data = {"request_type": "MPESA_TO_WALLET_TRANSACTION",
                     "transaction": serializer.data}
         instance.data_push("single", registration_id, fcm_data)
-        admin_mpesa_transaction = AdminMpesaTransaction_logs(TransactioID=transaction_id, TransactionType='C2B', Response=data)
-        admin_mpesa_transaction.save()
         data = {"status": 1, "wallet_transaction": serializer.data}
         return Response(data, status=status.HTTP_200_OK)
         #If the member exists then get the member's wallet

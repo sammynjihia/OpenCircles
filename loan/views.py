@@ -105,6 +105,8 @@ class LoanApplication(APIView):
                                                                             ) for guarantor in guarantors]
                                         loan_guarantors = GuarantorRequest.objects.bulk_create(guarantor_objs)
                                         shares_desc = "{} confirmed.Shares worth {} {} locked to guarantee your loan {} of {} {}.".format(shares_transaction_code, member.currency, available_shares, loan_code, member.currency, loan_amount)
+                                        loan.require_guarantors = True
+                                        loan.save()
                                         shares_transaction = IntraCircleShareTransaction.objects.create(shares=shares,transaction_type="LOCKED", num_of_shares=available_shares, transaction_desc=shares_desc, transaction_code=shares_transaction_code)
                                         created_objects.append(shares_transaction)
                                         locked_shares = LockedShares.objects.create(shares_transaction=shares_transaction,loan=loan)

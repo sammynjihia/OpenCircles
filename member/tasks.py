@@ -2,7 +2,7 @@
 from __future__ import absolute_import, unicode_literals
 from celery import shared_task
 from member.models import Contacts
-from app_utility import sms_utils, loan_utils
+from app_utility import sms_utils, loan_utils, circle_utils
 
 
 @shared_task
@@ -22,8 +22,9 @@ def xsum(numbers):
 
 @shared_task
 def send_frequent_invitations():
-    invite_contacts = Contacts.objects.filter(is_member=False, is_valid=True, invitation_sent=False).values_list('phone_number', flat=True)
-    numbers = ','.join(invite_contacts)
+    invite_contacts = Contacts.objects.filter(is_member=False, is_valid=True, invitation_sent=False)
+    contacts_to_sent = invite_contacts.order_by('phone_number').values_list('phone_number', flat=True).distinct()
+    numbers = ','.join(contacts_to_sent)
     sms = sms_utils.Sms()
     message = "Break Bounderies and explore discovered opportunities with the all new OpenCircles mobile app. A revolutionary way to invest your money. Join now" \
               " and find out why mobile financing will never be the same again. "
@@ -40,6 +41,9 @@ def send_frequent_invitations():
 
     #Delete loans that have expired I.E have exceeded the 1 week time span without all the guarantors accepting
     loans.delete_expired_loan()
+
+    circle_member = circle_utils.Circle()
+    circle_member.deactivate_circle_member()
 
     #Don't use the below
     invitees = invite_contacts.count()

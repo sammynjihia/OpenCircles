@@ -70,3 +70,4 @@ class AdminMpesaTransaction_logs(models.Model):
     TransactionType = models.CharField(max_length=15)
     Response = models.TextField(max_length=1000)
     transaction_time = models.DateTimeField(auto_now=True)
+    is_committed = models.NullBooleanField(default=None)

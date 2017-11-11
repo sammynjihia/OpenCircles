@@ -176,59 +176,67 @@ class WalletToMpesa(APIView):
     def post(self, request, *args):
         serializers = WalletToMpesaSerializer(data=request.data)
         phonenumber = sms_utils.Sms()
-        if serializers.is_valid():
-            amount = serializers.validated_data["amount"]
-            pin = serializers.validated_data["pin"]
-            phone_number_raw1 = serializers.validated_data["phone_number"]
-            phone_number_raw = phonenumber.format_phone_number(phone_number_raw1)
-            mpesaAPI = mpesa_api_utils.MpesaUtils()
-            phone_number = phone_number_raw.strip('+')
 
-            validty = wallet_utils.Wallet()
-            charges = 0
-            if amount >= settings.MIN_MPESA and amount <= 1000:
-                charges = 16
-            elif amount >= 1001 and amount <= settings.MAX_MPESA:
-                charges = 23
-            else:
-                data = {"status":0, "message":"Amount must be between KES 100 and 70000"}
-                return Response(data,status=status.HTTP_200_OK)
-            wallet_amount = amount + charges
-            valid, message = validty.validate_account(request, pin, wallet_amount)
-            if valid:
-                try:
-                    result = mpesaAPI.mpesa_b2c_checkout(amount, phone_number)
-                    if "errorCode" in result.keys():
-                        # If errorCode in response, then request not successful, error occured
-                        data = {"status":0, "message": result["errorMessage"] }
-                        return Response(data, status=status.HTTP_200_OK)
+        safaricom_prefices = ['0', '1', '2', '4', '9']
+        number_prefix = phonenumber[5]
+        if number_prefix in safaricom_prefices:
+            if serializers.is_valid():
+                amount = serializers.validated_data["amount"]
+                pin = serializers.validated_data["pin"]
+                phone_number_raw1 = serializers.validated_data["phone_number"]
+                phone_number_raw = phonenumber.format_phone_number(phone_number_raw1)
+                mpesaAPI = mpesa_api_utils.MpesaUtils()
+                phone_number = phone_number_raw.strip('+')
 
-                    elif result["ResponseCode"] == '0' :
-                        # If ResponseCode is 0 then service request was accepted successfully
-                        #log conversation id, senders phone number and recepients phone number in db
-                        OriginatorConversationID = result["OriginatorConversationID"]
-                        senders_PhoneNumber = request.user.member.phone_number
-                        raw_recepient_PhoneNumber = phone_number
-                        recepient_PhoneNumber = "+{}".format(str(raw_recepient_PhoneNumber))
-                        b2c_Transaction_log = B2CTransaction_log(OriginatorConversationID=OriginatorConversationID, Initiator_PhoneNumber= senders_PhoneNumber,
-                                                                 Recipient_PhoneNumber=recepient_PhoneNumber)
-                        b2c_Transaction_log.save()
-                        print (result["ResponseDescription"])
-                        data = {"status": 1, "message": "Your request has been accepted successfully. Wait for m-pesa to process this transaction."}
-                        return Response(data, status=status.HTTP_200_OK)
+                validty = wallet_utils.Wallet()
+                charges = 0
+                if amount >= settings.MIN_MPESA and amount <= 1000:
+                    charges = 16
+                elif amount >= 1001 and amount <= settings.MAX_MPESA:
+                    charges = 23
+                else:
+                    data = {"status":0, "message":"Amount must be between KES 100 and 70000"}
+                    return Response(data,status=status.HTTP_200_OK)
+                wallet_amount = amount + charges
+                valid, message = validty.validate_account(request, pin, wallet_amount)
+                if valid:
+                    try:
+                        result = mpesaAPI.mpesa_b2c_checkout(amount, phone_number)
+                        if "errorCode" in result.keys():
+                            # If errorCode in response, then request not successful, error occured
+                            data = {"status":0, "message": result["errorMessage"] }
+                            return Response(data, status=status.HTTP_200_OK)
 
-                    else:
-                        #If response was unexpected then request not sent, an error occured.
-                        data = {"status": 0, "message": "Sorry! Request not sent"}
+                        elif result["ResponseCode"] == '0' :
+                            # If ResponseCode is 0 then service request was accepted successfully
+                            #log conversation id, senders phone number and recepients phone number in db
+                            OriginatorConversationID = result["OriginatorConversationID"]
+                            senders_PhoneNumber = request.user.member.phone_number
+                            raw_recepient_PhoneNumber = phone_number
+                            recepient_PhoneNumber = "+{}".format(str(raw_recepient_PhoneNumber))
+                            b2c_Transaction_log = B2CTransaction_log(OriginatorConversationID=OriginatorConversationID, Initiator_PhoneNumber= senders_PhoneNumber,
+                                                                     Recipient_PhoneNumber=recepient_PhoneNumber)
+                            b2c_Transaction_log.save()
+                            print (result["ResponseDescription"])
+                            data = {"status": 1, "message": "Your request has been accepted successfully. Wait for m-pesa to process this transaction."}
+                            return Response(data, status=status.HTTP_200_OK)
+
+                        else:
+                            #If response was unexpected then request not sent, an error occured.
+                            data = {"status": 0, "message": "Sorry! Request not sent"}
+                            return Response(data, status=status.HTTP_200_OK)
+                    except Exception as e:
+                        data = {"status":0, "message":"This transaction can not be completed at the moment.Kindly try again later."}
                         return Response(data, status=status.HTTP_200_OK)
-                except Exception as e:
-                    data = {"status":0, "message":"This transaction can not be completed at the moment.Kindly try again later."}
-                    return Response(data, status=status.HTTP_200_OK)
-            data = {"status":0, "message":message}
+                data = {"status":0, "message":message}
+                return Response(data, status=status.HTTP_200_OK)
+
+            data = {"status": 0, "message": serializers.errors}
+            return Response(data, status=status.HTTP_200_OK)
+        else:
+            data = {"status": 0, "message": 'Sorry. We cannot complete the transaction. Kindly provide a registered Safaricom phone number'}
             return Response(data, status=status.HTTP_200_OK)
 
-        data = {"status": 0, "message": serializers.errors}
-        return Response(data, status=status.HTTP_200_OK)
 
 class MpesaCallbackURL(APIView):
     """
@@ -316,7 +324,6 @@ class MpesaCallbackURL1(APIView):
         else:
             data = {"status": 0, "message": "Transaction unsuccessful, something went wrong"}
             return Response(data, status=status.HTTP_200_OK)
-
 
 
 

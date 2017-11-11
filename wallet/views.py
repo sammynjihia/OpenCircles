@@ -177,14 +177,15 @@ class WalletToMpesa(APIView):
         serializers = WalletToMpesaSerializer(data=request.data)
         phonenumber = sms_utils.Sms()
 
-        safaricom_prefices = ['0', '1', '2', '4', '9']
-        number_prefix = phonenumber[5]
-        if number_prefix in safaricom_prefices:
-            if serializers.is_valid():
-                amount = serializers.validated_data["amount"]
-                pin = serializers.validated_data["pin"]
-                phone_number_raw1 = serializers.validated_data["phone_number"]
-                phone_number_raw = phonenumber.format_phone_number(phone_number_raw1)
+
+        if serializers.is_valid():
+            amount = serializers.validated_data["amount"]
+            pin = serializers.validated_data["pin"]
+            phone_number_raw1 = serializers.validated_data["phone_number"]
+            phone_number_raw = phonenumber.format_phone_number(phone_number_raw1)
+            safaricom_prefices = ['0', '1', '2', '4', '9']
+            number_prefix = phone_number_raw[5]
+            if number_prefix in safaricom_prefices:
                 mpesaAPI = mpesa_api_utils.MpesaUtils()
                 phone_number = phone_number_raw.strip('+')
 
@@ -230,12 +231,14 @@ class WalletToMpesa(APIView):
                         return Response(data, status=status.HTTP_200_OK)
                 data = {"status":0, "message":message}
                 return Response(data, status=status.HTTP_200_OK)
+            else:
+                data = {"status": 0,
+                        "message": 'Sorry. We cannot complete the transaction. Kindly provide a registered Safaricom phone number'}
+                return Response(data, status=status.HTTP_200_OK)
 
-            data = {"status": 0, "message": serializers.errors}
-            return Response(data, status=status.HTTP_200_OK)
-        else:
-            data = {"status": 0, "message": 'Sorry. We cannot complete the transaction. Kindly provide a registered Safaricom phone number'}
-            return Response(data, status=status.HTTP_200_OK)
+        data = {"status": 0, "message": serializers.errors}
+        return Response(data, status=status.HTTP_200_OK)
+
 
 
 class MpesaCallbackURL(APIView):

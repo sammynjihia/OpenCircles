@@ -468,14 +468,14 @@ class MpesaC2BConfirmationURL(APIView):
         transacted_by_lastname = result["LastName"].encode()
 
         admin_mpesa_transaction = AdminMpesaTransaction_logs(TransactioID=transaction_id, TransactionType='C2B', Response=data)
-        
+        admin_mpesa_transaction.save()
+
         # Format phone number and convert amount from string to integer
         transaction_amount = float(amount)
         phonenumber = sms_utils.Sms()
         wallet_account = phonenumber.format_phone_number(phone_number)
         member = None
         mpesa_transactions = None
-        admin_mpesa_transaction.save()
         #Check for existence of member with that wallet account
         try:
             member = Member.objects.get(phone_number=wallet_account)

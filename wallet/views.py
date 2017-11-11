@@ -326,6 +326,12 @@ class MpesaB2CResultURL(APIView):
     """
     def post(self, request):
         data = request.body
+        # B2C result url log file. Please do not remove.
+        with open('b2c_resulturl_post_file.txt', 'a') as post_file:
+            post_file.write(data)
+            post_file.write("\n")
+            post_file.write(str(type(data)))
+            post_file.write("\n")
         result = json.loads(data)
 
         B2CResults = result["Result"]
@@ -457,6 +463,12 @@ class MpesaC2BConfirmationURL(APIView):
     """
     def post(self, request):
         data = request.body
+        # C2B result urls log file. Please Do not remove
+        with open('c2b_confirmationurl_post_file.txt', 'a') as post_file:
+            post_file.write(data)
+            post_file.write("\n")
+            post_file.write(str(type(data)))
+            post_file.write("\n")
         result = json.loads(data)
 
         transaction_id = result["TransID"].encode()

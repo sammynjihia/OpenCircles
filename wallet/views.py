@@ -194,7 +194,7 @@ class WalletToMpesa(APIView):
                 if amount >= settings.MIN_MPESA and amount <= 1000:
                     charges = 16
                 elif amount >= 1001 and amount <= settings.MAX_MPESA:
-                    charges = 23
+                    charges = 30
                 else:
                     data = {"status":0, "message":"Amount must be between KES 100 and 70000"}
                     return Response(data,status=status.HTTP_200_OK)
@@ -370,7 +370,7 @@ class MpesaB2CResultURL(APIView):
                 charges = 16
                 transactionAmount += charges
             else:
-                charges = 23
+                charges = 30
                 transactionAmount += charges
             member = None
             created_objects = []
@@ -394,6 +394,11 @@ class MpesaB2CResultURL(APIView):
                 admin_mpesa_transaction.save()
                 RevenueStreams.objects.create(stream_amount=1, stream_type="SMS CHARGES",
                                               stream_code=transactionReceipt, time_of_transaction=datetime.datetime.now())
+                if charges == 30:
+                    RevenueStreams.objects.create(stream_amount=7, stream_type="MPESA WITHDRWAL",
+                                                  stream_code=transactionReceipt,
+                                                  time_of_transaction=datetime.datetime.now())
+
                 serializer = WalletTransactionsSerializer(mpesa_transactions)
                 instance = fcm_utils.Fcm()
                 registration_id = member.device_token

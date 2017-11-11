@@ -343,7 +343,7 @@ class MpesaB2CResultURL(APIView):
         initiatorPhoneNumber = PhoneNumber.Initiator_PhoneNumber
         mpesa_transaction = MpesaTransaction_logs(OriginatorConversationID=OriginatorConversationID, ResultCode=ResultCode, ResultDesc=ResultDesc)
         mpesa_transaction.save()
-        admin_mpesa_transaction = AdminMpesaTransaction_logs(TransactioID=TransactionID, TransactionType='B2C', Response=data)
+        admin_mpesa_transaction = AdminMpesaTransaction_logs(TransactioID=TransactionID, TransactionType='B2C', Response=data, is_committed=False)
         admin_mpesa_transaction.save()
         if ResultCode == 0:
             TransactionID = B2CResults["TransactionID"]
@@ -380,6 +380,9 @@ class MpesaB2CResultURL(APIView):
                                                   transaction_desc=transaction_desc,
                                                   transacted_by=wallet.acc_no, transaction_amount=transactionAmount,transaction_code=transactionReceipt, source="MPESA B2C")
                 mpesa_transactions.save()
+                admin_mpesa_transaction = AdminMpesaTransaction_logs(TransactioID=TransactionID, TransactionType='B2C',
+                                                                     Response=data, is_committed=True)
+                admin_mpesa_transaction.save()
                 RevenueStreams.objects.create(stream_amount=1, stream_type="SMS CHARGES", stream_code=transactionReceipt, time_of_transaction=transactionDateTime)
                 serializer = WalletTransactionsSerializer(mpesa_transactions)
                 instance = fcm_utils.Fcm()
@@ -479,15 +482,14 @@ class MpesaC2BConfirmationURL(APIView):
         transacted_by_firstname = result["FirstName"].encode()
         transacted_by_lastname = result["LastName"].encode()
 
-        admin_mpesa_transaction = AdminMpesaTransaction_logs(TransactioID=transaction_id, TransactionType='C2B', Response=data)
-        
+        admin_mpesa_transaction = AdminMpesaTransaction_logs(TransactioID=transaction_id, TransactionType='C2B', Response=data, is_committed=False)
+        admin_mpesa_transaction.save()
         # Format phone number and convert amount from string to integer
         transaction_amount = float(amount)
         phonenumber = sms_utils.Sms()
         wallet_account = phonenumber.format_phone_number(phone_number)
         member = None
         mpesa_transactions = None
-        admin_mpesa_transaction.save()
         #Check for existence of member with that wallet account
         try:
             member = Member.objects.get(phone_number=wallet_account)
@@ -504,6 +506,9 @@ class MpesaC2BConfirmationURL(APIView):
                                                           transacted_by=wallet.acc_no, transaction_amount=transaction_amount,
                                                           transaction_code=transaction_id,
                                                           source="MPESA C2B")
+        admin_mpesa_transaction = AdminMpesaTransaction_logs(TransactioID=transaction_id, TransactionType='C2B',
+                                                             Response=data, is_committed=True)
+        admin_mpesa_transaction.save()
         message = "{} confirmed. You have successfully credited wallet account {} with {} {} on OPENCIRCLES ".format(transaction_id, wallet_account, member.currency, transaction_amount)
         phonenumber.sendsms(transacted_by_msisdn, message)
         serializer = WalletTransactionsSerializer(mpesa_transactions)

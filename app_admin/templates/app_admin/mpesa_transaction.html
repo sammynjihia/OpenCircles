@@ -52,7 +52,7 @@
                         <tr>
                             <td>Response</td>
                             <td>
-                                <textarea rows="3" style="width: 100%">{{ mpesa_transaction.response }}</textarea>
+                                <textarea rows="8" style="width: 100%">{{ mpesa_transaction.response|pprint }}</textarea>
                             </td>
                         </tr>
                     </table>
@@ -99,10 +99,6 @@
                     <tr>
                         <td>Amount</td>
                         <td>{{ transaction.transaction_amount|intcomma }}</td>
-                    </tr>
-                    <tr>
-                        <td>Current balance</td>
-                        <td>{{ current_balance |intcomma}}</td>
                     </tr>
                 </table>
                 </div>

@@ -245,8 +245,11 @@ def view_mpesa_transaction(request, transaction_code):
 @login_required(login_url='app_admin:login_page')
 def commit_mpesa_transaction(request):
     transaction_code = request.POST.get('transaction_code')
+    mpesa_transaction = transactions_utils.TransactionUtils.get_mpesa_transaction_by_transaction_code(transaction_code)
+    has_been_committed = transactions_utils.TransactionUtils.do_mpesa_wallet_reconciliation_reconciliation(mpesa_transaction)
+
     context = {
-        'mpesa_transaction': '',
+        'mpesa_transaction': transactions_utils.TransactionUtils.get_mpesa_transaction_by_transaction_code(transaction_code),
         'transaction': transactions_utils.TransactionUtils.get_transaction_by_transaction_code(transaction_code)
     }
     return render(request, 'app_admin/mpesa_transaction.html', context)

@@ -150,7 +150,9 @@ def view_member_details(request, member_id):
 
 @login_required(login_url='app_admin:login_page')
 def wallet_transactions(request):
-    context = {}
+    context = {
+        'transactions': transactions_utils.TransactionUtils.get_days_wallet_transactions()
+    }
     return render(request, 'app_admin/wallet_transactions_list.html', context)
 
 
@@ -218,6 +220,7 @@ def mpesa_transactions(request):
 
         mpesa_trx_list.append({
             'transaction_code': obj.TransactioID,
+            'is_committed': obj.is_committed,
             'type': obj.TransactionType,
             'time': obj.transaction_time,
             'amount': amount,
@@ -228,6 +231,25 @@ def mpesa_transactions(request):
         'transactions': mpesa_trx_list
     }
     return render(request, 'app_admin/mpesa_transactions.html', context)
+
+
+@login_required(login_url='app_admin:login_page')
+def view_mpesa_transaction(request, transaction_code):
+    context = {
+        'mpesa_transaction': transactions_utils.TransactionUtils.get_mpesa_transaction_by_transaction_code(transaction_code),
+        'transaction': transactions_utils.TransactionUtils.get_transaction_by_transaction_code(transaction_code)
+    }
+    return render(request, 'app_admin/mpesa_transaction.html', context)
+
+
+@login_required(login_url='app_admin:login_page')
+def commit_mpesa_transaction(request):
+    transaction_code = request.POST.get('transaction_code')
+    context = {
+        'mpesa_transaction': '',
+        'transaction': transactions_utils.TransactionUtils.get_transaction_by_transaction_code(transaction_code)
+    }
+    return render(request, 'app_admin/mpesa_transaction.html', context)
 
 
 @login_required(login_url='app_admin:login_page')
@@ -282,6 +304,7 @@ def search_for_mpesa_transaction(request):
 
         mpesa_trx_list.append({
             'transaction_code': obj.TransactioID,
+            'is_committed': obj.is_committed,
             'type': obj.TransactionType,
             'time': obj.transaction_time,
             'amount': amount,

@@ -1,4 +1,5 @@
 import datetime
+import json
 from member.models import Member
 from wallet.models import Wallet, Transactions, AdminMpesaTransaction_logs
 from django.db.models import Sum
@@ -15,6 +16,13 @@ class TransactionUtils:
             return trx_obj
         except Exception as exp:
             return None
+
+    @staticmethod
+    def get_days_wallet_transactions():
+        trx = Transactions.objects.filter(transaction_time__range=(
+                datetime.datetime.combine(datetime.datetime.today(), datetime.time.min),
+                datetime.datetime.combine(datetime.datetime.today(), datetime.time.max))).order_by('-transaction_time')
+        return trx
 
     @staticmethod
     def search_wallet_transactions(search_val):
@@ -34,6 +42,14 @@ class TransactionUtils:
     @staticmethod
     def get_transaction_by_id(id):
         return Transactions.objects.get(id=id)
+
+    @staticmethod
+    def get_transaction_by_transaction_code(transaction_code):
+        try:
+            Transactions.objects.get(transaction_code=transaction_code)
+        except:
+            return None
+
 
     @staticmethod
     def get_wallet_balance_wallet_id(id):
@@ -86,8 +102,33 @@ class TransactionUtils:
                 datetime.datetime.combine(end_date, datetime.time.max))) \
                 .order_by('-transaction_time')
 
+    @staticmethod
+    def get_mpesa_transaction_by_transaction_code(transaction_code):
+        transaction_obj = AdminMpesaTransaction_logs.objects.get(TransactioID=transaction_code.strip())
+        amount = 0
+        try:
+            res_json = json.loads(transaction_obj.Response.strip())
+            if transaction_obj.TransactionType.strip() == 'C2B':
+                amount = res_json['TransAmount']
+            elif transaction_obj.TransactionType.strip() == 'B2C':
+                res_params = res_json['Result']['ResultParameters']['ResultParameter']
+                for param in res_params:
+                    if param['Key'] == 'TransactionAmount':
+                        amount = param['Value']
+                        break
+        except Exception as e:
+            print(str(e))
+            pass
 
-
+        mpesa_trasaction = {
+            'transaction_code': transaction_obj.TransactioID,
+            'is_committed': transaction_obj.is_committed,
+            'type': transaction_obj.TransactionType,
+            'time': transaction_obj.transaction_time,
+            'amount': amount,
+            'response': transaction_obj.Response
+        }
+        return mpesa_trasaction
 
 
 

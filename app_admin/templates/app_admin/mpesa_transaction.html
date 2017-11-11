@@ -1,0 +1,119 @@
+{% extends 'app_admin/base_dashboard.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block current_page %}
+    <i class="fa fa-mobile-phone"></i> M-PESA Transaction [{{mpesa_transaction.transaction_code }}]
+{% endblock %}
+
+{% block main_container %}
+    <div class="col-sm-9 col-sm-offset-3 col-lg-10 col-lg-offset-2">
+         <br>
+         <div class="w3-container">
+            <div class="panel">
+                <div class="panel-heading border-bottom-blue">
+                    {% if mpesa_transaction.is_committed is false %}
+                        <span class="pull-right">
+                            <form action="{% url 'app_admin:commit_mpesa_transaction' %}" method="post">
+                                 {% csrf_token %}
+                                <input type="hidden" name="transaction_code" value="{{ mpesa_transaction.transaction_code }}"/>
+                                <button type="submit" class="w3-btn w3-red"
+                                        id="commit-mpesa-transaction">
+                                    <i class="fa fa-save"></i>   Commit this transaction
+                                </button>
+                            </form>
+                            <br>
+                        </span>
+                    {% endif %}
+                </div>
+
+                <div class="panel-body w3-container">
+                    <table class="w3-table w3-striped">
+                        <tr>
+                            <td>Time</td>
+                            <td>{{ mpesa_transaction.time }}</td>
+                        </tr>
+                        <tr>
+                            <td>Transaction code</td>
+                            <td>{{ mpesa_transaction.transaction_code }}</td>
+                        </tr>
+                        <tr>
+                            <td>Has been committed</td>
+                            <td>{{ mpesa_transaction.is_committed }}</td>
+                        </tr>
+                        <tr>
+                            <td>Type</td>
+                            <td>{{ mpesa_transaction.type }}</td>
+                        </tr>
+                        <tr>
+                            <td>Amount</td>
+                            <td>{{ mpesa_transaction.amount|intcomma }}</td>
+                        </tr>
+                        <tr>
+                            <td>Response</td>
+                            <td>
+                                <textarea rows="3" style="width: 100%">{{ mpesa_transaction.response }}</textarea>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+                <br>
+            </div>
+
+            <div class="panel">
+                <div class="panel-heading border-bottom-blue">
+                    <span class="center">
+                    <b>Associated transaction</b>
+                    </span>
+                </div>
+                <div class="panel">
+                    <table class="w3-table w3-striped">
+                    <tr>
+                        <td>Type</td>
+                        {% if  transaction.transaction_type == 'CREDIT'%}
+                        <td class="w3-text-green">{{ transaction.transaction_type}}</td>
+                            {% else %}
+                             <td class="w3-text-red">{{ transaction.transaction_type}}</td>
+                        {% endif %}
+                    </tr>
+                    <tr>
+                        <td>Source</td>
+                        <td>{{ transaction.source }}</td>
+                    </tr>
+                    <tr>
+                        <td>Transacted by</td>
+                        <td>{{ transaction.transacted_by }}</td>
+                    </tr>
+                    <tr>
+                        <td>Recipient</td>
+                        <td>{{ transaction.recipient }}</td>
+                    </tr>
+                    <tr>
+                        <td>Time</td>
+                        <td>{{ transaction.transaction_time }}</td>
+                    </tr>
+                    <tr>
+                        <td>Description</td>
+                        <td>{{ transaction.transaction_desc }}</td>
+                    </tr>
+                    <tr>
+                        <td>Amount</td>
+                        <td>{{ transaction.transaction_amount|intcomma }}</td>
+                    </tr>
+                    <tr>
+                        <td>Current balance</td>
+                        <td>{{ current_balance |intcomma}}</td>
+                    </tr>
+                </table>
+                </div>
+            </div>
+          </div>
+         <br>
+    </div>
+{% endblock %}
+
+{% block other_js %}
+    <script>
+        var transaction = Backbone.View.extend({});
+    </script>
+{% endblock %}

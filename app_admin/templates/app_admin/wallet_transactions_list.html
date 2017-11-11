@@ -28,16 +28,28 @@
         <div class="w3-container">
             <table class="w3-table w3-striped">
                 <thead class="w3-grey w3-text-white">
-                    <td>Transaction code</td>
-                    <td>Time</td>
-                    <td>Amount</td>
-                    <td>Type</td>
-                    <td>Source</td>
-                    <td>Transacted by</td>
-                    <td>Recipient</td>
+                    <tr>
+                        <td>Transaction code</td>
+                        <td>Time</td>
+                        <td>Amount</td>
+                        <td>Type</td>
+                        <td>Source</td>
+                        <td>Transacted by</td>
+                        <td>Recipient</td>
+                    </tr>
                 </thead>
                 <tbody id="transactions-table">
-
+                    {% for obj in transactions %}
+                        <tr>
+                            <td>{{ obj.transaction_code }}</td>
+                            <td>{{ obj.transaction_time }}</td>
+                            <td>{{ obj.transaction_amount }}</td>
+                            <td>{{ obj.transaction_type }}</td>
+                            <td>{{ obj.source }}</td>
+                            <td>{{ obj.transacted_by }}</td>
+                            <td>{{ obj.recipient }}</td>
+                        </tr>
+                    {% endfor %}
                 </tbody>
             </table>
         </div>

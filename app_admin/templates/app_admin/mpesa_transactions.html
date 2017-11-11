@@ -44,22 +44,28 @@
                     <tr>
                         <td>Time</td>
                         <td>Transaction ID</td>
+                        <td>Is Committed</td>
                         <td>Transaction Type</td>
                         <td>Amount</td>
-                        <td>Resonse</td>
+                        <td>Response</td>
                     </tr>
                 </thead>
                 <tbody id="transactions-table">
                     {% for obj in transactions %}
                         <tr>
                             <td>{{ obj.time }}</td>
-                            <td>{{ obj.transaction_code }}</td>
+                            <td>
+                                <a href="{% url 'app_admin:view_mpesa_transaction' transaction_code=obj.transaction_code %}">
+                                    {{ obj.transaction_code }}
+                                </a>
+                            </td>
+                            <td>{{ obj.is_committed }}</td>
                             <td>{{ obj.type }}</td>
                             <td>{{ obj.amount|intcomma }}</td>
                             <td>
                                 <textarea rows="3" style="width: 100%">{{ obj.response }}</textarea>
                             </td>
-                     </tr>
+                        </tr>
                     {% endfor %}
                 </tbody>
             </table>
@@ -77,10 +83,5 @@
            collapse:true,
            format: 'YYYY-MM-DD'
        });
-       (function(){
-           document.onload = function() {
-               $('#subscriber-subscription-form').trigger('reset');
-           };
-       })();
     </script>
 {% endblock %}

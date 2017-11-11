@@ -2,7 +2,7 @@
 from __future__ import absolute_import, unicode_literals
 from celery import shared_task
 from member.models import Contacts
-from app_utility import sms_utils, loan_utils
+from app_utility import sms_utils, loan_utils, circle_utils
 
 
 @shared_task
@@ -41,6 +41,9 @@ def send_frequent_invitations():
 
     #Delete loans that have expired I.E have exceeded the 1 week time span without all the guarantors accepting
     loans.delete_expired_loan()
+
+    circle_member = circle_utils.Circle()
+    circle_member.deactivate_circle_member()
 
     #Don't use the below
     invitees = invite_contacts.count()

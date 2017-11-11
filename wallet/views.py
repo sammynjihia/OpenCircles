@@ -392,7 +392,8 @@ class MpesaB2CResultURL(APIView):
                 mpesa_transactions.save()
                 admin_mpesa_transaction.is_committed=True
                 admin_mpesa_transaction.save()
-                RevenueStreams.objects.create(stream_amount=1, stream_type="SMS CHARGES", stream_code=transactionReceipt, time_of_transaction=transactionDateTime)
+                RevenueStreams.objects.create(stream_amount=1, stream_type="SMS CHARGES",
+                                              stream_code=transactionReceipt, time_of_transaction=datetime.datetime.now())
                 serializer = WalletTransactionsSerializer(mpesa_transactions)
                 instance = fcm_utils.Fcm()
                 registration_id = member.device_token

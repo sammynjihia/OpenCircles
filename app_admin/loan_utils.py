@@ -34,6 +34,15 @@ class LoanUtils:
         pass
 
     @staticmethod
+    def get_months_loans():
+        today = datetime.date.today()
+        year = today.year
+        month = today.month
+        loan_objs = LoanApplication.objects.filter(time_of_application__year=year, time_of_application__month=month)\
+            .order_by('-time_of_application')
+        return loan_objs
+
+    @staticmethod
     def search_for_loan(search_val):
         sms = Sms()
         phone_number = sms.format_phone_number(search_val)

@@ -298,7 +298,9 @@ def search_for_mpesa_transaction(request):
 
 @login_required(login_url='app_admin:login_page')
 def loan_applications(request):
-    context = {}
+    context = {
+        'loans': loan_utils.LoanUtils.get_months_loans()
+    }
     template = 'app_admin/loan_applications_list.html'
     return render(request, template, context)
 

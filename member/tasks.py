@@ -29,7 +29,7 @@ def send_frequent_invitations():
     message = "Break Bounderies and explore discovered opportunities with the all new OpenCircles mobile app. A revolutionary way to invest your money. Join now" \
               " and find out why mobile financing will never be the same again. "
     if invite_contacts.exists():
-        # response,unsent = sms.sendmultiplesms(numbers, message)
+        response,unsent = sms.sendmultiplesms(numbers, message)
         if response:
             invite_contacts.exclude(phone_number__in=unsent).update(invitation_sent=True)
     else:
@@ -44,10 +44,4 @@ def send_frequent_invitations():
 
     circle_member = circle_utils.Circle()
     circle_member.deactivate_circle_member()
-
-    #Don't use the below
-    invitees = invite_contacts.count()
-    list_of_numbers = ['254712388212', '254714642293', '254713189107']
-
-    log_message = "{} contacts will receive a message in production mode".format(invitees)
-    return log_message
+    return "Sent messages successfully"

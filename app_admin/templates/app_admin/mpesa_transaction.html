@@ -12,7 +12,7 @@
          <div class="w3-container">
             <div class="panel">
                 <div class="panel-heading border-bottom-blue">
-                    {% if mpesa_transaction.is_committed is false %}
+                    {% if mpesa_transaction.is_committed == False %}
                         <span class="pull-right">
                             <form action="{% url 'app_admin:commit_mpesa_transaction' %}" method="post">
                                  {% csrf_token %}

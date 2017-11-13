@@ -148,12 +148,14 @@ class Circle():
                     print(fcm_data)
                     fcm_instance.data_push("single",registration_id,fcm_data)
                 else:
-                    #send sms
+                    sms_instance = sms_utils.Sms()
                     message = "{} {} has invited you to join circle {} on Opencircles.".format(member.user.first_name, member.user.last_name, circle.circle_name)
+                    sms_instance.sendsms(invite.phone_number,message)
             else:
                 #send sms
-                message =  "{} {} has invited you to join circle {} on Opencircles. Join Opencircles today to be part of the revolutionized community of borrowers and lenders. Opencircles is currently available on google play store.".format(member.user.first_name, member.user.last_name, circle.circle_name)
-                # sms_instance.sendsms(invite.phone_number,message)
+                sms_instance = sms_utils.Sms()
+                message =  "{} {} has invited you to join circle {} on Opencircles platform. Join Opencircles today to be part of the revolutionized community of borrowers and lenders. Opencircles is currently available on google play store http://goo.gl/5KWXhx".format(member.user.first_name, member.user.last_name, circle.circle_name)
+                sms_instance.sendsms(invite.phone_number,message)
             invite.is_sent = True
             invite.save()
 

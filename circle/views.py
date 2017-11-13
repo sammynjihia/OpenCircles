@@ -394,7 +394,7 @@ class JoinCircle(APIView):
                     print(fcm_data)
                     data = {"status":1,"wallet_transaction":wallet_serializer.data,"shares_transaction":shares_serializer.data,"loan_limit":loan_limit,"is_active":is_active}
                     return Response(data,status=status.HTTP_200_OK)
-                except Exception,e:
+                except Exception as e:
                     print(str(e))
                     instance = general_utils.General()
                     instance.delete_created_objects(created_objects)

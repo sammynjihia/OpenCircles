@@ -75,7 +75,11 @@ class CircleCreation(APIView):
                     wallet_desc = "{} confirmed.You have purchased shares worth {} {} in circle {}.New wallet balance is {} {}.".format(wallet_transaction_code, member.currency, minimum_share, circle.circle_name, member.currency, wallet_balance)
                     shares_transaction_code = general_instance.generate_unique_identifier('STD')
                     shares_desc = "{} confirmed.You have purchased shares worth {} {}.".format(shares_transaction_code, member.currency, minimum_share)
-                    wallet_transaction = Transactions.objects.create(wallet=member.wallet,transaction_type="DEBIT",transaction_time=datetime.datetime.now(),transaction_amount=minimum_share,transaction_desc=wallet_desc,recipient=circle.circle_acc_number,transaction_code=wallet_transaction_code)
+                    wallet_transaction = Transactions.objects.create(wallet=member.wallet,transaction_type="DEBIT",
+                                                                     transaction_time=datetime.datetime.now(),
+                                                                     transaction_amount=minimum_share,
+                                                                     transaction_desc=wallet_desc,recipient=circle.circle_acc_number,
+                                                                     transaction_code=wallet_transaction_code, source='shares')
                     created_objects.append(wallet_transaction)
                     shares = Shares.objects.create(circle_member=circle_member)
                     shares_transaction = IntraCircleShareTransaction.objects.create(shares=shares,transaction_type="DEPOSIT",num_of_shares=minimum_share,transaction_desc=shares_desc,recipient=circle_member,transaction_code=shares_transaction_code)

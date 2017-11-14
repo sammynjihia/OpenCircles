@@ -53,7 +53,6 @@ class TransactionUtils:
         except Exception as e:
             return None
 
-
     @staticmethod
     def get_wallet_balance_wallet_id(id):
         wallet = Wallet.objects.get(id=id)
@@ -259,6 +258,52 @@ class TransactionUtils:
                 return False
         else:
             return False
+
+    @staticmethod
+    def get_transactions_by_day_and_source(search_date=None, source=None):
+
+        if search_date is None:
+            search_date = datetime.datetime.today()
+
+        source = source if source is not None else 'MPESA C2B'
+
+        trx_objs = Transactions.objects.filter(transaction_time__range=(
+            datetime.datetime.combine(search_date, datetime.time.min),
+            datetime.datetime.combine(search_date, datetime.time.max)), source__icontains=source).order_by('transaction_time')
+        total = trx_objs.aggregate(total=Sum('transaction_amount'))
+        print(trx_objs)
+        if trx_objs.__len__() is not 0:
+            trx_hr_summation = []
+            current_hr = trx_objs.first().transaction_time.hour
+            for obj in trx_objs:
+
+                if obj.transaction_time.hour is not current_hr or obj is trx_objs.first():
+                    current_hr = obj.transaction_time.hour
+                    hourly_obj = trx_objs.filter(transaction_time__hour=current_hr)\
+                        .aggregate(total=Sum('transaction_amount'))
+                    trx_hr_summation.append({
+                        'hour': current_hr,
+                        'amount': hourly_obj['total'] if hourly_obj['total'] is not None else 0
+                    })
+                else:
+                    continue
+
+            return {
+                'hourly_grouping': trx_hr_summation,
+                'hourly_grouping_json': json.dumps(trx_hr_summation),
+                'transactions': trx_objs,
+                'total_amount': total['total'] if total['total'] is not None else 0,
+                'count_of_transactions': trx_objs.count(),
+                'max_amount': '',
+                'min_amount': '',
+                'avg_amount': '',
+                'date': search_date,
+                'trx_type': source
+            }
+        else:
+            return None
+
+
 
 
 

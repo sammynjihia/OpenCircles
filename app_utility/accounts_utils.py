@@ -19,7 +19,10 @@ class Account():
             for contact in contacts:
                 obj = Contacts.objects.filter(phone_number=contact['phone'],member=user)
                 if not obj.exists():
-                     Contacts.objects.get_or_create(name=contact['name'],phone_number=contact['phone'],member=user,is_member =self.check_membership_status(contact['phone']),is_valid=contact['is_valid'])
+                     is_invited = Contacts.objects.filter(phone_number=contact['phone'], invitation_sent=True).exists()
+                     Contacts.objects.get_or_create(name=contact['name'],phone_number=contact['phone'],member=user,
+                                                    is_member =self.check_membership_status(contact['phone']),
+                                                    is_valid=contact['is_valid'], invitation_sent=is_invited)
 
     def format_contacts(self,contact,instance):
         if len(contact['phone'])>=10:

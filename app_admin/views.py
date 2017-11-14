@@ -63,6 +63,17 @@ def logout_admin(request):
 
 @login_required(login_url='app_admin:login_page')
 def home_page(request):
+    mpesa_c2b =transactions_utils.TransactionUtils.get_transactions_by_day_and_source(datetime.datetime.today(), 'MPESA C2B')
+    mpesa_c2b_total = 0.00
+    mpesa_b2c =transactions_utils.TransactionUtils.get_transactions_by_day_and_source(datetime.datetime.today(), 'MPESA B2C')
+    mpesa_b2c_total = 0.00
+
+    if mpesa_c2b is not None:
+        mpesa_c2b_total = mpesa_c2b['total_amount']
+
+    if mpesa_b2c is not None:
+        mpesa_b2c_total = mpesa_b2c['total_amount']
+
     context = {
         'member': {
             'total_members': members_utils.MemberUtils.get_num_of_members(),
@@ -102,6 +113,10 @@ def home_page(request):
             'revenue': sum([x[0] for x in revenue_streams_utils.RevenueStreamsUtils.get_revenue_streams_by_date()
                            .filter(stream_type__icontains='SHARES')
                            .values_list('stream_amount')])
+        },
+        'wallet_transactions': {
+            'mpesa_c2b': mpesa_c2b_total,
+            'mpesa_b2c': mpesa_b2c_total
         }
     }
     return render(request, 'app_admin/base_dashboard.html', context)
@@ -314,12 +329,23 @@ def search_for_mpesa_transaction(request):
             'response': obj.Response
         })
 
-
-
     context = {
         'transactions': mpesa_trx_list
     }
     return render(request, 'app_admin/mpesa_transactions.html', context)
+
+
+@login_required(login_url='app_admin:login_page')
+def transactions_days_analytics(request):
+    source = ''
+    date = datetime.datetime.today()
+    if request.method == 'POST':
+        search_date = request.POST.get('search_date_val')
+        date = datetime.datetime.strptime(search_date, '%Y-%m-%d')
+        source = request.POST.get('source')
+
+    trx = transactions_utils.TransactionUtils.get_transactions_by_day_and_source(date, source)
+    return render(request, 'app_admin/wallet_transactions_analytics.html', trx)
 
 
 @login_required(login_url='app_admin:login_page')

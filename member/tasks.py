@@ -26,8 +26,8 @@ def send_frequent_invitations():
     contacts_to_sent = invite_contacts.order_by('phone_number').values_list('phone_number', flat=True).distinct()
     numbers = ','.join(contacts_to_sent)
     sms = sms_utils.Sms()
-    message = "Imagine a world where loans are based on trust, where you define your loan's interest rates, where loan interests earned belongs to you and not " \
-              "the banks and cash transfers are absolutely free. This world is now possible with OPENCIRCLES. https://goo.gl/5KWXhx  "
+    message = "OPENCIRCLES is a peer-to-peer credit and savings platform where you can create a circle and invite friends, family and colleagues to join and " \
+              "lend each other. Circle members can then earn interests from the loans repaid. Join now at https://goo.gl/5KWXhx  "
     if invite_contacts.exists():
         pass
         # response,unsent = sms.sendmultiplesms(numbers, message)

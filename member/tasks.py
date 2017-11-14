@@ -26,12 +26,13 @@ def send_frequent_invitations():
     contacts_to_sent = invite_contacts.order_by('phone_number').values_list('phone_number', flat=True).distinct()
     numbers = ','.join(contacts_to_sent)
     sms = sms_utils.Sms()
-    message = "Break Bounderies and explore discovered opportunities with the all new OpenCircles mobile app. A revolutionary way to invest your money. Join now" \
-              " and find out why mobile financing will never be the same again. "
+    message = "OPENCIRCLES is a peer-to-peer credit and savings platform where you can create a circle and invite friends, family and colleagues to join and " \
+              "lend each other. Circle members can then earn interests from the loans repaid. Join now at https://goo.gl/5KWXhx  "
     if invite_contacts.exists():
-        response,unsent = sms.sendmultiplesms(numbers, message)
-        if response:
-            invite_contacts.exclude(phone_number__in=unsent).update(invitation_sent=True)
+        pass
+        # response,unsent = sms.sendmultiplesms(numbers, message)
+        # if response:
+        #     invite_contacts.exclude(phone_number__in=unsent).update(invitation_sent=True)
     else:
         print("No contacts in this table")
 

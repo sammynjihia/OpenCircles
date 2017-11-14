@@ -46,7 +46,6 @@
                 </a>
               </li>
             </ul>
-
             <ul class="user-menu nav-tabs">
               <li>
                 <a class="cursor-pointer w3-text-black" href="{% url 'app_admin:chats' %}"><i class="fa fa-bell-o"></i> Chats </a>
@@ -111,7 +110,7 @@
           </a>
         </li>
         <li>
-          <a class="w3-text-black">
+          <a class="w3-text-black" href="{% url 'app_admin:transactions_days_analytics' %}">
               <i class="fa fa-line-chart"></i>&nbsp;&nbsp;Analytics
           </a>
         </li>
@@ -167,8 +166,34 @@
 	 <div class="col-sm-9 col-sm-offset-3 col-lg-10 col-lg-offset-2 main">
          <br>
          <br>
-         <div class="w3-row" style="height: 300px;">
-          <div class="w3-col l6 m6 s6 w3-card-2 w3-container">
+         <div class="w3-row">
+          <div class="w3-col l12 m12 s12 w3-card-2 w3-container"  style="height: 300px;">
+            <div class="panel-heading border-bottom-blue">
+              <i class="fa fa-arrows-h w3-text-brown"></i> Transactions
+            </div>
+            <div class="w3-row">
+              <div class="w3-col l6 m6 s6 w3-container">
+                <div class="panel-heading w3-small">
+                  <b><i class="fa fa-caret-down fa-2x w3-text-green"></i>&nbsp;&nbsp;M-PESA C2B</b>
+                </div>
+                <div class="panel-heading  w3-small">
+                    {{ wallet_transactions.mpesa_c2b|intcomma}}
+                </div>
+              </div>
+              <div class="w3-col l6 m6 s6 w3-container">
+                <div class="panel-heading w3-small">
+                  <b><i class="fa fa-caret-up fa-2x w3-text-red"></i> &nbsp;&nbsp; M-PESA B2C</b>
+                </div>
+                <div class="panel-heading  w3-small">
+                    {{ wallet_transactions.mpesa_b2c|intcomma }}
+                </div>
+              </div>
+            </div>
+          </div>
+         </div>
+         <br>
+         <div class="w3-row" >
+          <div class="w3-col l6 m6 s6 w3-card-2 w3-container" style="height: 300px;">
             <div class="panel-heading border-bottom-blue">
               <i class="fa fa-users w3-text-blue"></i> Members
             </div>
@@ -186,7 +211,7 @@
               </div>
             </div>
           </div>
-          <div class="w3-col l6 m6 s6 w3-card-2 w3-container">
+          <div class="w3-col l6 m6 s6 w3-card-2 w3-container" style="height: 300px;">
         <div class="panel-heading border-bottom-blue">
           <i class="fa fa-circle-o-notch w3-text-brown"></i> Circles
         </div>
@@ -213,103 +238,103 @@
         </div>
       </div>
      </div>
-     <br>
-     <div class="w3-row" style="height: 300px;">
-      <div class="w3-col l6 m6 s6 w3-card-2 w3-container">
-        <div class="panel-heading border-bottom-blue">
-          <i class="fa fa-hand-paper-o w3-text-red"></i> Loans
-        </div>
-        <div class="panel-heading w3-xlarge" id="loans-applied-div">
-            {{ loan_application.total_loans_applied_today|intcomma }}
-        </div>
-        <div class="w3-row">
-          <div class="w3-col l4 m4 s4 w3-container">
-            <div class="panel-heading w3-small">
-              <b>No. of loans</b>
-            </div>
-            <div class="panel-heading  w3-small" id="num-of-loans-div">
-                {{ loan_application.num_of_loans_today|intcomma }}
-            </div>
-          </div>
+         <br>
+         <div class="w3-row">
+             <div class="w3-col l6 m6 s6 w3-card-2 w3-container" style="height: 300px;">
+                <div class="panel-heading border-bottom-blue">
+                    <i class="fa fa-hand-paper-o w3-text-red"></i> Loans
+                </div>
+                <div class="panel-heading w3-xlarge" id="loans-applied-div">
+                    {{ loan_application.total_loans_applied_today|intcomma }}
+                </div>
+                <div class="w3-row">
+                  <div class="w3-col l4 m4 s4 w3-container">
+                    <div class="panel-heading w3-small">
+                      <b>No. of loans</b>
+                    </div>
+                    <div class="panel-heading  w3-small" id="num-of-loans-div">
+                        {{ loan_application.num_of_loans_today|intcomma }}
+                    </div>
+                  </div>
 
-          <div class="w3-col l4 m4 s4 w3-container">
-            <div class="panel-heading w3-small">
-              <b>Approved loans</b>
-            </div>
-            <div class="panel-heading  w3-small" id="loans-approved-div">
-                {{ loan_application.amount_approved_today|intcomma }}
-            </div>
-          </div>
+                  <div class="w3-col l4 m4 s4 w3-container">
+                    <div class="panel-heading w3-small">
+                      <b>Approved loans</b>
+                    </div>
+                    <div class="panel-heading  w3-small" id="loans-approved-div">
+                        {{ loan_application.amount_approved_today|intcomma }}
+                    </div>
+                  </div>
 
-          <div class="w3-col l4 m4 s4 w3-container">
-            <div class="panel-heading w3-small">
-              <b>Pending</b>
+                  <div class="w3-col l4 m4 s4 w3-container">
+                    <div class="panel-heading w3-small">
+                      <b>Pending</b>
+                    </div>
+                    <div class="panel-heading  w3-small" id="loans-pending-div">
+                        {{ loan_application.amount_pending_approval_today|intcomma }}
+                    </div>
+                  </div>
+                </div>
             </div>
-            <div class="panel-heading  w3-small" id="loans-pending-div">
-                {{ loan_application.amount_pending_approval_today|intcomma }}
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="w3-col l6 m6 s6 w3-card-2 w3-container">
-        <div class="panel-heading border-bottom-blue">
-          <i class="fa fa-money w3-text-green"></i> Loan repayments
-        </div>
-        <div class="panel-heading w3-xlarge" id="loan-repayments-div">
-            {{ loan_repayment.total_loan_repaid_today|intcomma }}
-        </div>
-        <div class="w3-row">
-          <div class="w3-col l6 m6 s6 w3-container">
-            <div class="panel-heading w3-small">
-              <b>No. of loans repaid</b>
-            </div>
-            <div class="panel-heading w3-small" id="num-of-repayments-div">
-                {{ loan_repayment.num_of_repayments|intcomma }}
-            </div>
-          </div>
-          <div class="w3-col l6 m6 s6 w3-container">
-            <div class="panel-heading w3-small">
-              <b>Revenue</b>
-            </div>
-            <div class="panel-heading w3-tiny" id="loans-revenue-div">
-               {{ loan_repayment.revenue|intcomma }}
-            </div>
-          </div>
-        </div>
-  </div>
-     </div>
-     <br>
-     <div class="w3-row" style="height: 300px;">
-      <div class="w3-col l6 m6 s6 w3-card-2 w3-container">
-        <div class="panel-heading border-bottom-blue">
-          <i class="fa fa-arrows-h w3-text-black"></i> Shares withdrawal
-        </div>
-        <div class="panel-heading w3-xlarge" id="loans-applied-div">
-            {{ shares_withdrawal.total_withdrawals_today|intcomma }}
-        </div>
-        <div class="w3-row">
-          <div class="w3-col l6 m6 s6 w3-container">
-            <div class="panel-heading w3-small">
-              <b>No. of withdraws</b>
-            </div>
-            <div class="panel-heading  w3-small" id="num-of-loans-div">
-                {{ shares_withdrawal.num_of_withdrawals|intcomma }}
-            </div>
-          </div>
+             <div class="w3-col l6 m6 s6 w3-card-2 w3-container" style="height: 300px;">
+                <div class="panel-heading border-bottom-blue">
+                  <i class="fa fa-money w3-text-green"></i> Loan repayments
+                </div>
+                <div class="panel-heading w3-xlarge" id="loan-repayments-div">
+                    {{ loan_repayment.total_loan_repaid_today|intcomma }}
+                </div>
+                <div class="w3-row">
+                  <div class="w3-col l6 m6 s6 w3-container">
+                    <div class="panel-heading w3-small">
+                      <b>No. of loans repaid</b>
+                    </div>
+                    <div class="panel-heading w3-small" id="num-of-repayments-div">
+                        {{ loan_repayment.num_of_repayments|intcomma }}
+                    </div>
+                  </div>
+                  <div class="w3-col l6 m6 s6 w3-container">
+                    <div class="panel-heading w3-small">
+                      <b>Revenue</b>
+                    </div>
+                    <div class="panel-heading w3-tiny" id="loans-revenue-div">
+                       {{ loan_repayment.revenue|intcomma }}
+                    </div>
+                  </div>
+                </div>
+             </div >
+         </div>
+         <br>
+         <div class="w3-row">
+              <div class="w3-col l6 m6 s6 w3-card-2 w3-container" style="height: 300px;">
+                <div class="panel-heading border-bottom-blue">
+                  <i class="fa fa-arrows-h w3-text-black"></i> Shares withdrawal
+                </div>
+                <div class="panel-heading w3-xlarge" id="loans-applied-div">
+                    {{ shares_withdrawal.total_withdrawals_today|intcomma }}
+                </div>
+                <div class="w3-row">
+                  <div class="w3-col l6 m6 s6 w3-container">
+                    <div class="panel-heading w3-small">
+                      <b>No. of withdraws</b>
+                    </div>
+                    <div class="panel-heading  w3-small" id="num-of-loans-div">
+                        {{ shares_withdrawal.num_of_withdrawals|intcomma }}
+                    </div>
+                  </div>
 
-          <div class="w3-col l6 m6 s6 w3-container">
-            <div class="panel-heading w3-small">
-              <b>Revenue</b>
-            </div>
-            <div class="panel-heading  w3-small" id="loans-approved-div">
-                {{ shares_withdrawal.revenue|intcomma }}
-            </div>
-          </div>
+                  <div class="w3-col l6 m6 s6 w3-container">
+                    <div class="panel-heading w3-small">
+                      <b>Revenue</b>
+                    </div>
+                    <div class="panel-heading  w3-small" id="loans-approved-div">
+                        {{ shares_withdrawal.revenue|intcomma }}
+                    </div>
+                  </div>
+                </div>
+              </div>
+         </div>
+         <br>
         </div>
-      </div>
-     </div>
-    </div>
-
     {% endblock %}
     {% block default_js%}
         <script src="{% static 'app_admin/jquery/jquery.js' %}"></script>

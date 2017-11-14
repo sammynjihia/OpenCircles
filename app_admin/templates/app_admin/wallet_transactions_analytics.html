@@ -1,0 +1,227 @@
+{% extends 'app_admin/base_dashboard.html' %}
+{% load static %}
+{% load humanize %}
+{% block current_page %}
+    <i class="fa fa-search-plus"></i> Search for transactions
+{% endblock %}
+{% block main_container %}
+     <div class="col-sm-9 col-sm-offset-3 col-lg-10 col-lg-offset-2 main">
+        <div class="container">
+            <br>
+            <form class="form-horizontal" method="post" action="{% url 'app_admin:transactions_days_analytics' %}">
+                {% csrf_token %}
+                  <div class="form-group">
+                    <div class="col-lg-4 col-md-4 col-sm-4">
+                      <input type="text"
+                        class="w3-input w3-text-blue pull-right datepicker-required"
+                        id="search-date-val"
+                        name="search_date_val"
+                        required = 'required'
+                        placeholder="Search date.">
+                    </div>
+                    <div class="col-lg-2 col-md-2 col-sm-2">
+                      <select name="source" required = 'required'>
+                          <option value="MPESA B2C">MPESA B2C</option>
+                          <option value="MPESA C2B">MPESA C2B</option>
+                          <option value="SHARES">SHARES</option>
+                          <option value="LOAN">LOAN</option>
+                      </select>
+                    </div>
+                    <div class="col-lg-2 col-md-2 col-sm-2">
+                      <button class="w3-btn w3-blue-gray pull-left" id="btn-search-for-revenues" type="submit">
+                        <i class="fa fa-search"></i>
+                      </button>
+                    </div>
+                  </div>
+            </form>
+            <br>
+        </div>
+        <div class="container">
+            <div class="w3-container">
+                <b class="w3-text-blue-gray w3-center">{{ trx_type }} transactions for {{ date }} </b>
+            </div>
+            <ul class="nav nav-tabs">
+              <li>
+                <a data-toggle="tab" href="#Wallet-transactions">
+                  <i class="fa fa-list-alt"></i> Transactions listings
+                </a>
+              </li>
+              <li>
+                  <a data-toggle="tab" href="#hourly-groupings">
+                      <i class="fa fa-clock-o"></i> Hourly groupings
+                  </a>
+              </li>
+              <li class="active">
+                <a data-toggle="tab" href="#wallet-analytics">
+                    <i class="fa fa-line-chart"></i> Analytics
+                </a>
+              </li>
+           </ul>
+           <div class="tab-content">
+                <div id="Wallet-transactions" class="tab-pane fade in">
+                    <div class="w3-container">
+                        <table class="w3-table w3-striped">
+                            <thead class="w3-grey w3-text-white">
+                                <tr>
+                                    <td>Transaction code</td>
+                                    <td>Time</td>
+                                    <td>Amount</td>
+                                    <td>Type</td>
+                                    <td>Source</td>
+                                    <td>Transacted by</td>
+                                    <td>Recipient</td>
+                                </tr>
+                            </thead>
+                            <tbody id="transactions-table">
+                                {% for obj in transactions %}
+                                    <tr>
+                                        <td>
+                                            <a href="{% url 'app_admin:view_transaction_details' transaction_id=obj.id %}">
+                                               {{ obj.transaction_code }}
+                                            </a>
+                                        </td>
+                                        <td>{{ obj.transaction_time }}</td>
+                                        <td>{{ obj.transaction_amount }}</td>
+                                        <td>{{ obj.transaction_type }}</td>
+                                        <td>{{ obj.source }}</td>
+                                        <td>{{ obj.transacted_by }}</td>
+                                        <td>{{ obj.recipient }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div id="hourly-groupings" class="tab-pane fade in">
+                    <div class="w3-container">
+                        <table class="w3-table w3-striped">
+                            <thead class="w3-grey w3-text-white">
+                                <tr>
+                                    <td>Hour</td>
+                                    <td>Amount</td>
+                                </tr>
+                            </thead>
+                            <tbody id="transactions-table">
+                                {% for obj in hourly_grouping %}
+                                    <tr>
+                                        <td>{{ obj.hour }} HRS</td>
+                                        <td>{{ obj.amount|intcomma }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div id="wallet-analytics" class="tab-pane fade in active">
+                    <div class="w3-container w3-row">
+                        <div class="w3-col l10 m10 s10 w3-card-2 w3-container"
+                             style="height: 400px" id="transactions-bar-chart">
+                        </div>
+                    </div>
+                    <br>
+                    <div class="w3-row w3-container" style="height: 250px;">
+                      <div class="w3-col l10 m10 s10 w3-card-2 w3-container">
+                        <div class="panel-heading border-bottom-blue w3-text-blue">
+                          <i class="fa fa-line-chart"></i> Analysis on transactions
+                        </div>
+                        <div class="panel-heading w3-xlarge">
+                            {{ total_amount|intcomma }}
+                        </div>
+                        <div class="w3-row">
+                          <div class="w3-col l4 m4 s4 w3-container">
+                            <div class="panel-heading w3-small">
+                              <b>Number of transactions</b>
+                            </div>
+                            <div class="panel-heading  w3-small" id="members-day-reg-num-div">
+                                {{ number_of_transactions|intcomma }}
+                            </div>
+                          </div>
+                          <div class="w3-col l4 m4 s4 w3-container">
+                            <div class="panel-heading w3-small">
+                              <b>Highest</b>
+                            </div>
+                            <div class="panel-heading  w3-small" id="members-day-reg-num-div">
+                                {{ max_amount|intcomma }}
+                            </div>
+                          </div>
+                          <div class="w3-col l4 m4 s4 w3-container">
+                            <div class="panel-heading w3-small">
+                              <b>Lowest</b>
+                            </div>
+                            <div class="panel-heading  w3-small" id="members-day-reg-num-div">
+                                {{ min_amount|intcomma }}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <br>
+        <br>
+     </div>
+{% endblock %}
+
+{% block other_js %}
+    <script src="{% static 'app_admin/bootstrapdatetimepicker/transition.min.js' %}"></script>
+    <script src="{% static 'app_admin/bootstrapdatetimepicker/moment.min.js' %}"></script>
+    <script src="{% static 'app_admin/bootstrapdatetimepicker/bootstrap-datetimepicker.min.js' %}"></script>
+
+    <script src="{% static 'app_admin/Highcharts/code/highcharts.js' %}"></script>
+    <script src="{% static 'app_admin/Highcharts/code/modules/exporting.js' %}"></script>
+    <script>
+        $('.datepicker-required').datetimepicker({
+            sideBySide:true,
+            collapse:true,
+            format: 'YYYY-MM-DD'
+        });
+    </script>
+    <script>
+        String.prototype.replaceAll = function(search, replacement) {
+            var target = this;
+            return target.split(search).join(replacement);
+        };
+
+        var raw_hourly_data = '{{ hourly_grouping }}'.replaceAll("&#39;", "\"").replaceAll(": u", ":");
+        try{
+                var data_obj = $.parseJSON(raw_hourly_data);
+                var categories = [];
+                var data = [];
+                for(var i = 0; i < data_obj.length; i++){
+                    categories.push(data_obj[i]['hour']+' HRS');
+                    data.push(parseFloat(data_obj[i]['amount']));
+                }
+                PlotBars(categories, [{name:'Hourly Transactions', data:data}])
+            }catch(exp){}
+
+        function  PlotBars(categories, series){
+              Highcharts.chart('transactions-bar-chart', {
+                chart: {
+                    type: 'column'
+                },
+                title: {
+                    text: ' '
+                },
+                xAxis: {
+                    categories: categories,
+                    crosshair: true
+                },
+                yAxis: {
+                    min: 0,
+                    title: {
+                        text: 'Amount'
+                    }
+                },
+                plotOptions: {
+                    column: {
+                        pointPadding: 0.2,
+                        borderWidth: 0
+                    }
+                },
+                series:series
+        });
+    }
+
+    </script>
+{% endblock %}

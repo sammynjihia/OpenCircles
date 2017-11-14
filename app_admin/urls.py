@@ -19,6 +19,7 @@ urlpatterns = [
     url(r'^search_for_mpesa_transaction$', views.search_for_mpesa_transaction, name='search_for_mpesa_transaction'),
     url(r'^view_mpesa_transaction/(?P<transaction_code>[A-Za-z0-9]+)/$', views.view_mpesa_transaction, name='view_mpesa_transaction'),
     url(r'^commit_mpesa_transaction$', views.commit_mpesa_transaction, name='commit_mpesa_transaction'),
+    url(r'^transactions_days_analytics$', views.transactions_days_analytics, name='transactions_days_analytics'),
     url(r'^loan_applications$', views.loan_applications, name='loan_applications'),
     url(r'^search_for_loan_applications$', views.search_for_loan_applications, name='search_for_loan_applications'),
     url(r'^view_loan_application_details/(?P<loan_code>[A-Za-z0-9]+)/$', views.view_loan_application_details,
@@ -30,7 +31,8 @@ urlpatterns = [
     url(r'^view_circle_details/(?P<circle_id>[A-Za-z0-9]+)/$', views.view_circle_details,
         name='view_circle_details'),
     url(r'^get_revenue_streams$', views.get_revenue_streams,  name='get_revenue_streams'),
-    url(r'^search_revenue_stream_by_date$',  views.search_revenue_stream_by_date, name='search_revenue_stream_by_date')
+    url(r'^search_revenue_stream_by_date$',  views.search_revenue_stream_by_date, name='search_revenue_stream_by_date'),
+
 
 ]
 

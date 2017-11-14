@@ -63,7 +63,7 @@
                             <td>{{ obj.type }}</td>
                             <td>{{ obj.amount|intcomma }}</td>
                             <td>
-                                <textarea rows="3" style="width: 100%">{{ obj.response }}</textarea>
+                                <textarea rows="3" style="width: 100%">{{ obj.response|pprint }}</textarea>
                             </td>
                         </tr>
                     {% endfor %}

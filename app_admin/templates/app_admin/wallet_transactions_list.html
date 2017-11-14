@@ -41,7 +41,11 @@
                 <tbody id="transactions-table">
                     {% for obj in transactions %}
                         <tr>
-                            <td>{{ obj.transaction_code }}</td>
+                            <td>
+                                <a href="{% url 'app_admin:view_transaction_details' transaction_id=obj.id %}">
+                                   {{ obj.transaction_code }}
+                                </a>
+                            </td>
                             <td>{{ obj.transaction_time }}</td>
                             <td>{{ obj.transaction_amount }}</td>
                             <td>{{ obj.transaction_type }}</td>

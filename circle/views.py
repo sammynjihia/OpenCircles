@@ -460,7 +460,7 @@ class CircleInvite(APIView):
                                 sms_instance.sendsms(phone, message)
                         except Member.DoesNotExist:
                             #send sms
-                            message = "{} {} has invited you to join circle {} on Opencircles. Join Opencircles today to be part of the revolutionized community of borrowers and lenders. Opencircles is currently available on google play store.".format(request.user.first_name, request.user.last_name, circle.circle_name)
+                            message = "{} {} has invited you to join circle {} on Opencircles. Join Opencircles today and be part of the revolutionized community of borrowers and lenders. Get it on https://goo.gl/5KWXhx ".format(request.user.first_name, request.user.last_name, circle.circle_name)
                             sms_instance.sendsms(phone, message)
                         ms ="Invitation to {} has been sent.".format(phone)
                         data = {"status":1,"message":ms}

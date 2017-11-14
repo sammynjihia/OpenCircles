@@ -29,9 +29,10 @@ def send_frequent_invitations():
     message = "Imagine a world where loans are based on trust, where you define your loan's interest rates, where loan interests earned belongs to you and not " \
               "the banks and cash transfers are absolutely free. This world is now possible with OPENCIRCLES. https://goo.gl/5KWXhx  "
     if invite_contacts.exists():
-        response,unsent = sms.sendmultiplesms(numbers, message)
-        if response:
-            invite_contacts.exclude(phone_number__in=unsent).update(invitation_sent=True)
+        pass
+        # response,unsent = sms.sendmultiplesms(numbers, message)
+        # if response:
+        #     invite_contacts.exclude(phone_number__in=unsent).update(invitation_sent=True)
     else:
         print("No contacts in this table")
 

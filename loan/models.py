@@ -52,6 +52,7 @@ class GuarantorRequest(models.Model):
     has_accepted = models.NullBooleanField(choices=GUARANTOR_CHOICES, default=None)
     time_accepted = models.DateTimeField(null=True)
     unlocked = models.BooleanField(default=False)
+    estimated_earning = models.FloatField(default=0)
 
     class Meta:
         db_table = 'GuarantorRequest'

@@ -38,27 +38,14 @@ class General():
 		rem = nume%deno
 		rem_list = []
 		while rem != 0:
-			if rem not in rem_list:
-				if len(res) == 4:
-					rem = 0
-					break
-				rem_list.append(rem)
-				rem = rem * 10
-				resp_part = int(rem/deno)
-				res += str(resp_part)
-				rem = rem%deno
-				print(res)
-
-			else:
-				rem = rem * 10
-				resp_part = int(rem/deno)
-				res += str(resp_part)
-				print(res)
-				rem = 1
+			if len(res) == 4:
 				break
-		if rem:
-			dec = whole + res[0:2]
-		else:
-			dec = whole + res
-		dec = round(float(dec),2)
+			rem_list.append(rem)
+			rem = rem * 10
+			resp_part = int(rem/deno)
+			res += str(resp_part)
+			rem = rem%deno
+
+		dec = whole + res
+		dec = float(dec)
 		return dec

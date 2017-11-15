@@ -44,19 +44,13 @@ class MemberRegistration(APIView):
         if serializer.is_valid():
             try:
                 created_objects = []
-                try:
-                    new_member = serializer.save()
-                except IntegrityError as e:
-                    print(str(e))
-                    data = {"status":0,"message":"User with email address already exists"}
-                    return Response(data, status=status.HTTP_200_OK)
+                new_member = serializer.save()
                 created_objects.append(new_member.user)
                 token = Token.objects.create(user=new_member.user)
                 new_member.is_validated = True
                 new_member.save()
-                wallet = Wallet.objects.create(member=new_member, acc_no=new_member.national_id)
+                Wallet.objects.create(member=new_member, acc_no=new_member.national_id)
                 save_member_contacts.delay(new_member.id, contacts)
-                accounts_utils.Account().save_contacts(new_member,contacts)
                 login(request, new_member.user)
                 data = {"status":1, "token":token.key}
                 return Response(data, status=status.HTTP_201_CREATED)
@@ -94,7 +88,6 @@ class LoginIn(APIView):
                     user.member.save()
                     token, created = Token.objects.get_or_create(user=user)
                     serializer = MemberSerializer(request.user.member)
-                    print(serializer.data)
                     data = {"status":1, "token":token.key, "member":serializer.data}
                     return Response(data, status=status.HTTP_200_OK)
                 else:
@@ -152,9 +145,13 @@ class PhoneNumberConfirmation(APIView):
         instance = sms_utils.Sms()
         request.data["phone"] = instance.format_phone_number(request.data["phone"])
         request.data._mutable = mutable
-        serializer = PhoneNumberSerializer(data=request.data)
+        serializer = EmailPhoneNumberSerializer(data=request.data)
         if serializer.is_valid():
             phone_number = serializer.validated_data.get("phone_number")
+            email = serializer.validated_data.get("email")
+            if User.objects.filter(email=email).exists():
+                data = {"status": 0, "message": "User with email address already exists."}
+                return Response(data, status=status.HTTP_200_OK)
             code = random.randint(1111, 9999)
             message = "Your confirmation code is {}".format(code)
             t = threading.Thread(target=instance.sendsms, args=(phone_number, message))

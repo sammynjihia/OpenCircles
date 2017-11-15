@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from loan.models import LoanApplication,LoanTariff,LoanRepayment,LoanAmortizationSchedule,GuarantorRequest
 from circle.models import Circle
+from app_utility import loan_utils
 
 
 class LoanApplicationSerializer(serializers.Serializer):
@@ -176,7 +177,6 @@ class UnprocessedGuarantorRequestSerializer(serializers.ModelSerializer):
     amount = serializers.IntegerField(source='num_of_shares')
     num_of_months = serializers.SerializerMethodField()
     rating = serializers.SerializerMethodField()
-    estimated_earning = serializers.SerializerMethodField()
 
     class Meta:
         model = GuarantorRequest
@@ -202,7 +202,4 @@ class UnprocessedGuarantorRequestSerializer(serializers.ModelSerializer):
             return 0
 
     def get_rating(self,guarantor):
-        return 30
-
-    def get_estimated_earning(self,guarantor):
-        return 500
+        return loan_utils.Loan().calculate_circle_member_loan_rating(self, guarantor.loan.circle_member.member)

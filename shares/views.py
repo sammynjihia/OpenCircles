@@ -46,8 +46,8 @@ class PurchaseShares(APIView):
             if circle.is_active:
                 circle_member = CircleMember.objects.get(circle=circle,member=member)
                 if circle_member.is_active:
-                    if amount < settings.MININIMUM_CIRCLE_SHARES:
-                        data = {"status":0,"message":"The allowed minimum purchased shares is KES {}".format(settings.MININIMUM_CIRCLE_SHARES)}
+                    if amount < settings.MIN_SUBSEQUENT_SHARES:
+                        data = {"status":0,"message":"The allowed minimum purchased shares is KES {}".format(settings.MIN_SUBSEQUENT_SHARES)}
                         return Response(data,status=status.HTTP_200_OK)
                     valid,response = shares_utils.Shares().validate_purchased_shares(amount, circle, member)
                     if valid:

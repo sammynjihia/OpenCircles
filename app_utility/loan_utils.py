@@ -243,8 +243,8 @@ class Loan():
                     amount = float(guarantor.fraction_guaranteed * guarantors_interest)
                     amount_str = str(amount).split('.')
                     whole, dec = amount_str[0], amount_str[1]
-                    if dec > 2:
-                        dec = dec[0:2]
+                    if dec > 4:
+                        dec = dec[0:4]
                         new_amount = whole + "." + dec
                         amount = float(new_amount)
                     wallet_instance = wallet_utils.Wallet()
@@ -273,8 +273,8 @@ class Loan():
                 amount = float(circle_member_interest * fraction)
                 amount_str = str(amount).split('.')
                 whole, dec = amount_str[0], amount_str[1]
-                if dec > 2:
-                    dec = dec[0:2]
+                if dec > 4:
+                    dec = dec[0:4]
                     new_amount = whole + "." + dec
                     amount = float(new_amount)
                 wallet_instance = wallet_utils.Wallet()
@@ -314,6 +314,8 @@ class Loan():
             loan = guarantor.loan
             guarantor_available_shares = circle_instance.get_guarantor_available_shares(circle, guarantor_member)
             estimated_earning = guarantors_interest*guarantor.fraction_guaranteed
+            guarantor.estimated_earning = estimated_earning
+            guarantor.save()
             rating = self.calculate_circle_member_loan_rating(member)
             fcm_instance = fcm_utils.Fcm()
             fcm_data = {"request_type":"UPDATE_AVAILABLE_SHARES","circle_acc_number":circle.circle_acc_number,"phone_number":guarantor_member.phone_number,"available_shares":guarantor_available_shares}

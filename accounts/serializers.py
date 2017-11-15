@@ -45,6 +45,16 @@ class PhoneNumberSerializer(serializers.ModelSerializer):
         model = Member
         fields = ['phone']
 
+class EmailPhoneNumberSerializer(serializers.ModelSerializer):
+    """
+    Serializer for phone number confirmation endpoint
+    """
+    phone = serializers.CharField(source='phone_number',validators=[UniqueValidator(queryset=Member.objects.all(),message="User with phone number already exists")])
+    email = serializers.CharField()
+    class Meta:
+        model = Member
+        fields = ['phone','email']
+
 class ChangePasswordSerializer(serializers.Serializer):
     """
     Serializer for change password endpoint

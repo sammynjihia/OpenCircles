@@ -30,7 +30,7 @@ def login_admin(request):
     password = request.POST.get('password')
     username = request.POST.get('username')
     return_data = {}
-    user = User.objects.get(username=username)
+    user = User.objects.get(username=username, is_superuser=True, is_staff=True)
 
     if user.is_active is False:
         return_data['STATUS'] = '0'

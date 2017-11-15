@@ -32,12 +32,15 @@ class MemberSerializer(serializers.ModelSerializer):
             # image = File(f)
             # data = base64.b64encode(image.read())
             # f.close()
-            with open(member.passport_image.path, "rb") as image_file:
-                encoded_string = base64.b64encode(image_file.read())
-            with open('image_file.txt', 'w') as post_file:
-                post_file.write(str(encoded_string))
-            print(encoded_string)
-            return encoded_string
+            try:
+                with open(member.passport_image.path, "rb") as image_file:
+                    encoded_string = base64.b64encode(image_file.read())
+                with open('image_file.txt', 'w') as post_file:
+                    post_file.write(str(encoded_string))
+                print(encoded_string)
+                return encoded_string
+            except Exception as exp:
+                return ''
         else:
             return ''
 

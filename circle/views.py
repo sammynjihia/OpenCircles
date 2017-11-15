@@ -346,65 +346,69 @@ class JoinCircle(APIView):
         if serializer.is_valid():
             acc_number,amount,pin = serializer.validated_data['circle_acc_number'],serializer.validated_data['amount'],serializer.validated_data['pin']
             circle = Circle.objects.get(circle_acc_number=acc_number)
-            if amount < circle.minimum_share:
-                data = {"status":0,"message":"The allowed minimum shares for circle {} is KES {}".format(circle.circle_name, circle.minimum_share)}
+            circle_members_count = CircleMember.objects.filter(circle=circle).count()
+            if circle_members_count > settings.MAX_CIRCLE_MEMBER:
+                if amount < circle.minimum_share:
+                    data = {"status":0,"message":"The allowed minimum shares for circle {} is KES {}".format(circle.circle_name, circle.minimum_share)}
+                    return Response(data,status=status.HTTP_200_OK)
+                wallet_instance = wallet_utils.Wallet()
+                valid,response = wallet_instance.validate_account(request,pin,amount)
+                if valid:
+                    created_objects = []
+                    try:
+                        loan_instance = loan_utils.Loan()
+                        general_instance = general_utils.General()
+                        member = request.user.member
+                        wallet_transaction_code = general_instance.generate_unique_identifier('WTD')
+                        shares_transaction_code = general_instance.generate_unique_identifier('STD')
+                        wallet_balance = wallet_instance.calculate_wallet_balance(member.wallet) - amount
+                        wallet_desc = "{} confirmed. You have purchased shares worth {} {} in circle {}. New wallet balance is {} {}.".format(wallet_transaction_code, member.currency, amount, circle.circle_name, member.currency, wallet_balance)
+                        shares_desc = "{} confirmed. You have purchased shares worth {} {}".format(shares_transaction_code, member.currency, amount)
+                        circle_instance = circle_utils.Circle()
+                        circle_member = CircleMember.objects.create(circle=circle,member=member)
+                        created_objects.append(circle_member)
+                        wallet_transaction = Transactions.objects.create(wallet=request.user.member.wallet,transaction_type="DEBIT",transaction_time=datetime.datetime.now(),transaction_amount=amount,transaction_desc=wallet_desc,recipient=circle.circle_acc_number,transaction_code=wallet_transaction_code)
+                        created_objects.append(wallet_transaction)
+                        shares = Shares.objects.create(circle_member=circle_member)
+                        shares_transaction =IntraCircleShareTransaction.objects.create(shares=shares,transaction_type="DEPOSIT",recipient=circle_member,transaction_time=datetime.datetime.now(),transaction_desc=shares_desc,num_of_shares=amount,transaction_code=shares_transaction_code)
+                        available_shares = circle_instance.get_guarantor_available_shares(circle,member)
+                        CircleInvitation.objects.filter(phone_number=member.phone_number,invited_by__circle=circle).delete()
+                        wallet_serializer = WalletTransactionsSerializer(wallet_transaction)
+                        shares_serializer = SharesTransactionSerializer(shares_transaction)
+                        circle_member_serializer = UnloggedCircleMemberSerializer(member,context={"circle":circle})
+                        loan_limit = loan_instance.calculate_loan_limit(circle,member)
+                        fcm_instance = fcm_utils.Fcm()
+                        old_circle_status = circle.is_active
+                        is_active = old_circle_status
+                        if not old_circle_status:
+                            new_circle_status = circle_instance.check_update_circle_status(circle)
+                            if new_circle_status:
+                                fcm_data = {"request_type":"UPDATE_CIRCLE_STATUS", "circle_acc_number":circle.circle_acc_number, "is_active":True}
+                                is_active = True
+                                registration_ids = fcm_instance.get_circle_members_token(circle,None)
+                                fcm_instance.data_push("mutiple",registration_ids,fcm_data)
+                                print(fcm_data)
+                                # title = "Circle {}".format(circle.circle_name)
+                                # message = "Circle {} has been activated.You can now purchase shares,apply for loan and earn interest on loan repayments.".format(circle.circle_name)
+                                # fcm_instance.notification_push("multiple",registration_ids,title,message)
+                        # unblock task
+                        updating_loan_limit(circle.id,member.id)
+                        #loan_instance.update_loan_limit(circle,member)
+                        fcm_data = {"request_type":"NEW_CIRCLE_MEMBERSHIP","circle_acc_number":circle.circle_acc_number,"circle_member":circle_member_serializer.data}
+                        registration_ids = fcm_instance.get_circle_members_token(circle,member)
+                        fcm_instance.data_push("mutiple",registration_ids,fcm_data)
+                        print(fcm_data)
+                        data = {"status":1,"wallet_transaction":wallet_serializer.data,"shares_transaction":shares_serializer.data,"loan_limit":loan_limit,"is_active":is_active}
+                        return Response(data,status=status.HTTP_200_OK)
+                    except Exception as e:
+                        print(str(e))
+                        instance = general_utils.General()
+                        instance.delete_created_objects(created_objects)
+                        data = {"status":0,"message":"Unable to add member to circle"}
+                        return Response(data,status=status.HTTP_200_OK)
+                data = {"status":0,"message":response}
                 return Response(data,status=status.HTTP_200_OK)
-            wallet_instance = wallet_utils.Wallet()
-            valid,response = wallet_instance.validate_account(request,pin,amount)
-            if valid:
-                created_objects = []
-                try:
-                    loan_instance = loan_utils.Loan()
-                    general_instance = general_utils.General()
-                    member = request.user.member
-                    wallet_transaction_code = general_instance.generate_unique_identifier('WTD')
-                    shares_transaction_code = general_instance.generate_unique_identifier('STD')
-                    wallet_balance = wallet_instance.calculate_wallet_balance(member.wallet) - amount
-                    wallet_desc = "{} confirmed. You have purchased shares worth {} {} in circle {}. New wallet balance is {} {}.".format(wallet_transaction_code, member.currency, amount, circle.circle_name, member.currency, wallet_balance)
-                    shares_desc = "{} confirmed. You have purchased shares worth {} {}".format(shares_transaction_code, member.currency, amount)
-                    circle_instance = circle_utils.Circle()
-                    circle_member = CircleMember.objects.create(circle=circle,member=member)
-                    created_objects.append(circle_member)
-                    wallet_transaction = Transactions.objects.create(wallet=request.user.member.wallet,transaction_type="DEBIT",transaction_time=datetime.datetime.now(),transaction_amount=amount,transaction_desc=wallet_desc,recipient=circle.circle_acc_number,transaction_code=wallet_transaction_code)
-                    created_objects.append(wallet_transaction)
-                    shares = Shares.objects.create(circle_member=circle_member)
-                    shares_transaction =IntraCircleShareTransaction.objects.create(shares=shares,transaction_type="DEPOSIT",recipient=circle_member,transaction_time=datetime.datetime.now(),transaction_desc=shares_desc,num_of_shares=amount,transaction_code=shares_transaction_code)
-                    available_shares = circle_instance.get_guarantor_available_shares(circle,member)
-                    CircleInvitation.objects.filter(phone_number=member.phone_number,invited_by__circle=circle).delete()
-                    wallet_serializer = WalletTransactionsSerializer(wallet_transaction)
-                    shares_serializer = SharesTransactionSerializer(shares_transaction)
-                    circle_member_serializer = UnloggedCircleMemberSerializer(member,context={"circle":circle})
-                    loan_limit = loan_instance.calculate_loan_limit(circle,member)
-                    fcm_instance = fcm_utils.Fcm()
-                    old_circle_status = circle.is_active
-                    is_active = old_circle_status
-                    if not old_circle_status:
-                        new_circle_status = circle_instance.check_update_circle_status(circle)
-                        if new_circle_status:
-                            fcm_data = {"request_type":"UPDATE_CIRCLE_STATUS", "circle_acc_number":circle.circle_acc_number, "is_active":True}
-                            is_active = True
-                            registration_ids = fcm_instance.get_circle_members_token(circle,None)
-                            fcm_instance.data_push("mutiple",registration_ids,fcm_data)
-                            print(fcm_data)
-                            # title = "Circle {}".format(circle.circle_name)
-                            # message = "Circle {} has been activated.You can now purchase shares,apply for loan and earn interest on loan repayments.".format(circle.circle_name)
-                            # fcm_instance.notification_push("multiple",registration_ids,title,message)
-                    # unblock task
-                    updating_loan_limit(circle.id,member.id)
-                    #loan_instance.update_loan_limit(circle,member)
-                    fcm_data = {"request_type":"NEW_CIRCLE_MEMBERSHIP","circle_acc_number":circle.circle_acc_number,"circle_member":circle_member_serializer.data}
-                    registration_ids = fcm_instance.get_circle_members_token(circle,member)
-                    fcm_instance.data_push("mutiple",registration_ids,fcm_data)
-                    print(fcm_data)
-                    data = {"status":1,"wallet_transaction":wallet_serializer.data,"shares_transaction":shares_serializer.data,"loan_limit":loan_limit,"is_active":is_active}
-                    return Response(data,status=status.HTTP_200_OK)
-                except Exception as e:
-                    print(str(e))
-                    instance = general_utils.General()
-                    instance.delete_created_objects(created_objects)
-                    data = {"status":0,"message":"Unable to add member to circle"}
-                    return Response(data,status=status.HTTP_200_OK)
-            data = {"status":0,"message":response}
+            data = {"status":0,"message":"Unable to join circle.The circle is already full."}
             return Response(data,status=status.HTTP_200_OK)
         data = {"status":0,"message":serializer.errors}
         return Response(data,status.HTTP_200_OK)

@@ -8,7 +8,6 @@ from loan.models import LoanTariff,GuarantorRequest,LoanApplication
 from app_utility import fcm_utils,sms_utils
 from django.db.models import Q
 from circle.serializers import InvitedCircleSerializer
-
 from dateutil.relativedelta import relativedelta
 
 

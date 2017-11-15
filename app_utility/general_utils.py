@@ -32,20 +32,20 @@ class General():
         return code
 
     def get_decimal(self,nume,deno):
-		whole = int(nume/deno)
-		res = ""
-		whole = str(whole) +"."
-		rem = nume%deno
-		rem_list = []
-		while rem != 0:
-			if len(res) == 4:
-				break
-			rem_list.append(rem)
-			rem = rem * 10
-			resp_part = int(rem/deno)
-			res += str(resp_part)
-			rem = rem%deno
+        whole = int(nume/deno)
+        res = ""
+        whole = str(whole) +"."
+        rem = nume%deno
+        rem_list = []
+        while rem != 0:
+            if len(res) == 4:
+                break
+            rem_list.append(rem)
+            rem = rem * 10
+            resp_part = int(rem/deno)
+            res += str(resp_part)
+            rem = rem%deno
 
-		dec = whole + res
-		dec = float(dec)
-		return dec
+        dec = whole + res
+        dec = float(dec)
+        return dec

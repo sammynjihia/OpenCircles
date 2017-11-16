@@ -33,6 +33,7 @@
         <div class="tab-content">
             <div id="member-details" class="tab-pane fade in active">
                 <div class="w3-container">
+                    {% if image_exists is True %}
                     <div class="w3-row">
                         <div class="w3-col l4 m4 s4">
                             &nbsp;&nbsp;
@@ -45,6 +46,8 @@
                         </div>
                     </div>
                     <br>
+                    {% endif %}
+
                     <br>
                     <table class="w3-table w3-striped">
                 <tr>

@@ -7,8 +7,10 @@ from shares.models import Shares,IntraCircleShareTransaction
 from loan.models import LoanTariff,GuarantorRequest,LoanApplication
 from app_utility import fcm_utils,sms_utils
 from django.db.models import Q
-from circle.serializers import InvitedCircleSerializer
+#from circle.serializers import InvitedCircleSerializer
+import circle
 from dateutil.relativedelta import relativedelta
+
 
 
 import operator, re, datetime
@@ -135,6 +137,7 @@ class Circle():
     def send_circle_invitation(self, circle_invitations):
         for invite in circle_invitations:
             circle, member = invite.invited_by.circle, invite.invited_by.member
+            message = ""
             if invite.is_member:
                 invited_member = Member.objects.get(phone_number=invite.phone_number)
                 DeclinedCircles.objects.filter(circle=circle,member=invited_member).delete()
@@ -142,16 +145,19 @@ class Circle():
                 if len(registration_id):
                     fcm_instance = fcm_utils.Fcm()
                     invited_by = "{} {}".format(member.user.first_name,member.user.last_name)
-                    invited_serializer = InvitedCircleSerializer(circle,context={"invited_by":invited_by})
+                    invited_serializer = circle.serializers.InvitedCircleSerializer(circle,context={"invited_by":invited_by})
                     fcm_data = {"request_type":"NEW_CIRCLE_INVITATION","circle":invited_serializer.data}
                     print(fcm_data)
                     fcm_instance.data_push("single",registration_id,fcm_data)
                 else:
-                    #send sms
-                    message = "{} {} has invited you to join circle {} on Opencircles.".format(member.user.first_name, member.user.last_name, circle.circle_name)
+                    # Logged out so send sms
+                    message = "{} {} has invited you to join {} on Opencircles.".format(member.user.first_name,
+                                                                                        member.user.last_name,
+                                                                                        circle.circle_name)
             else:
-                #send sms
-                message =  "{} {} has invited you to join circle {} on Opencircles. Join Opencircles today to be part of the revolutionized community of borrowers and lenders. Opencircles is currently available on google play store.".format(member.user.first_name, member.user.last_name, circle.circle_name)
+                # Not a member so send sms
+                message =  "{} {} has invited you to join {} on Opencircles. Download the app from google play store. {}"\
+                    .format(member.user.first_name, member.user.last_name, circle.circle_name, settings.APP_STORE_LINK)
                 # sms_instance.sendsms(invite.phone_number,message)
             invite.is_sent = True
             invite.save()

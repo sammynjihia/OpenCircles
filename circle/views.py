@@ -65,7 +65,7 @@ class CircleCreation(APIView):
                         acc_number = last_acc_number + 1
                     except ObjectDoesNotExist:
                         acc_number = 100000
-                    general_instance  = general_utils.General()
+                    general_instance = general_utils.General()
                     member = request.user.member
                     circle = serializer.save(initiated_by=member,circle_acc_number=acc_number)
                     created_objects.append(circle)
@@ -83,6 +83,7 @@ class CircleCreation(APIView):
                     created_objects.append(wallet_transaction)
                     shares = Shares.objects.create(circle_member=circle_member)
                     shares_transaction = IntraCircleShareTransaction.objects.create(shares=shares,transaction_type="DEPOSIT",num_of_shares=minimum_share,transaction_desc=shares_desc,recipient=circle_member,transaction_code=shares_transaction_code)
+
                     if len(contacts):
                         instance = sms_utils.Sms()
                         member_instance = member_utils.OpenCircleMember()
@@ -96,6 +97,7 @@ class CircleCreation(APIView):
                     wallet_serializer = WalletTransactionsSerializer(wallet_transaction)
                     shares_serializer = SharesTransactionSerializer(shares_transaction)
                     circle_serializer = CircleSerializer(circle,context={'request':request})
+
                     # fcm_instance = fcm_utils.Fcm()
                     # registration_ids = fcm_instance.get_invited_circle_member_token(circle,member)
                     circle_instance = circle_utils.Circle()
@@ -108,10 +110,25 @@ class CircleCreation(APIView):
                     #     fcm_instance.notification_push(device,registration_ids,title,message)
                     #     fcm_instance.data_push(device,registration_ids,fcm_data)
                     #     print(fcm_data)
-                    data={"status":1,"circle":circle_serializer.data,"wallet_transaction":wallet_serializer.data,"shares_transaction":shares_serializer.data,"message":"Circle created successfully.Circle will be activated when atleast four members  join."}
+                    circle = circle_serializer.data
+                    print('Line 114')
+                    wallet_transaction = wallet_serializer.data
+                    print('Line 116')
+                    shares_transaction = shares_serializer.data
+                    print('Line 118')
+
+                    data={
+                        "status":1,
+                        "circle":circle,
+                        "wallet_transaction":wallet_transaction,
+                        "shares_transaction":shares_transaction,
+                        "message":"Circle created successfully.Circle will be activated when atleast four members  join."
+                    }
                     return Response(data,status=status.HTTP_201_CREATED)
                 except Exception as e:
+                    print("/........................\\")
                     print(str(e))
+                    print("/........................\\")
                     instance = general_utils.General()
                     instance.delete_created_objects(created_objects)
                     error = "Unable to create circle"

@@ -154,7 +154,15 @@ def search_for_member(request):
 def view_member_details(request, member_id):
     request.session['member_id'] = member_id
     member = members_utils.MemberUtils.get_member_from_id(member_id)
+    image_exists = False
+    try:
+        member.passport_image.url
+        image_exists = True
+    except:
+        pass
+
     context = {
+        'image_exists': image_exists,
         'member': member,
         'next_of_kin': members_utils.MemberUtils.get_next_of_kin(member),
         'circles': circles_utils.CircleUtils.get_circles_by_member(member),

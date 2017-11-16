@@ -27,6 +27,7 @@
             <table class="w3-table w3-striped">
                 <thead class="w3-grey w3-text-white">
                     <tr>
+                        <td>#</td>
                         <td>Name</td>
                         <td>National ID</td>
                         <td>Phone number</td>
@@ -38,6 +39,7 @@
                 <tbody id="members-table">
                     {% for obj in members %}
                         <tr>
+                            <td>{{ forloop.counter }}</td>
                             <td>
                                <a href="{% url 'app_admin:view_member_details' member_id=obj.id %}">
                                 {{ obj.user.first_name }} {{ obj.user.last_name }} {{ obj.other_name }}

@@ -710,13 +710,12 @@ class MpesaB2BResultURL(APIView):
 
         if ResultCode == 0:
             # do something
-            TransactionID = B2BResults["TransactionID"]
+            transactionReceipt = B2BResults["TransactionID"]
             ResultParameters = B2BResults["ResultParameters"]["ResultParameter"]
             mpesa_data = {n['Key']: n['Value'] for n in ResultParameters for key, value in n.iteritems() if value in
                           ["Amount", "TransCompletedTime", "ReceiverPartyPublicName"]}
             transactionAmount = mpesa_data["Amount"]
             transactionDateTime = mpesa_data["TransCompletedTime"]
-            transactionReceipt = TransactionID
             receiverPartyPublicName = mpesa_data["ReceiverPartyPublicName"]
             BillReferenceNumber = b2b_trx_log.AccountNumber
             transactionAmount = float(transactionAmount)
@@ -742,15 +741,13 @@ class MpesaB2BResultURL(APIView):
                 mpesa_transactions = Transactions(wallet=wallet, transaction_type="DEBIT",
                                                   transaction_desc=transaction_desc,
                                                   transacted_by=wallet.acc_no, transaction_amount=transactionAmount,
-                                                  transation_code=general_instance.generate_unique_identifier(
-                                                      'WTD'))
+                                                  transation_code=transactionReceipt)
                 mpesa_transactions.save()
                 admin_mpesa_transaction.is_committed = True
                 admin_mpesa_transaction.save()
                 RevenueStreams.objects.create(stream_amount=1, stream_type="SMS CHARGES",
                                               stream_code=transactionReceipt,
                                               time_of_transaction=datetime.datetime.now())
-                created_objects.append(mpesa_transactions)
                 serializer = WalletTransactionsSerializer(mpesa_transactions)
                 instance = fcm_utils.Fcm()
                 registration_id = member.device_token

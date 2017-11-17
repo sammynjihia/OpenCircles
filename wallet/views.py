@@ -696,14 +696,17 @@ class MpesaB2BResultURL(APIView):
         ResultCode = int(B2BResults["ResultCode"])
         ResultDesc = B2BResults["ResultDesc"]
         TransactionID = B2BResults["TransactionID"]
-        PhoneNumber = B2BTransaction_log.objects.get(OriginatorConversationID=OriginatorConversationID)
-        initiatorPhoneNumber = PhoneNumber.Initiator_PhoneNumber
-        mpesa_transaction = MpesaTransaction_logs(OriginatorConversationID=OriginatorConversationID, ResultCode=ResultCode,
-                                                  ResultDesc=ResultDesc)
-        mpesa_transaction.save()
+
+        # Save admin trx logs
         admin_mpesa_transaction = AdminMpesaTransaction_logs(TransactioID=TransactionID, TransactionType='B2B',
                                                              Response=data, is_committed=False)
         admin_mpesa_transaction.save()
+
+        b2b_trx_log = B2BTransaction_log.objects.get(OriginatorConversationID=OriginatorConversationID)
+        initiatorPhoneNumber = b2b_trx_log.Initiator_PhoneNumber
+        mpesa_transaction = MpesaTransaction_logs(OriginatorConversationID=OriginatorConversationID, ResultCode=ResultCode,
+                                                  ResultDesc=ResultDesc)
+        mpesa_transaction.save()
 
         if ResultCode == 0:
             # do something
@@ -715,7 +718,7 @@ class MpesaB2BResultURL(APIView):
             transactionDateTime = mpesa_data["TransCompletedTime"]
             transactionReceipt = TransactionID
             receiverPartyPublicName = mpesa_data["ReceiverPartyPublicName"]
-            BillReferenceNumber = PhoneNumber.AccountNumber
+            BillReferenceNumber = b2b_trx_log.AccountNumber
             transactionAmount = float(transactionAmount)
             charges = 1
             transactionAmount += charges
@@ -729,32 +732,33 @@ class MpesaB2BResultURL(APIView):
                     with open('B2B_member_fetched_failed.txt', 'a') as result_file:
                         result_file.write(str(exp))
                         result_file.write("\n")
-                    general_instance, wallet_instance = general_utils.General(), wallet_utils.Wallet()
-                    wallet = member.wallet
-                    wallet_balance =  wallet_instance.calculate_wallet_balance(wallet) - transactionAmount
-                    transaction_desc = "{} confirmed.{} {} has been sent to {} for account {} from your wallet at {}. Transaction cost {} {}. New wallet balance is {} {}." \
-                        .format(transactionReceipt, member.currency, transactionAmount, receiverPartyPublicName, BillReferenceNumber, transactionDateTime, member.currency, charges, member.currency, wallet_balance)
 
-                    mpesa_transactions = Transactions(wallet=wallet, transaction_type="DEBIT",
-                                                      transaction_desc=transaction_desc,
-                                                      transacted_by=wallet.acc_no, transaction_amount=transactionAmount,
-                                                      transation_code=general_instance.generate_unique_identifier(
-                                                          'WTD'))
-                    mpesa_transactions.save()
-                    admin_mpesa_transaction.is_committed = True
-                    admin_mpesa_transaction.save()
-                    RevenueStreams.objects.create(stream_amount=1, stream_type="SMS CHARGES",
-                                                  stream_code=transactionReceipt,
-                                                  time_of_transaction=datetime.datetime.now())
-                    created_objects.append(mpesa_transactions)
-                    serializer = WalletTransactionsSerializer(mpesa_transactions)
-                    instance = fcm_utils.Fcm()
-                    registration_id = member.device_token
-                    fcm_data = {"request_type": "WALLET_TO_PAYBILL_TRANSACTION",
-                                "transaction": serializer.data}
-                    data = {"status": 1, "wallet_transaction": serializer.data}
-                    instance.data_push("single", registration_id, fcm_data)
-                    return Response(data, status=status.HTTP_200_OK)
+                general_instance, wallet_instance = general_utils.General(), wallet_utils.Wallet()
+                wallet = member.wallet
+                wallet_balance =  wallet_instance.calculate_wallet_balance(wallet) - transactionAmount
+                transaction_desc = "{} confirmed.{} {} has been sent to {} for account {} from your wallet at {}. Transaction cost {} {}. New wallet balance is {} {}." \
+                    .format(transactionReceipt, member.currency, transactionAmount, receiverPartyPublicName, BillReferenceNumber, transactionDateTime, member.currency, charges, member.currency, wallet_balance)
+
+                mpesa_transactions = Transactions(wallet=wallet, transaction_type="DEBIT",
+                                                  transaction_desc=transaction_desc,
+                                                  transacted_by=wallet.acc_no, transaction_amount=transactionAmount,
+                                                  transation_code=general_instance.generate_unique_identifier(
+                                                      'WTD'))
+                mpesa_transactions.save()
+                admin_mpesa_transaction.is_committed = True
+                admin_mpesa_transaction.save()
+                RevenueStreams.objects.create(stream_amount=1, stream_type="SMS CHARGES",
+                                              stream_code=transactionReceipt,
+                                              time_of_transaction=datetime.datetime.now())
+                created_objects.append(mpesa_transactions)
+                serializer = WalletTransactionsSerializer(mpesa_transactions)
+                instance = fcm_utils.Fcm()
+                registration_id = member.device_token
+                fcm_data = {"request_type": "WALLET_TO_PAYBILL_TRANSACTION",
+                            "transaction": serializer.data}
+                data = {"status": 1, "wallet_transaction": serializer.data}
+                instance.data_push("single", registration_id, fcm_data)
+                return Response(data, status=status.HTTP_200_OK)
             except Exception as e:
                 instance = general_utils.General()
                 instance.delete_created_objects(created_objects)

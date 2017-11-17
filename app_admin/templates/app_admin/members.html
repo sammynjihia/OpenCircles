@@ -33,7 +33,8 @@
                         <td>Phone number</td>
                         <td>Email</td>
                         <td>Gender</td>
-                        <td>Date of birth</td>
+                        <td>Date of Joined</td>
+
                     </tr>
                 </thead>
                 <tbody id="members-table">
@@ -47,9 +48,9 @@
                             </td>
                             <td>{{ obj.national_id }}</td>
                             <td>{{ obj.phone_number }}</td>
-                            <td>{{ obj.email }}</td>
+                            <td>{{ obj.user.email }}</td>
                             <td>{{ obj.gender }}</td>
-                            <td>{{ obj.date_of_birth }}</td>
+                            <td>{{ obj.user.date_joined }}</td>
                      </tr>
                     {% endfor %}
                 </tbody>

@@ -75,3 +75,17 @@ class BrainTreeTransactionSerializer(serializers.Serializer):
     """
     nonce = serializers.CharField()
     amount = serializers.IntegerField()
+
+
+class WalletToBankSerializer(serializers.Serializer):
+    """
+    serializer for Waalet to Bank's paybill number (B2B) transaction endpoint
+    """
+    amount = serializers.IntegerField()
+    pin = serializers.CharField()
+    bank_name = serializers.CharField()
+    paybill_number = serializers.CharField()
+    account_number = serializers.CharField()
+
+    class Meta():
+        fields = ["amount", "pin", "bank_name", "paybill_number", "account_number"]

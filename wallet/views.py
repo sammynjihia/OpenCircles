@@ -329,7 +329,6 @@ class MpesaCallbackURL1(APIView):
             return Response(data, status=status.HTTP_200_OK)
 
 
-
 class MpesaB2CResultURL(APIView):
     """
     Result URL for mpesa B2C transaction
@@ -619,7 +618,6 @@ class WalletToPayBill(APIView):
         return Response(data, status=status.HTTP_200_OK)
 
 
-
 class WalletToBankPayBill(APIView):
     """
     Debits wallet to bank's paybill number, amount, paybill number, account number, pin and bank_name to be provided. B2B
@@ -675,7 +673,6 @@ class WalletToBankPayBill(APIView):
 
         data = {"status": 0, "message": serializers.errors}
         return Response(data, status=status.HTTP_200_OK)
-
 
 
 class MpesaB2BResultURL(APIView):
@@ -735,8 +732,9 @@ class MpesaB2BResultURL(APIView):
                 general_instance, wallet_instance = general_utils.General(), wallet_utils.Wallet()
                 wallet = member.wallet
                 wallet_balance =  wallet_instance.calculate_wallet_balance(wallet) - transactionAmount
-                transaction_desc = "{} confirmed.{} {} has been sent to {} for account {} from your wallet at {}. Transaction cost {} {}. New wallet balance is {} {}." \
-                    .format(transactionReceipt, member.currency, transactionAmount, receiverPartyPublicName, BillReferenceNumber, transactionDateTime, member.currency, charges, member.currency, wallet_balance)
+                amount_sent = transactionAmount -charges
+                transaction_desc = "{} confirmed. {} {} has been sent to {} for account {} from your wallet at {}. Transaction cost {} {}. New wallet balance is {} {}." \
+                    .format(transactionReceipt, member.currency, amount_sent, receiverPartyPublicName, BillReferenceNumber, transactionDateTime, member.currency, charges, member.currency, wallet_balance)
 
                 mpesa_transactions = Transactions(wallet=wallet, transaction_type="DEBIT",
                                                   transaction_desc=transaction_desc,

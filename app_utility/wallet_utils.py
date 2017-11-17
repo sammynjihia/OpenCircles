@@ -1,5 +1,5 @@
 from django.db.models import Sum
-from wallet.models import Transactions
+from wallet.models import Transactions, PendingMpesaTransactions
 import datetime
 
 class Wallet():
@@ -19,6 +19,7 @@ class Wallet():
             if amount > 0:
                 wallet = request.user.member.wallet
                 balance = self.calculate_wallet_balance(wallet)
+                balance -= self.get_pending_mpesa_amount(request.user.member)
                 print("wallet balance")
                 print(balance)
                 if balance >= amount:
@@ -26,6 +27,10 @@ class Wallet():
                 return False,"Insufficient funds in your wallet"
             return False,"Invalid amount"
         return False,"Incorrect pin"
+
+    def get_pending_mpesa_amount(self, member):
+        pending_total = PendingMpesaTransactions.objects.filter(is_valid=True, member=member).aggregate(total=Sum('amount'))
+        return pending_total['total'] if pending_total['total'] is not None else 0
 
     def calculate_wallet_balance(self,wallet):
         credit = Transactions.objects.filter(wallet=wallet,transaction_type="CREDIT").aggregate(total=Sum("transaction_amount"))

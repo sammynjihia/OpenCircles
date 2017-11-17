@@ -71,3 +71,15 @@ class AdminMpesaTransaction_logs(models.Model):
     Response = models.TextField(max_length=1000)
     transaction_time = models.DateTimeField(auto_now=True)
     is_committed = models.NullBooleanField(default=None)
+
+
+class PendingMpesaTransactions(models.Model):
+    member = models.ForeignKey(Member, null=False, blank=False, on_delete=models.SET_NULL)
+    originator_conversation_id = models.CharField(max_length=100, unique=True, blank=False)
+    amount = models.DecimalField(decimal_places=2, max_digits=7, blank=False)
+    trx_time = models.DateTimeField(auto_now=True)
+    is_valid = models.BooleanField(default=True)
+
+    class Meta:
+        db_table = 'PendingMpesaTransactions'
+

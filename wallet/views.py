@@ -15,13 +15,15 @@ from rest_framework.reverse import reverse
 
 from .serializers import *
 
-from .models import Transactions,Wallet, B2CTransaction_log, B2BTransaction_log, MpesaTransaction_logs, AdminMpesaTransaction_logs, RevenueStreams
+from .models import Transactions,Wallet, B2CTransaction_log, B2BTransaction_log, MpesaTransaction_logs, AdminMpesaTransaction_logs, RevenueStreams, PendingMpesaTransactions
 from member.models import Member
 from django.core.exceptions import ValidationError
 
 from django.db import DatabaseError,transaction
 
 from app_utility import wallet_utils,general_utils,fcm_utils, mpesa_api_utils, sms_utils, brain_tree_utils
+
+
 
 import datetime,json
 import pytz,uuid
@@ -218,6 +220,13 @@ class WalletToMpesa(APIView):
                             b2c_Transaction_log = B2CTransaction_log(OriginatorConversationID=OriginatorConversationID, Initiator_PhoneNumber= senders_PhoneNumber,
                                                                      Recipient_PhoneNumber=recepient_PhoneNumber)
                             b2c_Transaction_log.save()
+
+                            PendingMpesaTransactions(member=request.user.member,
+                                                     originator_conversation_id=OriginatorConversationID,
+                                                     amount=wallet_amount,
+                                                     trx_time=datetime.datetime.now(),
+                                                     is_valid=True).save()
+
                             print (result["ResponseDescription"])
                             data = {"status": 1, "message": "Your request has been accepted successfully. Wait for m-pesa to process this transaction."}
                             return Response(data, status=status.HTTP_200_OK)
@@ -354,6 +363,7 @@ class MpesaB2CResultURL(APIView):
         mpesa_transaction.save()
         admin_mpesa_transaction = AdminMpesaTransaction_logs(TransactioID=TransactionID, TransactionType='B2C', Response=data, is_committed=False)
         admin_mpesa_transaction.save()
+
         if ResultCode == 0:
             TransactionID = B2CResults["TransactionID"]
             ResultParameters = B2CResults["ResultParameters"]["ResultParameter"]
@@ -391,6 +401,13 @@ class MpesaB2CResultURL(APIView):
                 mpesa_transactions.save()
                 admin_mpesa_transaction.is_committed=True
                 admin_mpesa_transaction.save()
+
+                pending_trx = PendingMpesaTransactions.objects.get(originator_conversation_id=OriginatorConversationID,
+                                                                   member=member)
+                pending_trx.is_valid = False
+                pending_trx.save()
+
+
                 RevenueStreams.objects.create(stream_amount=1, stream_type="SMS CHARGES",
                                               stream_code=transactionReceipt, time_of_transaction=datetime.datetime.now())
                 if charges == 30:
@@ -416,9 +433,14 @@ class MpesaB2CResultURL(APIView):
                 data = {"status": 0, "message": "Unable to process transaction"}
                 return Response(data, status=status.HTTP_200_OK)
 
-        elif ResultCode == 2 :
+        elif ResultCode == 2:
             admin_mpesa_transaction.is_committed = None
             admin_mpesa_transaction.save()
+
+            pending_trx = PendingMpesaTransactions.objects.get(originator_conversation_id=OriginatorConversationID)
+            pending_trx.is_valid = False
+            pending_trx.save()
+
             instance = fcm_utils.Fcm()
             try:
                 member = Member.objects.get(phone_number=initiatorPhoneNumber)
@@ -441,6 +463,11 @@ class MpesaB2CResultURL(APIView):
         else:
             admin_mpesa_transaction.is_committed = None
             admin_mpesa_transaction.save()
+
+            pending_trx = PendingMpesaTransactions.objects.get(originator_conversation_id=OriginatorConversationID)
+            pending_trx.is_valid = False
+            pending_trx.save()
+
             instance = fcm_utils.Fcm()
             try:
                 member = Member.objects.get(phone_number=initiatorPhoneNumber)
@@ -625,6 +652,8 @@ class WalletToBankPayBill(APIView):
     authentication_classes = (TokenAuthentication,)
     permissions_class = (IsAuthenticated,)
     def post(self, request, *args):
+        min_trx_amount = 1
+        max_trx_amount = 70000
         serializers = WalletToBankSerializer(data=request.data)
         if serializers.is_valid():
             amount = serializers.validated_data["amount"]
@@ -633,11 +662,12 @@ class WalletToBankPayBill(APIView):
             account_number = serializers.validated_data["account_number"]
             bank_name = serializers.validated_data["bank_name"]
             mpesaAPI = mpesa_api_utils.MpesaUtils()
-
+            charges = 1
+            wallet_amount = amount + charges
             validty = wallet_utils.Wallet()
-            valid, message = validty.validate_account(request, pin, amount)
+            valid, message = validty.validate_account(request, pin, wallet_amount)
             if valid:
-                if amount >= 1 and amount <= 70000:
+                if amount >= min_trx_amount and amount <= max_trx_amount:
                     result = mpesaAPI.mpesa_b2b_checkout(amount, account_number, paybill_number)
 
                     if "errorCode" in result.keys():
@@ -657,6 +687,14 @@ class WalletToBankPayBill(APIView):
                                                                  Recipient_PayBillNumber=recepient_PayBillNumber,
                                                                  AccountNumber=account_Number)
                         b2b_Transaction_log.save()
+
+                        PendingMpesaTransactions(member=request.user.member,
+                                                 originator_conversation_id=OriginatorConversationID,
+                                                 amount=wallet_amount,
+                                                 trx_time=datetime.datetime.now(),
+                                                 is_valid=True).save()
+
+
                         print(result["ResponseDescription"])
                         data = {"status": 1, "message": "Your request has been accepted successfully. Wait for m-pesa to process this transaction."}
                         return Response(data, status=status.HTTP_200_OK)
@@ -743,6 +781,12 @@ class MpesaB2BResultURL(APIView):
                 mpesa_transactions.save()
                 admin_mpesa_transaction.is_committed = True
                 admin_mpesa_transaction.save()
+
+                pending_trx = PendingMpesaTransactions.objects.get(originator_conversation_id=OriginatorConversationID,
+                                                                   member=member)
+                pending_trx.is_valid = False
+                pending_trx.save()
+
                 RevenueStreams.objects.create(stream_amount=1, stream_type="SMS CHARGES",
                                               stream_code=transactionReceipt,
                                               time_of_transaction=datetime.datetime.now())
@@ -767,6 +811,11 @@ class MpesaB2BResultURL(APIView):
         else:
             admin_mpesa_transaction.is_committed = None
             admin_mpesa_transaction.save()
+
+            pending_trx = PendingMpesaTransactions.objects.get(originator_conversation_id=OriginatorConversationID)
+            pending_trx.is_valid = False
+            pending_trx.save()
+
             instance = fcm_utils.Fcm()
             try:
                 member = Member.objects.get(phone_number=initiatorPhoneNumber)

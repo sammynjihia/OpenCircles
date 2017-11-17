@@ -111,11 +111,8 @@ class CircleCreation(APIView):
                     #     fcm_instance.data_push(device,registration_ids,fcm_data)
                     #     print(fcm_data)
                     circle = circle_serializer.data
-                    print('Line 114')
                     wallet_transaction = wallet_serializer.data
-                    print('Line 116')
                     shares_transaction = shares_serializer.data
-                    print('Line 118')
 
                     data={
                         "status":1,
@@ -126,9 +123,6 @@ class CircleCreation(APIView):
                     }
                     return Response(data,status=status.HTTP_201_CREATED)
                 except Exception as e:
-                    print("/........................\\")
-                    print(str(e))
-                    print("/........................\\")
                     instance = general_utils.General()
                     instance.delete_created_objects(created_objects)
                     error = "Unable to create circle"

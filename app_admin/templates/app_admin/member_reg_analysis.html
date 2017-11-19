@@ -1,0 +1,188 @@
+{% extends 'app_admin/base_dashboard.html' %}
+{% load static %}
+{% load humanize %}
+{% block current_page %}
+    <i class="fa fa-search-plus"></i> Search for transactions
+{% endblock %}
+{% block main_container %}
+     <div class="col-sm-9 col-sm-offset-3 col-lg-10 col-lg-offset-2 main">
+        <div class="container">
+            <br>
+            <form class="form-horizontal" method="post" action="{% url 'app_admin:members_reg_analysis' %}">
+                {% csrf_token %}
+                  <div class="form-group">
+                    <div class="col-lg-4 col-md-4 col-sm-4">
+                      <input type="text"
+                        class="w3-input w3-text-blue pull-right datepicker-required"
+                        id="start-date-val"
+                        name="start_date_val"
+                        required = 'required'
+                        placeholder="Start date.">
+                    </div>
+                    <div class="col-lg-4 col-md-4 col-sm-4">
+                      <input type="text"
+                        class="w3-input w3-text-blue pull-right datepicker-required"
+                        id="end-date-val"
+                        name="end_date_val"
+                        required = 'required'
+                        placeholder="End date.">
+                    </div>
+                    <div class="col-lg-2 col-md-2 col-sm-2">
+                      <button class="w3-btn w3-blue-gray pull-left" type="submit">
+                        <i class="fa fa-search"></i>
+                      </button>
+                    </div>
+                  </div>
+            </form>
+            <br>
+        </div>
+        <div class="container">
+            <div class="w3-container">
+                <b class="w3-text-blue-gray w3-center">Member registrations between {{ start_date }} and {{ end_date }} </b>
+            </div>
+            <ul class="nav nav-tabs">
+              <li>
+                <a data-toggle="tab" href="#members-list">
+                  <i class="fa fa-list-alt"></i> Members list
+                </a>
+              </li>
+              <li>
+                  <a data-toggle="tab" href="#daily-grouping">
+                      <i class="fa fa-clock-o"></i> Daily grouping
+                  </a>
+              </li>
+              <li class="active">
+                <a data-toggle="tab" href="#registration-chart">
+                    <i class="fa fa-line-chart"></i> Charts
+                </a>
+              </li>
+           </ul>
+           <div class="tab-content">
+                <div id="members-list" class="tab-pane fade in">
+                    <div class="w3-container">
+                        <table class="w3-table w3-striped">
+                            <thead class="w3-grey w3-text-white">
+                                <tr>
+                                    <td>#</td>
+                                    <td>Name</td>
+                                    <td>National ID</td>
+                                    <td>Phone number</td>
+                                    <td>Email</td>
+                                    <td>Gender</td>
+                                </tr>
+                            </thead>
+                            <tbody id="members-table">
+                                {% for obj in members %}
+                                    <tr>
+                                        <td>{{ forloop.counter }}</td>
+                                        <td>
+                                           <a href="{% url 'app_admin:view_member_details' member_id=obj.id %}">
+                                            {{ obj.user.first_name }} {{ obj.user.last_name }} {{ obj.other_name }}
+                                           </a>
+                                        </td>
+                                        <td>{{ obj.national_id }}</td>
+                                        <td>{{ obj.phone_number }}</td>
+                                        <td>{{ obj.user.email }}</td>
+                                        <td>{{ obj.gender }}</td>
+                                    </tr>
+                                {% endfor %}
+                </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div id="daily-grouping" class="tab-pane fade in">
+                    <div class="w3-container">
+                        <table class="w3-table w3-striped">
+                            <thead class="w3-grey w3-text-white">
+                                <tr>
+                                    <td>Day</td>
+                                    <td>Number of members</td>
+                                </tr>
+                            </thead>
+                            <tbody id="transactions-table">
+                                {% for obj in daily_registrations %}
+                                    <tr>
+                                        <td>{{ obj.day }}</td>
+                                        <td>{{ obj.num_of_members|intcomma }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div id="registration-chart" class="tab-pane fade in active">
+                    <div class="w3-container w3-row">
+                        <div class="w3-col l10 m10 s10 w3-card-2 w3-container"
+                             style="height: 400px" id="registrations-bar-chart">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <br>
+        <br>
+     </div>
+{% endblock %}
+
+{% block other_js %}
+    <script src="{% static 'app_admin/bootstrapdatetimepicker/transition.min.js' %}"></script>
+    <script src="{% static 'app_admin/bootstrapdatetimepicker/moment.min.js' %}"></script>
+    <script src="{% static 'app_admin/bootstrapdatetimepicker/bootstrap-datetimepicker.min.js' %}"></script>
+
+    <script src="{% static 'app_admin/Highcharts/code/highcharts.js' %}"></script>
+    <script src="{% static 'app_admin/Highcharts/code/modules/exporting.js' %}"></script>
+    <script>
+        $('.datepicker-required').datetimepicker({
+            sideBySide:true,
+            collapse:true,
+            format: 'YYYY-MM-DD'
+        });
+    </script>
+    <script>
+        String.prototype.replaceAll = function(search, replacement) {
+            var target = this;
+            return target.split(search).join(replacement);
+        };
+
+        var raw_hourly_data = '{{ daily_registrations }}'.replaceAll("&#39;", "\"").replaceAll(": u", ":");
+        try{
+                var data_obj = $.parseJSON(raw_hourly_data);
+                var categories = [];
+                var data = [];
+                for(var i = 0; i < data_obj.length; i++){
+                    categories.push(data_obj[i]['day']);
+                    data.push(parseFloat(data_obj[i]['num_of_members']));
+                }
+                PlotBars(categories, [{name:'Daily registrations', data:data}])
+            }catch(exp){}
+
+        function  PlotBars(categories, series){
+              Highcharts.chart('registrations-bar-chart', {
+                chart: {
+                    type: 'column'
+                },
+                title: {
+                    text: ' '
+                },
+                xAxis: {
+                    categories: categories,
+                    crosshair: true
+                },
+                yAxis: {
+                    min: 0,
+                    title: {
+                        text: '# members'
+                    }
+                },
+                plotOptions: {
+                    column: {
+                        pointPadding: 0.2,
+                        borderWidth: 0
+                    }
+                },
+                series:series
+        });
+    }
+
+    </script>
+{% endblock %}

@@ -160,6 +160,17 @@ def search_for_member(request):
 
 
 @login_required(login_url='app_admin:login_page')
+def members_reg_analysis(request):
+    start_date = None
+    end_date = None
+    if request.method == 'POST':
+        start_date = datetime.datetime.strptime(request.POST.get('start_date_val'), '%Y-%m-%d')
+        end_date = datetime.datetime.strptime(request.POST.get('end_date_val'), '%Y-%m-%d')
+    context = members_utils.MemberUtils.get_daily_registrations_count(start_date, end_date)
+    return render(request, 'app_admin/member_reg_analysis.html', context)
+
+
+@login_required(login_url='app_admin:login_page')
 def view_member_details(request, member_id):
     request.session['member_id'] = member_id
     member = members_utils.MemberUtils.get_member_from_id(member_id)

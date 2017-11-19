@@ -79,12 +79,26 @@
       </a>
     </li>
     <li role="presentation" class="divider"></li>
-    <li>
-      <a href="{% url 'app_admin:members' %}" class="w3-text-black">
-        <i class="fa fa-users w3-text-blue-gray"></i>
-         Members
+     <li class="parent ">
+      <a data-toggle="collapse" data-target="#members-menu" class="w3-text-black" href="#">
+          <i class="fa fa-users w3-text-blue-gray"></i>
+            Members
       </a>
-    </li>
+         <ul class="children collapse" id="members-menu">
+           <li>
+              <a href="{% url 'app_admin:members' %}" class="w3-text-black">
+                <i class="fa fa-list w3-text-blue-gray"></i>
+                 Members list
+              </a>
+            </li>
+            <li>
+              <a href="{% url 'app_admin:members_reg_analysis' %}" class="w3-text-black">
+                <i class="fa fa-bar-chart w3-text-blue-gray"></i>
+                 Analytics
+              </a>
+           </li>
+         </ul>
+     </li>
     <li role="presentation" class="divider"></li>
     <li>
       <a href="{% url 'app_admin:circles_list' %}" class="w3-text-black">

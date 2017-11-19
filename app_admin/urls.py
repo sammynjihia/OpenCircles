@@ -10,6 +10,7 @@ urlpatterns = [
     url(r'^home$', views.home_page, name='home'),
     url(r'^members$', views.members_page, name='members'),
     url(r'^search_for_member$', views.search_for_member, name='search_for_member'),
+    url(r'^members_reg_analysis$', views.members_reg_analysis, name='members_reg_analysis'),
     url(r'^view_member_details/(?P<member_id>[0-9]+)/$', views.view_member_details, name='view_member_details'),
     url(r'^wallet_transactions$', views.wallet_transactions, name='wallet_transactions'),
     url(r'^search_for_transaction$', views.search_for_transaction, name='search_for_transaction'),

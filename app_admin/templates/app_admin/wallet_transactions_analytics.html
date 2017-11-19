@@ -63,6 +63,7 @@
                         <table class="w3-table w3-striped">
                             <thead class="w3-grey w3-text-white">
                                 <tr>
+                                    <td>#</td>
                                     <td>Transaction code</td>
                                     <td>Time</td>
                                     <td>Amount</td>
@@ -75,6 +76,7 @@
                             <tbody id="transactions-table">
                                 {% for obj in transactions %}
                                     <tr>
+                                        <td>{{ forloop.counter }}</td>
                                         <td>
                                             <a href="{% url 'app_admin:view_transaction_details' transaction_id=obj.id %}">
                                                {{ obj.transaction_code }}

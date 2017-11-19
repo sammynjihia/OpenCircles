@@ -31,14 +31,18 @@
                         <div class="w3-card-4" id="chat-card-{{ chat.id }}">
                             <div class="w3-container w3-text-black border-bottom-blue w3-row">
                                 <div class="w3-col l1 m1 s1 w3-padding-bottom">
-                                    <img src="{{chat.owner.passport_image.url}}"
+                                    {% if chat.url_exist %}
+                                    <img src="{{chat.image_url}}"
                                          alt="member image"
                                          class="pull-left"
                                          style="height: 50px; width: 50px; border: 1px solid #2aabd2; border-radius: 75px;"/>
+                                    {% else %}
+                                       <i class="fa fa-user" style="height: 50px; width: 50px; border: 1px solid #2aabd2; border-radius: 75px;"></i>
+                                    {% endif %}
                                 </div>
                                 <div class="w3-col l11 m11 s11  w3-padding-4">
                                     <span class="pull-left">
-                                        {{ chat.owner.user.first_name }} {{ chat.owner.user.last_name }}
+                                        {{ chat.name }}
                                     </span>
                                     <span class="w3-small pull-right">
                                      at   {{ chat.time_chat_sent }}

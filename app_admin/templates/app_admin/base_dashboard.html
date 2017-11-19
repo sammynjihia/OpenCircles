@@ -172,7 +172,7 @@
               <i class="fa fa-arrows-h w3-text-brown"></i> Transactions
             </div>
             <div class="w3-row">
-              <div class="w3-col l6 m6 s6 w3-container">
+              <div class="w3-col l4 m4 s4 w3-container">
                 <div class="panel-heading w3-small">
                   <b><i class="fa fa-caret-down fa-2x w3-text-green"></i>&nbsp;&nbsp;M-PESA C2B</b>
                 </div>
@@ -180,12 +180,20 @@
                     {{ wallet_transactions.mpesa_c2b|intcomma}}
                 </div>
               </div>
-              <div class="w3-col l6 m6 s6 w3-container">
+              <div class="w3-col l4 m4 s4 w3-container">
                 <div class="panel-heading w3-small">
                   <b><i class="fa fa-caret-up fa-2x w3-text-red"></i> &nbsp;&nbsp; M-PESA B2C</b>
                 </div>
                 <div class="panel-heading  w3-small">
                     {{ wallet_transactions.mpesa_b2c|intcomma }}
+                </div>
+              </div>
+              <div class="w3-col l4 m4 s4 w3-container">
+                <div class="panel-heading w3-small">
+                  <b><i class="fa fa-caret-up fa-2x w3-text-red"></i> &nbsp;&nbsp; M-PESA B2B</b>
+                </div>
+                <div class="panel-heading  w3-small">
+                    {{ wallet_transactions.mpesa_b2b|intcomma }}
                 </div>
               </div>
             </div>

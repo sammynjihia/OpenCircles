@@ -112,10 +112,13 @@ class TransactionUtils:
             res_json = json.loads(transaction_obj.Response.strip())
             if transaction_obj.TransactionType.strip() == 'C2B':
                 amount = res_json['TransAmount']
-            elif transaction_obj.TransactionType.strip() == 'B2C':
+            elif transaction_obj.TransactionType.strip() == 'B2C' or transaction_obj.TransactionType.strip() == 'B2B':
                 res_params = res_json['Result']['ResultParameters']['ResultParameter']
                 for param in res_params:
                     if param['Key'] == 'TransactionAmount':
+                        amount = param['Value']
+                        break
+                    if param['Key'] == 'Amount':
                         amount = param['Value']
                         break
         except Exception as e:
@@ -269,7 +272,8 @@ class TransactionUtils:
 
         trx_objs = Transactions.objects.filter(transaction_time__range=(
             datetime.datetime.combine(search_date, datetime.time.min),
-            datetime.datetime.combine(search_date, datetime.time.max)), source__icontains=source).order_by('transaction_time')
+            datetime.datetime.combine(search_date, datetime.time.max)), source__icontains=source)\
+            .order_by('-transaction_time')
         total = trx_objs.aggregate(total=Sum('transaction_amount'))
         print(trx_objs)
         if trx_objs.__len__() is not 0:

@@ -23,7 +23,7 @@ class MemberUtils:
 
     @staticmethod
     def get_all_members():
-        return Member.objects.all()
+        return Member.objects.all().order_by('-time_registered')
 
     @staticmethod
     def search_for_member(search_val):

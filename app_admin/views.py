@@ -63,16 +63,24 @@ def logout_admin(request):
 
 @login_required(login_url='app_admin:login_page')
 def home_page(request):
-    mpesa_c2b =transactions_utils.TransactionUtils.get_transactions_by_day_and_source(datetime.datetime.today(), 'MPESA C2B')
+    mpesa_c2b =transactions_utils.TransactionUtils.get_transactions_by_day_and_source(datetime.datetime.today(),
+                                                                                      'MPESA C2B')
     mpesa_c2b_total = 0.00
-    mpesa_b2c =transactions_utils.TransactionUtils.get_transactions_by_day_and_source(datetime.datetime.today(), 'MPESA B2C')
+    mpesa_b2c =transactions_utils.TransactionUtils.get_transactions_by_day_and_source(datetime.datetime.today(),
+                                                                                      'MPESA B2C')
     mpesa_b2c_total = 0.00
+    mpesa_b2b = transactions_utils.TransactionUtils.get_transactions_by_day_and_source(datetime.datetime.today(),
+                                                                                       'MPESA B2B')
+    mpesa_b2b_total = 0.00
 
     if mpesa_c2b is not None:
         mpesa_c2b_total = mpesa_c2b['total_amount']
 
     if mpesa_b2c is not None:
         mpesa_b2c_total = mpesa_b2c['total_amount']
+
+    if mpesa_b2b is not None:
+        mpesa_b2b_total = mpesa_b2b['total_amount']
 
     context = {
         'member': {
@@ -116,7 +124,8 @@ def home_page(request):
         },
         'wallet_transactions': {
             'mpesa_c2b': mpesa_c2b_total,
-            'mpesa_b2c': mpesa_b2c_total
+            'mpesa_b2c': mpesa_b2c_total,
+            'mpesa_b2b': mpesa_b2b_total
         }
     }
     return render(request, 'app_admin/base_dashboard.html', context)
@@ -231,10 +240,13 @@ def mpesa_transactions(request):
             res_json = json.loads(obj.Response.strip())
             if obj.TransactionType.strip() == 'C2B':
                 amount = res_json['TransAmount']
-            elif obj.TransactionType.strip() == 'B2C':
+            elif obj.TransactionType.strip() == 'B2C' or obj.TransactionType.strip() == 'B2B':
                 res_params = res_json['Result']['ResultParameters']['ResultParameter']
                 for param in res_params:
                     if param['Key'] == 'TransactionAmount':
+                        amount = param['Value']
+                        break
+                    if param['Key'] == 'Amount':
                         amount = param['Value']
                         break
         except Exception as e:
@@ -410,8 +422,30 @@ def view_loan_application_details(request, loan_code):
 
 @login_required(login_url='app_admin:login_page')
 def chats_list(request):
+    chat_objs =  chat_utils.ChatUtils.get_pending_chats()
+    chats = []
+    for obj in chat_objs:
+        url_exist = False
+        image_url = ''
+        try:
+            image_url = obj.owner.passport_image.url
+            url_exist = True
+            if len(image_url) == 0:
+                url_exist = False
+        except:
+            url_exist = False
+
+
+        chats.append({'id': obj.id,
+                  'name': "{} {}".format(obj.owner.user.first_name, obj.owner.user.last_name),
+                  'time_chat_sent': obj.time_chat_sent,
+                  'body': obj.body,
+                  'has_been_responded_to':obj.has_been_responded_to,
+                  'url_exist': url_exist,
+                  'image_url': image_url
+                  } )
     context = {
-        'chats': chat_utils.ChatUtils.get_pending_chats()
+        'chats':chats
     }
     return render(request, 'app_admin/chats.html', context)
 

@@ -11,7 +11,7 @@ from member.serializers import MemberSerializer
 from member.models import Member,Contacts
 
 from shares.models import Shares,IntraCircleShareTransaction
-from app_utility import loan_utils, circle_utils
+import app_utility
 
 
 from loan.serializers import LoanTariffSerializer
@@ -101,7 +101,7 @@ class CircleSerializer(serializers.HyperlinkedModelSerializer):
 
     def get_loan_limit(self,circle):
         member = self.context.get('request').user.member
-        loan_instance = loan_utils.Loan()
+        loan_instance = app_utility.loan_utils.Loan()
         loan_limit = loan_instance.calculate_loan_limit(circle,member)
         return loan_limit
 
@@ -225,7 +225,7 @@ class CircleMemberSerializer(serializers.ModelSerializer):
 
     def get_available_shares(self,member):
         circle = self.context.get('circle')
-        instance = circle_utils.Circle()
+        instance = app_utility.circle_utils.Circle()
         available_shares = instance.get_available_circle_member_shares(circle,member)
         return available_shares
 
@@ -307,7 +307,7 @@ class UnloggedCircleMemberSerializer(serializers.ModelSerializer):
 
     def get_available_shares(self,member):
         circle = self.context.get('circle')
-        instance = circle_utils.Circle()
+        instance = app_utility.circle_utils.Circle()
         available_shares = instance.get_available_circle_member_shares(circle,member)
         return available_shares
 

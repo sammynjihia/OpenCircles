@@ -7,8 +7,7 @@ from shares.models import Shares,IntraCircleShareTransaction
 from loan.models import LoanTariff,GuarantorRequest,LoanApplication
 from app_utility import fcm_utils,sms_utils
 from django.db.models import Q
-#from circle.serializers import InvitedCircleSerializer
-import circle
+from circle.serializers import InvitedCircleSerializer
 from dateutil.relativedelta import relativedelta
 
 
@@ -146,7 +145,7 @@ class Circle():
                 if len(registration_id):
                     fcm_instance = fcm_utils.Fcm()
                     invited_by = "{} {}".format(member.user.first_name,member.user.last_name)
-                    invited_serializer = circle.serializers.InvitedCircleSerializer(circle,context={"invited_by":invited_by})
+                    invited_serializer = InvitedCircleSerializer(circle,context={"invited_by":invited_by})
                     fcm_data = {"request_type":"NEW_CIRCLE_INVITATION","circle":invited_serializer.data}
                     print(fcm_data)
                     fcm_instance.data_push("single",registration_id,fcm_data)

@@ -525,8 +525,9 @@ class MpesaC2BConfirmationURL(APIView):
         phone_number = result["BillRefNumber"].encode()
         transacted_by_msisdn = result["MSISDN"].encode()
         transacted_by_firstname = result["FirstName"].encode()
+        transacted_by_middlename = result["MiddleName"].encode()
         transacted_by_lastname = result["LastName"].encode()
-        transacted_by = "{} {} {}".format(transacted_by_msisdn, transacted_by_firstname, transacted_by_lastname)
+        transacted_by = "{} {} {} {}".format(transacted_by_msisdn, transacted_by_firstname, transacted_by_middlename, transacted_by_lastname)
 
         admin_mpesa_transaction = AdminMpesaTransaction_logs.objects.create(TransactioID=transaction_id, TransactionType='C2B', Response=data, is_committed=False)
         # Format phone number and convert amount from string to integer

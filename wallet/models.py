@@ -83,3 +83,11 @@ class PendingMpesaTransactions(models.Model):
     class Meta:
         db_table = 'PendingMpesaTransactions'
 
+class B2BTariff(models.Model):
+    min_amount = models.IntegerField()
+    max_amount = models.IntegerField()
+    amount = models.IntegerField()
+
+    class Meta:
+        db_table = 'B2BTariff'
+

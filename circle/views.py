@@ -358,7 +358,7 @@ class JoinCircle(APIView):
             acc_number,amount,pin = serializer.validated_data['circle_acc_number'],serializer.validated_data['amount'],serializer.validated_data['pin']
             circle = Circle.objects.get(circle_acc_number=acc_number)
             circle_members_count = CircleMember.objects.filter(circle=circle).count()
-            if circle_members_count > settings.MAX_CIRCLE_MEMBER:
+            if circle_members_count < settings.MAX_CIRCLE_MEMBER:
                 if amount < circle.minimum_share:
                     data = {"status":0,"message":"The allowed minimum shares for circle {} is KES {}".format(circle.circle_name, circle.minimum_share)}
                     return Response(data,status=status.HTTP_200_OK)

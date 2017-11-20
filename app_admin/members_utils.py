@@ -8,7 +8,6 @@ from app_utility import sms_utils
 
 
 class MemberUtils:
-
     @staticmethod
     def get_num_of_members():
         return Member.objects.all().count()

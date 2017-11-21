@@ -164,9 +164,8 @@ class Circle():
             invite.save()
 
     def deactivate_circle_member(self):
-        loans = LoanApplication.objects.filter(is_approved=True, is_disbursed=True, is_fully_repaid=False).exclude(loan_tariff=None)
+        loans = LoanApplication.objects.filter(is_approved=True, is_disbursed=True, is_fully_repaid=False)
         for loan in loans:
-            print(loan)
             member = loan.circle_member.member
             circle = loan.circle_member.circle
             loan_tariff = loan.loan_tariff

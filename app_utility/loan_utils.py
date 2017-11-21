@@ -15,7 +15,7 @@ from member.models import Member
 from shares.serializers import SharesTransactionSerializer
 from wallet.serializers import WalletTransactionsSerializer
 
-import app_utility 
+import app_utility
 
 class Loan():
     def validate_loan_amount(self,request,loan_amount,circle):
@@ -157,12 +157,12 @@ class Loan():
                 app_utility.general_utils.General().delete_created_objects(created_objects)
 
     def delete_expired_loan(self):
-        today = datetime.now().date()
         loans = LoanApplication.objects.filter(is_approved=False, is_disbursed=False)
         expiry_days = [1,0]
         for loan in loans:
             loan_expiry_date = loan.time_of_application.date() + relativedelta(weeks=1)
-            diff = loan_expiry_date - today
+            diff = loan_expiry_date - datetime.now().date()
+            print(diff.days)
             delta = diff.days
             if delta in expiry_days:
                 circle, member = loan.circle_member.circle, loan.circle_member.member
@@ -177,6 +177,7 @@ class Loan():
                 else:
                     created_objects = []
                     try:
+                        circle_instance = app_utility.circle_utils.Circle()
                         general_instance = app_utility.general_utils.General()
                         amount = loan.amount
                         guarantors = loan.guarantor.filter(has_accepted=True)
@@ -201,6 +202,10 @@ class Loan():
                         fcm_instance.data_push("single",registration_id,fcm_data)
                         loan.delete()
                         self.update_loan_limit(circle,member)
+                        fcm_available_shares = circle_instance.get_guarantor_available_shares(circle,member)
+                        fcm_data = {"request_type":"UPDATE_AVAILABLE_SHARES","circle_acc_number":circle.circle_acc_number,"phone_number":member.phone_number,"available_shares":fcm_available_shares}
+                        registration_ids = fcm_instance.get_circle_members_token(circle,member)
+                        fcm_instance.data_push("multiple",registration_ids,fcm_data)
                     except Exception as e:
                         print(str(e))
                         app_utility.general_utils.General().delete_created_objects(created_objects)

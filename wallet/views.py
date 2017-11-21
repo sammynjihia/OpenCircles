@@ -778,7 +778,7 @@ class MpesaB2BResultURL(APIView):
                 mpesa_transactions = Transactions(wallet=wallet, transaction_type="DEBIT",
                                                   transaction_desc=transaction_desc,
                                                   transacted_by=wallet.acc_no, transaction_amount=transactionAmount,
-                                                  transaction_code=transactionReceipt,source="MPESA B2B")
+                                                  transaction_code=transactionReceipt,source="wallet")
                 mpesa_transactions.save()
                 admin_mpesa_transaction.is_committed = True
                 admin_mpesa_transaction.save()

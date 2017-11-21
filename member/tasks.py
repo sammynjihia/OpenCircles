@@ -28,10 +28,10 @@ def send_frequent_invitations():
     sms = sms_utils.Sms()
     message = "Opencircles is a peer to peer credit and savings platform. Create a circle, invite members and start lending each other. Join now at https://goo.gl/5KWXhx"
     if invite_contacts.exists():
-        pass
-        # response,unsent = sms.sendmultiplesms(numbers, message)
-        # if response:
-        #     invite_contacts.exclude(phone_number__in=unsent).update(invitation_sent=True)
+        # pass
+        response,unsent = sms.sendmultiplesms(numbers, message)
+        if response:
+            invite_contacts.exclude(phone_number__in=unsent).update(invitation_sent=True)
     else:
         print("No contacts in this table")
 

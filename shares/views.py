@@ -68,7 +68,7 @@ class PurchaseShares(APIView):
                                 wallet_transaction = Transactions.objects.create(wallet=wallet, transaction_type="DEBIT",
                                                                                  transaction_time=datetime.datetime.now(),
                                                                                  transaction_desc=wallet_desc,transaction_amount=amount, recipient=circle_acc_number, transaction_code=transaction_code,
-                                                                                 source="shares")
+                                                                                 source="wallet")
                                 created_objects.append(wallet_transaction)
                                 print("wallet transaction")
                                 print(wallet_transaction.transaction_amount)

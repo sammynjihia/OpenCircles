@@ -79,7 +79,7 @@ class CircleCreation(APIView):
                                                                      transaction_time=datetime.datetime.now(),
                                                                      transaction_amount=minimum_share,
                                                                      transaction_desc=wallet_desc,recipient=circle.circle_acc_number,
-                                                                     transaction_code=wallet_transaction_code, source='shares')
+                                                                     transaction_code=wallet_transaction_code, source="wallet")
                     created_objects.append(wallet_transaction)
                     shares = Shares.objects.create(circle_member=circle_member)
                     shares_transaction = IntraCircleShareTransaction.objects.create(shares=shares,transaction_type="DEPOSIT",num_of_shares=minimum_share,transaction_desc=shares_desc,recipient=circle_member,transaction_code=shares_transaction_code)
@@ -358,7 +358,7 @@ class JoinCircle(APIView):
             acc_number,amount,pin = serializer.validated_data['circle_acc_number'],serializer.validated_data['amount'],serializer.validated_data['pin']
             circle = Circle.objects.get(circle_acc_number=acc_number)
             circle_members_count = CircleMember.objects.filter(circle=circle).count()
-            if circle_members_count < settings.MAX_CIRCLE_MEMBER:
+            if circle_members_count <= settings.MAX_CIRCLE_MEMBER:
                 if amount < circle.minimum_share:
                     data = {"status":0,"message":"The allowed minimum shares for circle {} is KES {}".format(circle.circle_name, circle.minimum_share)}
                     return Response(data,status=status.HTTP_200_OK)
@@ -378,7 +378,7 @@ class JoinCircle(APIView):
                         circle_instance = circle_utils.Circle()
                         circle_member = CircleMember.objects.create(circle=circle,member=member)
                         created_objects.append(circle_member)
-                        wallet_transaction = Transactions.objects.create(wallet=request.user.member.wallet,transaction_type="DEBIT",transaction_time=datetime.datetime.now(),transaction_amount=amount,transaction_desc=wallet_desc,recipient=circle.circle_acc_number,transaction_code=wallet_transaction_code)
+                        wallet_transaction = Transactions.objects.create(wallet=request.user.member.wallet,transaction_type="DEBIT",transaction_time=datetime.datetime.now(),transaction_amount=amount,transaction_desc=wallet_desc,recipient=circle.circle_acc_number,transaction_code=wallet_transaction_code,source="wallet")
                         created_objects.append(wallet_transaction)
                         shares = Shares.objects.create(circle_member=circle_member)
                         shares_transaction =IntraCircleShareTransaction.objects.create(shares=shares,transaction_type="DEPOSIT",recipient=circle_member,transaction_time=datetime.datetime.now(),transaction_desc=shares_desc,num_of_shares=amount,transaction_code=shares_transaction_code)

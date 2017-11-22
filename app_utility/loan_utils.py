@@ -15,7 +15,7 @@ from member.models import Member
 from shares.serializers import SharesTransactionSerializer
 from wallet.serializers import WalletTransactionsSerializer
 
-import app_utility 
+import app_utility
 
 class Loan():
     def validate_loan_amount(self,request,loan_amount,circle):
@@ -121,48 +121,55 @@ class Loan():
 
 
     def unlock_guarantors_shares(self, guarantors, shares_desc):
-        loan = guarantors[0].loan
-        loan_member = loan.circle_member.member
         for guarantor in guarantors:
-            try:
-                general_instance = app_utility.general_utils.General()
-                created_objects = []
-                circle_instance = app_utility.circle_utils.Circle()
-                circle, member = guarantor.circle_member.circle, guarantor.circle_member.member
-                shares = guarantor.circle_member.shares.get()
-                shares_transaction_code = general_instance.generate_unique_identifier('STU')
-                shares_desc = "{} confirmed.Shares worth {} {} that were locked to guarantee loan {} of {} {} have been unlocked{}".format(shares_transaction_code, member.currency, guarantor.num_of_shares, loan.loan_code, loan_member.user.first_name, loan_member.user.last_name, shares_desc)
-                locked_shares = LockedShares.objects.filter(loan=loan).get(shares_transaction__shares=shares)
-                shares_transaction = IntraCircleShareTransaction.objects.create(shares=shares,transaction_type="UNLOCKED",num_of_shares=guarantor.num_of_shares,transaction_desc=shares_desc,transaction_code=shares_transaction_code)
-                created_objects.append(shares_transaction)
-                unlocked_shares = UnlockedShares.objects.create(locked_shares=locked_shares, shares_transaction=shares_transaction)
-                created_objects.append(unlocked_shares)
-                shares_transaction_serializer = SharesTransactionSerializer(shares_transaction)
-                available_shares = circle_instance.get_available_circle_member_shares(circle, member)
-                loan_limit = self.calculate_loan_limit(circle,member)
-                guarantor.unlocked = True
-                guarantor.save()
-                instance = app_utility.fcm_utils.Fcm()
-                fcm_data = {"request_type":"UNLOCK_SHARES", "shares_transaction":shares_transaction_serializer.data, "loan_limit":loan_limit}
-                registration_id = member.device_token
-                instance.data_push("single", registration_id, fcm_data)
-                fcm_data = {"request_type":"DELETE_GUARANTEE_LOAN_REQUEST", "loan_code":guarantor.loan.loan_code}
-                instance.data_push("single", registration_id, fcm_data)
+            instance = app_utility.fcm_utils.Fcm()
+            circle_instance = app_utility.circle_utils.Circle()
+            circle, member = guarantor.circle_member.circle, guarantor.circle_member.member
+            if guarantor.has_accepted:
+                try:
+                    loan = guarantor.loan
+                    loan_member = loan.circle_member.member
+                    general_instance = app_utility.general_utils.General()
+                    created_objects = []
+                    shares = guarantor.circle_member.shares.get()
+                    shares_transaction_code = general_instance.generate_unique_identifier('STU')
+                    shares_desc = "{} confirmed.Shares worth {} {} that were locked to guarantee loan {} of {} {} have been unlocked{}".format(shares_transaction_code, member.currency, guarantor.num_of_shares, loan.loan_code, loan_member.user.first_name, loan_member.user.last_name, shares_desc)
+                    locked_shares = LockedShares.objects.filter(loan=loan).get(shares_transaction__shares=shares)
+                    shares_transaction = IntraCircleShareTransaction.objects.create(shares=shares,transaction_type="UNLOCKED",num_of_shares=guarantor.num_of_shares,transaction_desc=shares_desc,transaction_code=shares_transaction_code)
+                    created_objects.append(shares_transaction)
+                    unlocked_shares = UnlockedShares.objects.create(locked_shares=locked_shares, shares_transaction=shares_transaction)
+                    created_objects.append(unlocked_shares)
+                    shares_transaction_serializer = SharesTransactionSerializer(shares_transaction)
+                    available_shares = circle_instance.get_available_circle_member_shares(circle, member)
+                    loan_limit = self.calculate_loan_limit(circle,member)
+                    guarantor.unlocked = True
+                    guarantor.save()
+                    fcm_data = {"request_type":"UNLOCK_SHARES", "shares_transaction":shares_transaction_serializer.data, "loan_limit":loan_limit}
+                    registration_id = member.device_token
+                    instance.data_push("single", registration_id, fcm_data)
+                    fcm_data = {"request_type":"DELETE_GUARANTEE_LOAN_REQUEST", "loan_code":guarantor.loan.loan_code}
+                    instance.data_push("single", registration_id, fcm_data)
+                    fcm_available_shares = circle_instance.get_guarantor_available_shares(circle, member)
+                    fcm_data = {"request_type":"UPDATE_AVAILABLE_SHARES", "circle_acc_number":circle.circle_acc_number, "phone_number":member.phone_number, "available_shares":fcm_available_shares}
+                    registration_id = instance.get_circle_members_token(circle, member)
+                    instance.data_push("multiple", registration_id, fcm_data)
+                except Exception as e:
+                    print(str(e))
+                    app_utility.general_utils.General().delete_created_objects(created_objects)
+            else:
                 fcm_available_shares = circle_instance.get_guarantor_available_shares(circle, member)
                 fcm_data = {"request_type":"UPDATE_AVAILABLE_SHARES", "circle_acc_number":circle.circle_acc_number, "phone_number":member.phone_number, "available_shares":fcm_available_shares}
                 registration_id = instance.get_circle_members_token(circle, member)
                 instance.data_push("multiple", registration_id, fcm_data)
-            except Exception as e:
-                print(str(e))
-                app_utility.general_utils.General().delete_created_objects(created_objects)
+
 
     def delete_expired_loan(self):
-        today = datetime.now().date()
         loans = LoanApplication.objects.filter(is_approved=False, is_disbursed=False)
         expiry_days = [1,0]
         for loan in loans:
             loan_expiry_date = loan.time_of_application.date() + relativedelta(weeks=1)
-            diff = loan_expiry_date - today
+            diff = loan_expiry_date - datetime.now().date()
+            print(diff.days)
             delta = diff.days
             if delta in expiry_days:
                 circle, member = loan.circle_member.circle, loan.circle_member.member
@@ -177,19 +184,23 @@ class Loan():
                 else:
                     created_objects = []
                     try:
+                        circle_instance = app_utility.circle_utils.Circle()
                         general_instance = app_utility.general_utils.General()
                         amount = loan.amount
-                        guarantors = loan.guarantor.filter(has_accepted=True)
+                        guarantors = loan.guarantor.filter()
                         shares_desc = " following cancellation of the loan."
-                        self.unlock_guarantors_shares(guarantors,shares_desc)
+                        if guarantors.exists():
+                            self.unlock_guarantors_shares(guarantors,shares_desc)
                         shares = loan.circle_member.shares.get()
                         locked_shares = LockedShares.objects.filter(loan=loan).get(shares_transaction__shares=shares)
                         num_of_shares = locked_shares.shares_transaction.num_of_shares
                         shares_transaction_code = general_instance.generate_unique_identifier('STU')
                         shares_desc = "{} confirmed.Shares worth {} {} that were locked to guarantee your loan {} of {} {} have been unlocked following cancellation of loan.".format(shares_transaction_code, member.currency, num_of_shares, loan.loan_code, member.currency, loan.amount)
                         shares_transaction = IntraCircleShareTransaction.objects.create(shares=shares, transaction_type="UNLOCKED", num_of_shares=num_of_shares, transaction_desc=shares_desc, transaction_code=shares_transaction_code)
+                        print("shares transaction: ".format(shares_transaction))
                         created_objects.append(shares_transaction)
                         unlocked_shares = UnlockedShares.objects.create(locked_shares=locked_shares,shares_transaction=shares_transaction)
+                        print("unlocked_shares: ".format(unlocked_shares))
                         created_objects.append(unlocked_shares)
                         shares_transaction_serializer = SharesTransactionSerializer(shares_transaction)
                         loan_limit = self.calculate_loan_limit(circle,member)
@@ -201,6 +212,10 @@ class Loan():
                         fcm_instance.data_push("single",registration_id,fcm_data)
                         loan.delete()
                         self.update_loan_limit(circle,member)
+                        fcm_available_shares = circle_instance.get_guarantor_available_shares(circle,member)
+                        fcm_data = {"request_type":"UPDATE_AVAILABLE_SHARES","circle_acc_number":circle.circle_acc_number,"phone_number":member.phone_number,"available_shares":fcm_available_shares}
+                        registration_ids = fcm_instance.get_circle_members_token(circle,member)
+                        fcm_instance.data_push("multiple",registration_ids,fcm_data)
                     except Exception as e:
                         print(str(e))
                         app_utility.general_utils.General().delete_created_objects(created_objects)

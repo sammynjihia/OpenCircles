@@ -84,6 +84,7 @@
                         var id = responseObj[i]['id'];
                         var url = 'href="view_member_details/'+id+'/"';
                         html += '<tr>'
+                            + '<td>'+(i+1)+'</td>'
                             + '<td>'
                                 +'<a class="w3-text-blue cursor-pointer" '+url+'">' + responseObj[i]['name'] + '</a>'
                             + '</td>'

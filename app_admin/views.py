@@ -11,7 +11,6 @@ from django.http import HttpResponse
 from . import members_utils, circles_utils, loan_utils, revenue_streams_utils, shares_utils, transactions_utils
 from . import chat_utils
 
-
 # Create your views here.
 
 def create_admin(request):
@@ -202,7 +201,7 @@ def wallet_transactions(request):
 @login_required(login_url='app_admin:login_page')
 def search_for_transaction(request):
     transactions = []
-    search_val = request.POST.get('search_val')
+    search_val = request.POST.get('search_val').strip()
     trx_objs = transactions_utils.TransactionUtils.search_wallet_transactions(search_val)
     for obj in trx_objs:
         sender = obj.transacted_by
@@ -445,16 +444,15 @@ def chats_list(request):
                 url_exist = False
         except:
             url_exist = False
-
-
+        print("{} ".format(obj.owner.user.first_name))
         chats.append({'id': obj.id,
-                  'name': "{} {}".format(obj.owner.user.first_name, obj.owner.user.last_name),
-                  'time_chat_sent': obj.time_chat_sent,
-                  'body': obj.body,
-                  'has_been_responded_to':obj.has_been_responded_to,
-                  'url_exist': url_exist,
-                  'image_url': image_url
-                  } )
+                      'name': u"{} {}".format(obj.owner.user.first_name, obj.owner.user.last_name),
+                      'time_chat_sent': obj.time_chat_sent,
+                      'body': obj.body,
+                      'has_been_responded_to':obj.has_been_responded_to,
+                      'url_exist': url_exist,
+                      'image_url': image_url
+                    })
     context = {
         'chats':chats
     }

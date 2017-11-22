@@ -29,6 +29,7 @@
             <table class="w3-table w3-striped">
                 <thead class="w3-grey w3-text-white">
                     <tr>
+                        <td>#</td>
                         <td>Transaction code</td>
                         <td>Time</td>
                         <td>Amount</td>
@@ -41,6 +42,7 @@
                 <tbody id="transactions-table">
                     {% for obj in transactions %}
                         <tr>
+                            <td>{{ forloop.counter }}</td>
                             <td>
                                 <a href="{% url 'app_admin:view_transaction_details' transaction_id=obj.id %}">
                                    {{ obj.transaction_code }}
@@ -86,6 +88,7 @@
                         var id = responseObj[i]['id'];
                         var url = 'href="view_transaction_details/'+id+'/"';
                         html += '<tr>'
+                            + '<td>'+(i+1)+'</td>'
                             + '<td>'
                                 + '<a class="w3-text-blue cursor-pointer" '+url+'">' + responseObj[i]['transaction_code'] + '</a>'
                             + '</td>'

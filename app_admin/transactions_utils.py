@@ -22,10 +22,10 @@ class TransactionUtils:
 
     @staticmethod
     def get_days_wallet_transactions():
-        trx = Transactions.objects.filter(transaction_time__range=(
-                datetime.datetime.combine(datetime.datetime.today(), datetime.time.min),
-                datetime.datetime.combine(datetime.datetime.today(), datetime.time.max))).order_by('-transaction_time')
-        return trx
+        # trx = Transactions.objects.filter(transaction_time__range=(
+        #         datetime.datetime.combine(datetime.datetime.today(), datetime.time.min),
+        #         datetime.datetime.combine(datetime.datetime.today(), datetime.time.max))).order_by('-transaction_time')
+        return Transactions.objects.all().order_by('-transaction_time')
 
     @staticmethod
     def search_wallet_transactions(search_val):

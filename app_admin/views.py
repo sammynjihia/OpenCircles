@@ -10,6 +10,8 @@ from django.http import HttpResponse
 
 from . import members_utils, circles_utils, loan_utils, revenue_streams_utils, shares_utils, transactions_utils
 from . import chat_utils
+from circle.models import Circle
+from member.models import Member
 
 # Create your views here.
 
@@ -469,6 +471,38 @@ def reply_to_chat(request):
         'message': 'Sent' if reply_chat else 'Failed',
     }
     return HttpResponse(json.dumps(response))
+
+
+@login_required(login_url='app_admin:login_page')
+def new_chat(request):
+    print(request.POST)
+    if request.method != 'POST':
+        context = {
+            'circles': circles_utils.CircleUtils.get_all_circles(),
+            'members': members_utils.MemberUtils.get_all_members()
+        }
+        return render(request, 'app_admin/new_chat.html', context)
+    else:
+        message = request.POST.get('message')
+        recipient_type = request.POST.get('recipient_type')
+        recipient = request.POST.get('recipient')
+        if recipient_type == 'circle':
+            circle = Circle.objects.get(circle_name__icontains=recipient)
+            if chat_utils.ChatUtils.send_chat_to_circle_members(message, circle):
+                return HttpResponse(json.dumps({'status': 1, 'message': 'Message sent successfully'}))
+            else:
+                return HttpResponse(json.dumps({'status': 0, 'message': 'An error occurred.'}))
+        elif recipient_type == 'member':
+            member = Member.objects.get(phone_number=recipient)
+            if chat_utils.ChatUtils.send_single_chat(message, member):
+                return HttpResponse(json.dumps({'status': 1, 'message': 'Message sent successfully'}))
+            else:
+                return HttpResponse(json.dumps({'status': 0, 'message': 'An error occurred.'}))
+        elif recipient_type == 'all':
+            if chat_utils.ChatUtils.send_chat_to_all_members(message):
+                return HttpResponse(json.dumps({'status': 1, 'message': 'Message sent successfully'}))
+            else:
+                return HttpResponse(json.dumps({'status': 0, 'message': 'An error occurred.'}))
 
 
 @login_required(login_url='app_admin:login_page')

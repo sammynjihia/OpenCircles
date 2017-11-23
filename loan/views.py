@@ -426,8 +426,9 @@ class LoanGuarantorResponse(APIView):
                             registration_id = loan_member.device_token
                             fcm_instance.data_push("single",registration_id,fcm_data)
                             print(fcm_data)
-                        data = {"status":0,"message":"Unable to guarantee loan.You have insufficient shares to guarantee loan."}
-                        return Response(data, status=status.HTTP_200_OK)
+                        else:
+                            data = {"status":0,"message":"Unable to guarantee loan.You have insufficient shares to guarantee loan."}
+                            return Response(data, status=status.HTTP_200_OK)
                     else:
                         guarantor.has_accepted = False
                         guarantor.time_accepted = time_accepted

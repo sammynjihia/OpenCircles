@@ -1,0 +1,178 @@
+{% extends 'app_admin/base_dashboard.html' %}
+{% load static %}
+{% load humanize %}
+{% block current_page %}
+    <i class="fa fa-envelope-open-o"></i> New chat
+{% endblock %}
+{% block main_container %}
+     <div class="col-sm-9 col-sm-offset-3 col-lg-10 col-lg-offset-2 main">
+        <br>
+        <br>
+        <div class="row">
+            <div class="col-lg-2 col-md-2 col-sm-2"></div>
+            <div class="col-lg-8 col-md-8 col-sm-8">
+                <div class="w3-card-4">
+                    <div class="w3-container w3-center w3-text-dark-grey border-bottom">
+                         <h4>New message</h4>
+                    </div>
+                    <form class="w3-form" method="post" id="chat-form">
+                        {% csrf_token %}
+                            <div class="alert alert-success alert-dismissable fade in" id="message-alert">
+                                <a class="close" data-dismiss="alert" aria-label="close">×</a>
+                                <strong id="message-sent-response"><span></span></strong>
+                            </div>
+                          <div>
+                            <p>
+                                <input type="radio" name="recipient" value="all" id="all_recipient" checked> <label for="all_recipient">All members</label><br>
+                                <input type="radio" name="recipient" value="circle" id="circle_recipient"> <label for="circle_recipient">Circle members</label><br>
+                                <input type="radio" name="recipient" value="member" id="member_recipient"> <label for="member_recipient">Specific member</label>
+                            </p>
+                            <p id="individual-recipient-input" style="display: none;">
+                                <label class="w3-text-blue-gray">Send a message to individual members</label>
+                                <input class="w3-input w3-text-blue"
+                                    type="text"
+                                    name="username"
+                                    id="username"
+                                    placeholder="Username"
+                                    list="members-list">
+                                    <datalist id="members-list">
+                                        {% for obj in members %}
+                                            <option>
+                                                {{ obj.user.first_name }} {{ obj.user.last_name }}-{{ obj.phone_number }}
+                                            </option>
+                                        {% endfor %}
+                                    </datalist>
+                                <span id="username-response"></span>
+                            </p>
+                            <p id="circle-recipient-input" style="display: none;">
+                                <label class="w3-text-blue-gray">Send message to members of a particular circle</label>
+                                <input class="w3-input w3-text-blue"
+                                    type="text"
+                                    name="circle_name"
+                                    id="circle-name"
+                                    placeholder="circle name"
+                                    list="circles-list">
+                                    <datalist id="circles-list">
+                                        {% for obj in circles %}
+                                            <option>{{ obj.circle_name }}</option>
+                                        {% endfor %}
+                                    </datalist>
+                                <span id="username-response"></span>
+                            </p>
+                            <p>
+                                <label>Message</label>
+                                <textarea class="w3-input w3-text-blue"
+                                   id="message"
+                                   name="message"
+                                   rows="5"
+                                   required
+                                   placeholder="Message"></textarea>
+                                <span class="w3-text-red" id="message-response"></span>
+                            </p>
+                          </div>
+                          <div class="w3-padding-bottom w3-row">
+                            <a class="w3-btn w3-col l4 s4 m4 w3-btn w3-blue-gray pull-right" id="btn-send-chat">
+                                Send
+                            </a>
+                          </div>
+                    </form>
+                </div>
+            </div>
+         </div>
+     </div>
+{% endblock %}
+
+{% block other_js %}
+    <script>
+        $(document).ready(function() {
+            $('#message-alert').hide();
+            var recipient = $('input[name=recipient]:checked', '#chat-form').val();
+            switchView(recipient);
+
+            $('input[type=radio][name=recipient]').change(function() {
+                 var recipient = this.value;
+                 switchView(recipient);
+            });
+
+            function switchView(recipient){
+                switch (recipient){
+                     case 'circle':
+                         $('#individual-recipient-input').hide();
+                         $('#circle-recipient-input').show();
+                         break;
+                     case 'member':
+                         $('#circle-recipient-input').hide();
+                         $('#individual-recipient-input').show();
+                         break;
+                     case 'all':
+                     default:
+                         $('#individual-recipient-input, #circle-recipient-input').hide();
+                         break;
+                 }
+            }
+        });
+
+        $(document).on('click', '#btn-send-chat', function (e) {
+            e.preventDefault();
+            var message = $('#message').val();
+            var recipient_type = $('input[name=recipient]:checked', '#chat-form').val();
+            var recipient = '';
+
+            switch (recipient_type){
+                 case 'circle':
+                     recipient = $('#circle-name').val();
+                     break;
+                 case 'member':
+                     var username = $('#username').val();
+                     recipient = username.split('-')[1];
+                     break;
+                 case 'all':
+                 default:
+                     break;
+            }
+
+            var data = {
+                recipient_type: recipient_type,
+                recipient: recipient,
+                message: message,
+                csrfmiddlewaretoken: '{{ csrf_token }}'
+            };
+
+            var srvRqst = $.ajax({
+                url: "{% url 'app_admin:new_chat' %}",
+                data: data,
+                type: 'post',
+                datatype: 'json',
+                beforeSend: function(){
+                    $('#btn-send-chat').html('<i class="fa fa-circle-o-notch fa-spin"></i> Sending...');
+                }
+            });
+
+
+            srvRqst.done(function(response){
+                try{
+                    var responseObj = $.parseJSON(response);
+
+                    if(responseObj['status'] == 1){
+                        $('#message-alert').show();
+                        $('#message-sent-response').html(responseObj['message']);
+                        $('#chat-form').trigger('reset');
+                        $('#individual-recipient-input, #circle-recipient-input').hide();
+                    }else{
+                        $('#message-response').html(responseObj['message']);
+                    }
+
+                }catch(exp){
+                    $('#message-response').html(exp);
+                }finally{
+                     $('#btn-send-chat').html('Send chat').prop('disabled', false);
+                }
+            });
+            srvRqst.fail(function(xJHQR, errThrown, errMsg){
+                $('#message-response').html(errorMessage);
+                $('#btn-send-chat').html('Send chat').prop('disabled', false);
+            });
+        });
+
+    </script>
+{% endblock %}

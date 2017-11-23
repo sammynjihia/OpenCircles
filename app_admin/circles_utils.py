@@ -4,7 +4,6 @@ from shares.models import Shares, IntraCircleShareTransaction
 from django.db.models import Sum
 
 
-
 class CircleUtils:
 
     @staticmethod
@@ -51,17 +50,5 @@ class CircleUtils:
     @staticmethod
     def get_circle_members(circle):
         return CircleMember.objects.filter(circle=circle)
-
-
-
-
-
-
-
-
-
-
-
-
 
 

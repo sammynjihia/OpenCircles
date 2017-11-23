@@ -190,7 +190,6 @@ class WalletToMpesa(APIView):
             if number_prefix in safaricom_prefices:
                 mpesaAPI = mpesa_api_utils.MpesaUtils()
                 phone_number = phone_number_raw.strip('+')
-
                 validty = wallet_utils.Wallet()
                 charges = 0
                 if amount >= settings.MIN_MPESA and amount <= 1000:
@@ -230,7 +229,6 @@ class WalletToMpesa(APIView):
                             print (result["ResponseDescription"])
                             data = {"status": 1, "message": "Your request has been accepted successfully. Wait for m-pesa to process this transaction."}
                             return Response(data, status=status.HTTP_200_OK)
-
                         else:
                             #If response was unexpected then request not sent, an error occured.
                             data = {"status": 0, "message": "Sorry! Request not sent"}

@@ -24,7 +24,7 @@ class LoanApplication(models.Model):
     interest_rate = models.FloatField(null=False, blank=False, default=0.00)
     num_of_repayment_cycles = models.IntegerField(default=1)
     require_guarantors = models.BooleanField(default=False)
-    time_of_application = models.DateTimeField(null=False, auto_now=True)
+    time_of_application = models.DateTimeField(null=False, auto_now_add=True)
     is_approved = models.BooleanField(default=False)
     time_approved = models.DateTimeField(null=True)
     is_disbursed = models.BooleanField(default=False)
@@ -47,7 +47,7 @@ class GuarantorRequest(models.Model):
     loan = models.ForeignKey(LoanApplication, null=False,on_delete=models.CASCADE,related_name="guarantor")
     circle_member = models.ForeignKey(CircleMember, null=False)
     num_of_shares = models.IntegerField(blank=False, null=False, default=0)
-    time_requested = models.DateTimeField(auto_now=True)
+    time_requested = models.DateTimeField(auto_now_add=True)
     fraction_guaranteed = models.FloatField(default=0.00)
     has_accepted = models.NullBooleanField(choices=GUARANTOR_CHOICES, default=None)
     time_accepted = models.DateTimeField(null=True)
@@ -63,7 +63,7 @@ class LoanGuarantor(models.Model):
     loan_application = models.ForeignKey(LoanApplication, null=False,on_delete=models.CASCADE)
     circle_member = models.ForeignKey(CircleMember, null=False)
     locked_shares = models.ForeignKey(LockedShares, null=False)
-    time_requested = models.DateTimeField(auto_now=True)
+    time_requested = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         db_table = 'LoanGuarantor'
@@ -84,7 +84,7 @@ class LoanRepayment(models.Model):
     amortization_schedule = models.ForeignKey(LoanAmortizationSchedule,null=False,on_delete=models.CASCADE,related_name="loan_repayment")
     amount = models.IntegerField(null=False, blank=False, default=0)
     time_of_repayment = models.DateTimeField(null=False)
-    time_created = models.DateTimeField(auto_now=True)
+    time_created = models.DateTimeField(auto_now_add=True)
     rating = models.IntegerField(default=4)
     class Meta:
         db_table = 'LoanRepayment'

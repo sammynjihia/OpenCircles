@@ -13,7 +13,7 @@ class Chat(models.Model):
     sender = models.CharField(max_length=15,default="SELF")
     recipient = models.CharField(max_length=15,default="SELF")
     body = models.TextField()
-    time_chat_sent = models.DateTimeField(auto_now=True)
+    time_chat_sent = models.DateTimeField(auto_now_add=True)
     has_been_responded_to = models.BooleanField(default=False)
 
     class Meta:

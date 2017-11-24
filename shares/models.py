@@ -15,7 +15,7 @@ class IntraCircleShareTransaction(models.Model):
     sender = models.ForeignKey(CircleMember, null=True,related_name='sender')
     num_of_shares = models.IntegerField(blank=False, null=False, default=0)
     transaction_desc = models.TextField(max_length=10000, blank=False)
-    transaction_time = models.DateTimeField(null=False, auto_now=True)
+    transaction_time = models.DateTimeField(null=False, auto_now_add=True)
     transaction_code = models.CharField(max_length=100,unique=True)
 
     class Meta:

@@ -8,7 +8,7 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
 from django.http import HttpResponse
 
-from . import members_utils, circles_utils, loan_utils, revenue_streams_utils, shares_utils, transactions_utils
+from . import members_utils, circles_utils, loan_utils, revenue_streams_utils, shares_utils, transactions_utils, contacts_utils
 from . import chat_utils
 from circle.models import Circle
 from member.models import Member
@@ -127,9 +127,46 @@ def home_page(request):
             'mpesa_c2b': mpesa_c2b_total,
             'mpesa_b2c': mpesa_b2c_total,
             'mpesa_b2b': mpesa_b2b_total
+        },
+        'contacts': {
+            'total': contacts_utils.ContactsUtils.get_num_of_all_contacts(),
+            'non_invited': contacts_utils.ContactsUtils.get_num_of_all_non_invited_contact(),
+            'invited': contacts_utils.ContactsUtils.get_num_of_all_invited_contact()
         }
     }
     return render(request, 'app_admin/base_dashboard.html', context)
+
+
+@login_required(login_url='app_admin:login_page')
+def contact_list(request, offset=0):
+    offset = int(offset)
+    contacts_obj = contacts_utils.ContactsUtils.get_contacts_list()
+
+    is_at_end = False
+    contacts = None
+    try:
+        if (offset+100) < contacts_obj.count() - 1:
+            contacts = contacts_obj[offset:offset+100]
+        else:
+            is_at_end = True
+            contacts = contacts_obj[offset: contacts_obj.count()]
+    except IndexError as exp:
+        is_at_end = True
+        contacts = contacts_obj[offset: contacts_obj.count()]
+    print(offset)
+    context = {
+        'contacts': contacts,
+        'members_from_contacts': '',
+        'none_members': '',
+        'is_at_top': True if offset == 0 else False,
+        'previous_offset': offset - 100,
+        'current_offset': offset,
+        'next_offset': offset+100,
+        'is_at_end': is_at_end,
+        'invited': contacts_utils.ContactsUtils.get_num_of_all_invited_contact(),
+        'non_invited': contacts_utils.ContactsUtils.get_num_of_all_non_invited_contact()
+    }
+    return render(request, 'app_admin/contacts_list.html', context)
 
 
 @login_required(login_url='app_admin:login_page')

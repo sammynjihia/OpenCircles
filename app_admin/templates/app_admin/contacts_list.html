@@ -1,0 +1,99 @@
+{% extends 'app_admin/base_dashboard.html' %}
+{% load static %}
+{% block current_page %}
+    <i class="fa fa-phone-square"></i> Contacts
+{% endblock %}
+{% block main_container %}
+     <div class="col-sm-9 col-sm-offset-3 col-lg-10 col-lg-offset-2 main">
+        <br>
+        <div class="w3-row w3-container">
+            <span class="pull-right">
+                {% if is_at_top == False %}
+                <a class="w3-btn w3-blue-gray" href="{% url 'app_admin:contacts' offset=previous_offset %}">
+                    <i class="fa fa-angle-double-left"></i> Prev.</a>
+                    &nbsp;
+                {% endif %}
+
+                {% if is_at_end == False %}
+                    &nbsp;
+                <a class="w3-btn w3-blue-gray" href="{% url 'app_admin:contacts' offset=next_offset %}">
+                    <i class="fa fa-angle-double-right"></i> Next.
+                </a>
+                {% endif %}
+            </span>
+        </div>
+        <br>
+        <div class="w3-container">
+            <table class="w3-table w3-striped">
+                <thead class="w3-grey w3-text-white">
+                    <tr>
+                        <td>#</td>
+                        <td>Name</td>
+                        <td>Phone number</td>
+                        <td>Is Member</td>
+                        <td>Already invited</td>
+                        <td>Provided by</td>
+                    </tr>
+                </thead>
+                <tbody id="contacts table">
+                    {% for obj in contacts %}
+                        <tr>
+                            <td>{{ current_offset|add:forloop.counter }}</td>
+                            <td>
+                                {{ obj.name }}
+                            </td>
+                            <td>{{ obj.phone_number }}</td>
+                            <td>{{ obj.is_member }}</td>
+                            <td>{{ obj.invitation_sent }}</td>
+                            <td>{{ obj.member.user.first_name }} {{ obj.member.user.last_name }}</td>
+                     </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+     </div>
+{% endblock %}
+
+{% block other_js %}
+    <script>
+        var members_table = Backbone.View.extend({});
+    </script>
+
+    <script>
+        $(document).on('click', '#btn-search-member', function () {
+            var searchVal = $('#member-search-val').val();
+            var srvRqst = $.ajax({
+                url:"{% url 'app_admin:search_for_member' %}",
+                data: {
+                    search_val: searchVal,
+                    csrfmiddlewaretoken: '{{ csrf_token }}'
+                },
+                type: 'post',
+                datatype: 'json',
+                beforeSend: function () {}
+            });
+            srvRqst.done(function(response){
+                try {
+                    var responseObj = $.parseJSON(response);
+                    var html = '';
+                    for (var i = 0; i < responseObj.length; i++) {
+                        var id = responseObj[i]['id'];
+                        var url = 'href="view_member_details/'+id+'/"';
+                        html += '<tr>'
+                            + '<td>'+(i+1)+'</td>'
+                            + '<td>'
+                                +'<a class="w3-text-blue cursor-pointer" '+url+'">' + responseObj[i]['name'] + '</a>'
+                            + '</td>'
+                            + '<td>' + responseObj[i]['national_id'] + '</td>'
+                            + '<td>' + responseObj[i]['phone_number'] + '</td>'
+                            + '<td>' + responseObj[i]['email'] + '</td>'
+                            + '<td>' + responseObj[i]['gender'] + '</td>'
+                            + '<td>' + responseObj[i]['date_of_birth'] + '</td>'
+                            + '</tr>';
+                    }
+                    $('#members-table').html(html);
+                }catch(exp){}finally {}
+            });
+        });
+    </script>
+{% endblock %}

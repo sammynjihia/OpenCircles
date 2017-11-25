@@ -8,6 +8,9 @@ urlpatterns = [
     url(r'^login_admin$', views.login_admin, name='login_admin'),
     url(r'^logout_admin$', views.logout_admin, name='logout_admin'),
     url(r'^home$', views.home_page, name='home'),
+    url(r'^contacts$', views.contact_list, name='contacts'),
+    url(r'^contacts/$', views.contact_list, name='contacts'),
+    url(r'^contacts/(?P<offset>[0-9]+)/$', views.contact_list, name='contacts'),
     url(r'^members$', views.members_page, name='members'),
     url(r'^search_for_member$', views.search_for_member, name='search_for_member'),
     url(r'^members_reg_analysis$', views.members_reg_analysis, name='members_reg_analysis'),
@@ -37,16 +40,3 @@ urlpatterns = [
 
 
 ]
-
-
-
-
-
-
-
-
-
-
-
-
-

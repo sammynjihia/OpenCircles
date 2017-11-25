@@ -48,6 +48,11 @@
             </ul>
             <ul class="user-menu nav-tabs">
               <li>
+                <a class="cursor-pointer w3-text-black" href="{% url 'app_admin:contacts' %}">
+                    <i class="fa fa-phone-square"></i> Contacts
+                </a>
+              </li>
+              <li>
                 <a class="cursor-pointer w3-text-black" href="{% url 'app_admin:chats' %}"><i class="fa fa-bell-o"></i> Chats </a>
               </li>
 
@@ -350,6 +355,34 @@
                     </div>
                     <div class="panel-heading  w3-small" id="loans-approved-div">
                         {{ shares_withdrawal.revenue|intcomma }}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+             <div class="w3-col l6 m6 s6 w3-card-2 w3-container" style="height: 300px;">
+                <div class="panel-heading border-bottom-blue">
+                  <i class="fa fa-phone-square w3-text-black"></i> Contacts
+                </div>
+                <div class="panel-heading w3-xlarge" id="loans-applied-div">
+                    {{ contacts.total|intcomma}}
+                </div>
+                <div class="w3-row">
+                  <div class="w3-col l6 m6 s6 w3-container">
+                    <div class="panel-heading w3-small">
+                      <b>Non invited</b>
+                    </div>
+                    <div class="panel-heading  w3-small" id="num-of-loans-div">
+                        {{ contacts.non_invited|intcomma }}
+                    </div>
+                  </div>
+
+                  <div class="w3-col l6 m6 s6 w3-container">
+                    <div class="panel-heading w3-small">
+                      <b>Invited</b>
+                    </div>
+                    <div class="panel-heading  w3-small" id="loans-approved-div">
+                        {{ contacts.invited|intcomma }}
                     </div>
                   </div>
                 </div>

@@ -20,7 +20,7 @@ class PendingRegistration(models.Model):
     email_address = models.EmailField(max_length=100, blank=False, unique=True)
     registered_device = models.TextField(max_length=1000, blank=True)
     nationality = models.CharField(max_length=20, blank=True)
-    time_created = models.DateTimeField(auto_now=True)
+    time_created = models.DateTimeField(auto_now_add=True)
     has_agreed_to_terms = models.BooleanField(default=False)
     universal_transaction_pin = models.CharField(max_length=1000, blank=True)
     national_id_confirmed = models.BooleanField(default=False)
@@ -89,7 +89,7 @@ class Beneficiary(models.Model):
     date_of_birth = models.DateField(null=True)
     benefit = models.FloatField(default=0.00)
     passport_image = models.FileField(storage='MEDIA/BENEFICIARY_PASSPORT_IMAGE', null=True, blank=True)
-    time_created = models.DateTimeField(auto_now=True)
+    time_created = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         db_table = 'Beneficiary'
@@ -109,7 +109,7 @@ class MemberBankAccount(models.Model):
     bank_branch_name = models.CharField(max_length=100, blank=True)
     bank_account_name = models.CharField(max_length=100, blank=True)
     bank_account_number = models.CharField(max_length=100, blank=True)
-    time_created = models.DateTimeField(auto_now=True)
+    time_created = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         db_table = 'MemberBankAccount'
@@ -124,7 +124,7 @@ class MemberBankCard(models.Model):
     expires_on = models.CharField(max_length=5, blank=False)
     card_verification_value = models.CharField(max_length=10, blank=True)
     is_active = models.BooleanField(default=True)
-    time_created = models.DateTimeField(auto_now=True)
+    time_created = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         db_table = 'MemberBankCard'
@@ -133,7 +133,7 @@ class MemberBankCard(models.Model):
 class MemberActiveSession(models.Model):
     member = models.ForeignKey(Member, null=False, blank=False, on_delete=models.CASCADE)
     session_info = models.TextField(max_length=1000, blank=True)
-    session_start_time = models.DateTimeField(auto_now=True)
+    session_start_time = models.DateTimeField(auto_now_add=True)
     session_end_time = models.DateTimeField(null=True)
 
     class Meta:

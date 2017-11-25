@@ -21,7 +21,7 @@ class Transactions(models.Model):
     )
     wallet = models.ForeignKey(Wallet,on_delete=models.CASCADE)
     transaction_type = models.CharField(max_length=10,choices=TRANSACTION_TYPE_CHOICE)
-    transaction_time = models.DateTimeField(auto_now=True)
+    transaction_time = models.DateTimeField(auto_now_add=True)
     transaction_desc = models.TextField()
     transaction_amount = models.FloatField()
     transacted_by = models.CharField(max_length=100,default="SELF")
@@ -62,14 +62,14 @@ class MpesaTransaction_logs(models.Model):
     OriginatorConversationID = models.CharField(max_length=100, unique=True)
     ResultCode = models.CharField(max_length=5)
     ResultDesc = models.CharField(max_length=250)
-    transaction_time = models.DateTimeField(auto_now=True)
+    transaction_time = models.DateTimeField(auto_now_add=True)
 
 
 class AdminMpesaTransaction_logs(models.Model):
     TransactioID = models.CharField(max_length=100, unique=True)
     TransactionType = models.CharField(max_length=15)
     Response = models.TextField(max_length=1000)
-    transaction_time = models.DateTimeField(auto_now=True)
+    transaction_time = models.DateTimeField(auto_now_add=True)
     is_committed = models.NullBooleanField(default=None)
 
 
@@ -77,7 +77,7 @@ class PendingMpesaTransactions(models.Model):
     member = models.ForeignKey(Member, blank=False, null=False)
     originator_conversation_id = models.CharField(max_length=100, unique=True, blank=False)
     amount = models.DecimalField(decimal_places=2, max_digits=7, blank=False)
-    trx_time = models.DateTimeField(auto_now=True)
+    trx_time = models.DateTimeField(auto_now_add=True)
     is_valid = models.BooleanField(default=True)
 
     class Meta:
@@ -90,4 +90,3 @@ class B2BTariff(models.Model):
 
     class Meta:
         db_table = 'B2BTariff'
-

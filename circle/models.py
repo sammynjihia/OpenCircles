@@ -20,7 +20,7 @@ class Circle(models.Model):
     circle_type = models.CharField(max_length=10, blank=False, choices=CIRCLE_TYPE)
     circle_acc_number = models.CharField(max_length=10, blank=False, unique=True)
     initiated_by = models.ForeignKey(Member,null=False, blank=False)
-    time_initiated = models.DateTimeField(auto_now=True)
+    time_initiated = models.DateTimeField(auto_now_add=True)
     is_active = models.BooleanField(default=False)
     annual_interest_rate = models.DecimalField(max_digits=5, decimal_places=3, default=0.000)
     minimum_share = models.IntegerField(default=200)
@@ -32,7 +32,7 @@ class CircleMember(models.Model):
     circle = models.ForeignKey(Circle, null=False, blank=False)
     member = models.ForeignKey(Member, null=False, blank=False)
     allow_public_guarantees_request = models.BooleanField(default=True)
-    time_joined = models.DateTimeField(null=False, auto_now=True)
+    time_joined = models.DateTimeField(null=False, auto_now_add=True)
     is_active = models.BooleanField(default=True)
 
     class Meta:
@@ -65,7 +65,7 @@ class CircleDirector(models.Model):
 class AllowedGuarantorRequest(models.Model):
     circle_member = models.ForeignKey(CircleMember, null=False, blank=False, related_name='circle_member')
     allows_request_from = models.ForeignKey(CircleMember, null=False, blank=False, related_name='allows_request_from')
-    time_created = models.DateTimeField(auto_now=True)
+    time_created = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         db_table = 'AllowedGuarantorRequest'
@@ -74,7 +74,7 @@ class AllowedGuarantorRequest(models.Model):
 class DeclinedCircles(models.Model):
     circle = models.ForeignKey(Circle,null=False,on_delete=models.CASCADE)
     member = models.ForeignKey(Member,null=False,on_delete=models.CASCADE)
-    time_declined = models.DateTimeField(auto_now=True)
+    time_declined = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         db_table = "DeclinedCircles"

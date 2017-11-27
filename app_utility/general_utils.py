@@ -45,7 +45,7 @@ class General():
             resp_part = int(rem/deno)
             res += str(resp_part)
             rem = rem%deno
-
+            
         dec = whole + res
         dec = float(dec)
         return dec

@@ -125,27 +125,35 @@
                 <table class="w3-table w3-striped">
                     <thead class="w3-blue-gray w3-text-white">
                         <tr>
+                            <td>#</td>
                             <td>Name</td>
                             <td>Date joined</td>
                             <td>Available shares</td>
-                            <td>Active loans</td>
-                            <td>Total earnings</td>
+                            <td>Locked</td>
+                            <td>Total Shares</td>
                         </tr>
                     </thead>
                     <tbody>
                         {% for obj in circle_members %}
                             <tr>
-                            <td>
-                                <a href="{% url 'app_admin:view_member_details' member_id=obj.member.id %}">
-                                    {{ obj.member.user.first_name }} {{ obj.member.user.last_name }}
-                                    ({{ obj.member.phone_number }})
-                                </a>
-                            </td>
-                            <td>{{ obj.time_joined }}</td>
-                            <td>{{ obj.available_shares }}</td>
-                            <td>{{ obj.active_loans }}</td>
-                            <td>{{ obj.amount_earned }}</td>
-                        </tr>
+                                <td>
+                                    {{ forloop.counter }}
+                                </td>
+                                <td>
+                                    <a href="{% url 'app_admin:view_member_details' member_id=obj.member.id %}">
+                                        {{ obj.member.user.first_name }} {{ obj.member.user.last_name }}
+                                        ({{ obj.member.phone_number }})
+                                    </a>
+                                </td>
+                                <td>{{ obj.time_joined }}</td>
+                                <td>{{ obj.shares.available_shares }}</td>
+                                <td>
+                                     <a href="{% url 'app_admin:member_shares_trx' circle_member_id=obj.shares.circle_member.id %}">
+                                            {{ obj.shares.locked }}
+                                     </a>
+                                </td>
+                                <td>{{ obj.shares.total_shares }}</td>
+                            </tr>
                         {% endfor %}
                     </tbody>
                 </table>

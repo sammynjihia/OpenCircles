@@ -125,27 +125,31 @@
                 {%  if need_guarantors %}
                 <table class="w3-table w3-striped">
                     <thead class="w3-grey w3-text-white">
-                        <td>Name</td>
-                        <td>Amount</td>
-                        <td>Time requested</td>
-                        <td>Has accepted</td>
+                        <tr>
+                            <td>Name</td>
+                            <td>Amount</td>
+                            <td>Time requested</td>
+                            <td>Has accepted</td>
+                        </tr>
                     </thead>
                 <tbody id="loans-table">
                     {% for obj in guarantors %}
-                        <td class="w3-small">{{obj.circle_member.member.phone_number }}
-                            ({{obj.circle_member.member.user.first_name }}
-                                {{obj.circle_member.member.user.last_name }} -
-                            {{ obj.circle_member.member.user.email }})
-                        </td>
-                        <td>{{ obj.num_of_shares|intcomma }}</td>
-                        <td>{{ obj.time_requested }}</td>
+                        <tr>
+                            <td class="w3-small">{{obj.circle_member.member.phone_number }}
+                                ({{obj.circle_member.member.user.first_name }}
+                                    {{obj.circle_member.member.user.last_name }} -
+                                {{ obj.circle_member.member.user.email }})
+                            </td>
+                            <td>{{ obj.num_of_shares|intcomma }}</td>
+                            <td>{{ obj.time_requested }}</td>
 
-                        {% if obj.has_accepted == None %}
-                        <td class="w3-text-blue-gray">Request pending</td>
-                        {% elif obj.has_accepted == True %}
-                         <td class="w3-text-green">Guaranteed loan at {{ obj.time_accepted }}</td>
-                        {% elif obj.has_accepted == False %}
-                        <td class="w3-text-red">Declined at request at {{ obj.time_accepted }}</td>
+                            {% if obj.has_accepted == None %}
+                            <td class="w3-text-blue-gray">Request pending</td>
+                            {% elif obj.has_accepted == True %}
+                             <td class="w3-text-green">Guaranteed loan at {{ obj.time_accepted }}</td>
+                            {% elif obj.has_accepted == False %}
+                            <td class="w3-text-red">Declined at request at {{ obj.time_accepted }}</td>
+                        </tr>
                         {% endif %}
                     {% endfor %}
                 </tbody>

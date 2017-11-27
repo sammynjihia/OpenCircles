@@ -2,6 +2,7 @@ import datetime
 from circle.models import Circle, CircleMember
 from shares.models import Shares, IntraCircleShareTransaction
 from django.db.models import Sum
+from .shares_utils import SharesUtils
 
 
 class CircleUtils:
@@ -49,6 +50,16 @@ class CircleUtils:
 
     @staticmethod
     def get_circle_members(circle):
-        return CircleMember.objects.filter(circle=circle)
+        members = CircleMember.objects.filter(circle=circle)
+        members_list = []
+        for obj in members:
+            members_list.append({
+                'time_joined': obj.time_joined,
+                'member': obj.member,
+                'shares': SharesUtils.get_shares_by_circle_member(circle, obj.member)
+            })
+        return members_list
+
+
 
 

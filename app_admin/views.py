@@ -604,6 +604,12 @@ def view_circle_details(request, circle_id):
     return render(request, 'app_admin/circle_details.html', context)
 
 
+def get_member_shares_trx(request, circle_member_id):
+    context = shares_utils.SharesUtils.get_shares_trx_by_circle_member(circle_member_id)
+    return render(request, 'app_admin/member_shares_trx.html', context)
+
+
+
 @login_required(login_url='app_admin:login_page')
 def search_revenue_stream_by_date(request):
     start_date_str = request.POST.get('start_date_val').strip()

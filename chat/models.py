@@ -15,6 +15,7 @@ class Chat(models.Model):
     body = models.TextField()
     time_chat_sent = models.DateTimeField(auto_now_add=True)
     has_been_responded_to = models.BooleanField(default=False)
+    is_cancelled = models.BooleanField(default=False)
 
     class Meta:
         db_table = "Chat"

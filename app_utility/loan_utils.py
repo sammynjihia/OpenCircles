@@ -269,7 +269,7 @@ class Loan():
                     transaction_code = general_instance.generate_unique_identifier('WTC')
                     wallet_balance = wallet_instance.calculate_wallet_balance(member.wallet) + amount
                     wallet_desc = "{} confirmed. You have received {} {} from circle {} as your guarantor interest of loan {} of {} {}. New wallet balance is {} {}.".format(transaction_code, member.currency, amount, circle.circle_name, loan.loan_code, loan_user.first_name, loan_user.last_name, member.currency, wallet_balance)
-                    wallet_transaction = Transactions.objects.create(wallet= member.wallet, transaction_type="CREDIT", transaction_desc=wallet_desc, transaction_amount=amount, transaction_time=time_transacted, transacted_by=circle.circle_name, transaction_code=transaction_code)
+                    wallet_transaction = Transactions.objects.create(wallet= member.wallet, transaction_type="CREDIT", transaction_desc=wallet_desc, transaction_amount=amount, transaction_time=time_transacted, transacted_by=circle.circle_name, transaction_code=transaction_code, source="guarantor interest")
                     created_objects.append(wallet_transaction)
                     guarantor_amount_disbursed = guarantor_amount_disbursed + amount
                     wallet_transaction_serializer = WalletTransactionsSerializer(wallet_transaction)
@@ -301,7 +301,7 @@ class Loan():
                     transaction_code = general_instance.generate_unique_identifier('WTC')
                     wallet_balance = wallet_instance.calculate_wallet_balance(member.wallet) + amount
                     wallet_desc = "{} confirmed. You have received {} {} from circle {} as interest of loan {}.New wallet balance {} {}.".format(transaction_code, member.currency,amount, circle.circle_name, loan.loan_code, member.currency, wallet_balance)
-                    wallet_transaction = Transactions.objects.create(wallet= member.wallet, transaction_type="CREDIT", transaction_desc=wallet_desc, transaction_amount=amount, transaction_time=time_transacted, transacted_by=circle.circle_name, transaction_code=transaction_code)
+                    wallet_transaction = Transactions.objects.create(wallet= member.wallet, transaction_type="CREDIT", transaction_desc=wallet_desc, transaction_amount=amount, transaction_time=time_transacted, transacted_by=circle.circle_name, transaction_code=transaction_code, source="loan interest")
                     created_objects.append(wallet_transaction)
                     member_amount_disbursed += amount
                     wallet_transaction_serializer = WalletTransactionsSerializer(wallet_transaction)

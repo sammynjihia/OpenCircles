@@ -468,6 +468,10 @@ def view_loan_application_details(request, loan_code):
     }
     return render(request, 'app_admin/loan_application.html', context)
 
+@login_required(login_url='app_admin:login_page')
+def get_num_of_chats(request):
+    num_of_pending_chats = chat_utils.ChatUtils.get_num_of_pending_chats()
+    return HttpResponse(json.dumps({'num_of_chats': num_of_pending_chats}))
 
 @login_required(login_url='app_admin:login_page')
 def chats_list(request):
@@ -509,6 +513,16 @@ def reply_to_chat(request):
     }
     return HttpResponse(json.dumps(response))
 
+
+@login_required(login_url='app_admin:login_page')
+def cancel_chat(request):
+    chat_id = request.POST.get('chat_id')
+    is_canceled = chat_utils.ChatUtils.cancel_chat(chat_id)
+    response = {
+        'status': 1 if is_canceled else 0,
+        'message': 'Canceled' if is_canceled else 'Failed',
+    }
+    return HttpResponse(json.dumps(response))
 
 @login_required(login_url='app_admin:login_page')
 def new_chat(request):

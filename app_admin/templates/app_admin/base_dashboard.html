@@ -53,7 +53,10 @@
                 </a>
               </li>
               <li>
-                <a class="cursor-pointer w3-text-black" href="{% url 'app_admin:chats' %}"><i class="fa fa-bell-o"></i> Chats </a>
+                <a class="cursor-pointer w3-text-black" href="{% url 'app_admin:chats' %}">
+                    <i class="fa fa-bell-o"></i>
+                    Chats [<span class="w3-text-red" id="num-of-chats"></span>]
+                </a>
               </li>
 
               <li class="dropdown pull-right">
@@ -415,10 +418,37 @@
                             window.location.href = responseObj['URL'];
                         }
                     }catch(exp){}
+                });
+                srvRqst.fail(function(xJHQR, errThrown, errMsg){
+                });
             });
-            srvRqst.fail(function(xJHQR, errThrown, errMsg){
-            });
-            });
+        </script>
+        <!--
+            Get num of chats
+        -->
+        <script>
+            (function () {
+                setInterval(function(){
+                    var srvRqst = $.ajax({
+                    url: "{% url 'app_admin:num_of_chats' %}",
+                        data: {
+                            csrfmiddlewaretoken: '{{ csrf_token }}'
+                        },
+                        type: 'post',
+                        datatype: 'json'
+                    });
+
+                    srvRqst.done(function(response){
+                        try{
+                            var responseObj = $.parseJSON(response);
+                            var numOfChats = responseObj['num_of_chats'];
+                            $('#num-of-chats').html(numOfChats);
+                        }catch(exp){}
+                    });
+                    srvRqst.fail(function(xJHQR, errThrown, errMsg){
+                    });
+                }, 2000);
+            })();
         </script>
     {% endblock %}
 

@@ -8,9 +8,14 @@ import datetime
 
 
 class ChatUtils:
+
+    @staticmethod
+    def get_num_of_pending_chats():
+        return Chat.objects.filter(has_been_responded_to=False, is_cancelled=False).count()
+
     @staticmethod
     def get_pending_chats():
-        return Chat.objects.filter(has_been_responded_to=False).order_by('-time_chat_sent')
+        return Chat.objects.filter(has_been_responded_to=False, is_cancelled=False).order_by('-time_chat_sent')
 
 
     @staticmethod
@@ -53,6 +58,18 @@ class ChatUtils:
         except Exception as exp:
             print(exp)
             return False
+
+
+    @staticmethod
+    def cancel_chat(chat_id):
+        in_reply_to_chat = Chat.objects.get(id=chat_id)
+        in_reply_to_chat.is_cancelled = True
+        try:
+            in_reply_to_chat.save()
+            return True
+        except:
+            return False
+
 
     @staticmethod
     def send_single_chat(message, member):

@@ -36,7 +36,7 @@
                      {% for chat in chats %}
                         <div class="w3-card-4" id="chat-card-{{ chat.id }}">
                             <div class="w3-container w3-text-black border-bottom-blue w3-row">
-                                <div class="w3-col l1 m1 s1 w3-padding-bottom">
+                                <div class="w3-col l2 m2 s2 w3-padding-bottom">
                                     {% if chat.url_exist %}
                                     <img src="{{chat.image_url}}"
                                          alt="member image"
@@ -45,13 +45,24 @@
                                     {% else %}
                                        <i class="fa fa-user" style="height: 50px; width: 50px; border: 1px solid #2aabd2; border-radius: 75px;"></i>
                                     {% endif %}
+
                                 </div>
-                                <div class="w3-col l11 m11 s11  w3-padding-4">
+                                <div class="w3-col l8 m8 s8  w3-padding-4">
                                     <span class="pull-left">
                                         {{ chat.name }}
                                     </span>
                                     <span class="w3-small pull-right">
                                      at   {{ chat.time_chat_sent }}
+                                    </span>
+                                    <br>
+                                </div>
+                                <div class="w3-col l1 m1 s1  w3-padding-4">
+                                    <span class="pull-right">
+                                        <a class="cursor-pointer cancel-chat"
+                                           id="chats-cancel-{{ chat.id }}"
+                                           data-chat_id="{{ chat.id }}">
+                                            <i class="fa fa-times-circle w3-text-red"></i>
+                                        </a>
                                     </span>
                                 </div>
                             </div>
@@ -158,7 +169,8 @@
     <script>
         $(document).on('click', '.btn-reply', function () {
             var chat_id = $(this).data('chat_id');
-            var message = $('#chats-reply-'+chat_id).val();
+            var message = ($('#chats-reply-'+chat_id).val()).trim();
+
             $('#chats-reply-'+chat_id).val("")
             var card_view = $('#chat-card-'+chat_id);
             var srvRqst = $.ajax({
@@ -172,6 +184,34 @@
                 datatype: 'json',
                 beforeSend: function () {}
             });
+            srvRqst.done(function(response){
+                try {
+                    var responseObj = $.parseJSON(response);
+                    if(responseObj['status'] == 1){
+                        card_view.remove();
+                        $('.reply-forms').trigger('reset');
+                    }
+                }catch(exp){}finally {}
+            });
+        });
+    </script>
+
+    <script>
+        $(document).on('click', '.cancel-chat', function (e){
+            e.preventDefault();
+            var chat_id = $(this).data('chat_id');
+            var card_view = $('#chat-card-'+chat_id);
+            var srvRqst = $.ajax({
+                url:"{% url 'app_admin:cancel_chat' %}",
+                data: {
+                    chat_id: chat_id,
+                    csrfmiddlewaretoken: '{{ csrf_token }}'
+                },
+                type: 'post',
+                datatype: 'json',
+                beforeSend: function(){}
+            });
+
             srvRqst.done(function(response){
                 try {
                     var responseObj = $.parseJSON(response);

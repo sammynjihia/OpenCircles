@@ -57,6 +57,47 @@ class SharesUtils:
     def get_circles_total_shares(circle):
         return SharesUtils.get_total_shares_deposit(circle) - SharesUtils.get_total_withdrawals(circle)
 
+    @staticmethod
+    def get_shares_by_circle_member(circle, member):
+        share_obj = Shares.objects.get(circle_member__circle=circle, circle_member__member=member)
+        deposits_obj = IntraCircleShareTransaction.objects.filter(shares=share_obj, transaction_type='DEPOSIT')\
+            .aggregate(total=Sum('num_of_shares'))
+
+        withdraw_obj = IntraCircleShareTransaction.objects.filter(shares=share_obj, transaction_type='WITHDRAW') \
+            .aggregate(total=Sum('num_of_shares'))
+
+        locked_obj = IntraCircleShareTransaction.objects.filter(shares=share_obj, transaction_type='LOCKED') \
+            .aggregate(total=Sum('num_of_shares'))
+
+        unlocked_obj = IntraCircleShareTransaction.objects.filter(shares=share_obj, transaction_type='UNLOCKED') \
+            .aggregate(total=Sum('num_of_shares'))
+
+        total_deposits = deposits_obj['total'] if deposits_obj['total'] is not None else 0
+        total_withdraw = withdraw_obj['total'] if withdraw_obj['total'] is not None else 0
+        total_locked = locked_obj['total'] if locked_obj['total'] is not None else 0
+        total_unlocked = unlocked_obj['total'] if unlocked_obj['total'] is not None else 0
+
+        return {
+            'deposit': total_deposits - total_withdraw,
+            'withdraw': total_withdraw,
+            'locked': total_locked - total_unlocked,
+            'available_shares': (total_deposits - total_withdraw) - (total_locked - total_unlocked),
+            'total_shares': ((total_deposits - total_withdraw) - (total_locked - total_unlocked)) + (total_locked - total_unlocked),
+            'circle_member': share_obj.circle_member
+        }
+
+    @staticmethod
+    def get_shares_trx_by_circle_member(circle_member_id):
+        share_obj = Shares.objects.get(circle_member_id=circle_member_id)
+        deposits_obj = IntraCircleShareTransaction.objects.filter(shares=share_obj).order_by('transaction_time')
+        print(deposits_obj)
+        return {
+            'member': share_obj.circle_member.member,
+            'transactions': deposits_obj,
+            'circle': share_obj.circle_member.circle
+        }
+
+
 
 
 

@@ -1,9 +1,11 @@
 {% extends 'app_admin/base_dashboard.html' %}
 {% load static %}
 {% load humanize %}
+
 {% block current_page %}
     <i class="fa fa-hand-grab-o"></i> Loan application [{{ loan.loan_code }}]
 {% endblock %}
+
 {% block main_container %}
      <div class="col-sm-9 col-sm-offset-3 col-lg-10 col-lg-offset-2 main">
         <div class="container">
@@ -125,27 +127,31 @@
                 {%  if need_guarantors %}
                 <table class="w3-table w3-striped">
                     <thead class="w3-grey w3-text-white">
-                        <td>Name</td>
-                        <td>Amount</td>
-                        <td>Time requested</td>
-                        <td>Has accepted</td>
+                        <tr>
+                            <td>Name</td>
+                            <td>Amount</td>
+                            <td>Time requested</td>
+                            <td>Has accepted</td>
+                        </tr>
                     </thead>
                 <tbody id="loans-table">
                     {% for obj in guarantors %}
-                        <td class="w3-small">{{obj.circle_member.member.phone_number }}
-                            ({{obj.circle_member.member.user.first_name }}
-                                {{obj.circle_member.member.user.last_name }} -
-                            {{ obj.circle_member.member.user.email }})
-                        </td>
-                        <td>{{ obj.num_of_shares|intcomma }}</td>
-                        <td>{{ obj.time_requested }}</td>
+                        <tr>
+                            <td class="w3-small">{{obj.circle_member.member.phone_number }}
+                                ({{obj.circle_member.member.user.first_name }}
+                                    {{obj.circle_member.member.user.last_name }} -
+                                {{ obj.circle_member.member.user.email }})
+                            </td>
+                            <td>{{ obj.num_of_shares|intcomma }}</td>
+                            <td>{{ obj.time_requested }}</td>
 
-                        {% if obj.has_accepted == None %}
-                        <td class="w3-text-blue-gray">Request pending</td>
-                        {% elif obj.has_accepted == True %}
-                         <td class="w3-text-green">Guaranteed loan at {{ obj.time_accepted }}</td>
-                        {% elif obj.has_accepted == False %}
-                        <td class="w3-text-red">Declined at request at {{ obj.time_accepted }}</td>
+                            {% if obj.has_accepted == None %}
+                            <td class="w3-text-blue-gray">Request pending</td>
+                            {% elif obj.has_accepted == True %}
+                             <td class="w3-text-green">Guaranteed loan at {{ obj.time_accepted }}</td>
+                            {% elif obj.has_accepted == False %}
+                            <td class="w3-text-red">Declined at request at {{ obj.time_accepted }}</td>
+                        </tr>
                         {% endif %}
                     {% endfor %}
                 </tbody>
@@ -186,3 +192,8 @@
         var member_details = Backbone.View.extend({});
     </script>
 {% endblock %}
+
+
+
+
+

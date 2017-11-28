@@ -28,15 +28,16 @@ urlpatterns = [
     url(r'^search_for_loan_applications$', views.search_for_loan_applications, name='search_for_loan_applications'),
     url(r'^view_loan_application_details/(?P<loan_code>[A-Za-z0-9]+)/$', views.view_loan_application_details,
         name='view_loan_application_details'),
+    url(r'^num_of_chats', views.get_num_of_chats, name='num_of_chats'),
     url(r'^chats$', views.chats_list, name='chats'),
     url(r'^reply_to_chat$', views.reply_to_chat, name='reply_to_chat'),
+    url(r'^cancel_chat$', views.cancel_chat, name='cancel_chat'),
     url(r'^new_chat$', views.new_chat, name='new_chat'),
     url(r'^search_for_chats$', views.search_for_chats, name='search_for_chats'),
     url(r'^circles_list$', views.circles_list, name='circles_list'),
     url(r'^view_circle_details/(?P<circle_id>[A-Za-z0-9]+)/$', views.view_circle_details,
         name='view_circle_details'),
+    url(r'^member_shares_trx/(?P<circle_member_id>[0-9]+)/$', views.get_member_shares_trx, name='member_shares_trx'),
     url(r'^get_revenue_streams$', views.get_revenue_streams,  name='get_revenue_streams'),
     url(r'^search_revenue_stream_by_date$',  views.search_revenue_stream_by_date, name='search_revenue_stream_by_date'),
-
-
 ]

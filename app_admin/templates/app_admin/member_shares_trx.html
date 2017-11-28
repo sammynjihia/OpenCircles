@@ -1,0 +1,71 @@
+{% extends 'app_admin/base_dashboard.html' %}
+{% load static %}
+{% block current_page %}
+    <i class="fa fa-users"></i> Shares transactions for {{ member.user.first_name }} {{ member.user.last_name }} in {{ circle.circle_name }}
+{% endblock %}
+{% block main_container %}
+     <div class="col-sm-9 col-sm-offset-3 col-lg-10 col-lg-offset-2 main">
+        <br>
+        <br>
+        <div class="w3-container">
+            <table class="w3-table w3-striped">
+                <thead class="w3-grey w3-text-white">
+                    <tr>
+                        <td>#</td>
+                        <td>Time</td>
+                        <td>Transaction Code</td>
+                        <td>Deposits</td>
+                        <td>Locked</td>
+                        <td>Unlocked</td>
+                        <td>Withdrawals</td>
+                    </tr>
+                </thead>
+                <tbody id="members-table">
+                    {% for obj in transactions %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td>{{ obj.transaction_time }}</td>
+                            <td>
+                               <a>
+                                {{ obj.transaction_code }}
+                               </a>
+                            </td>
+                            <td>
+                                {% if obj.transaction_type == 'DEPOSIT' %}
+                                {{ obj.num_of_shares }}
+                                {% else %}
+                                --
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if obj.transaction_type == 'LOCKED' %}
+                                {{ obj.num_of_shares }}
+                                {% else %}
+                                --
+                                {% endif %}
+                            </td>
+                            <td>{% if obj.transaction_type == 'UNLOCKED' %}
+                                {{ obj.num_of_shares }}
+                                {% else %}
+                                --
+                                {% endif %}
+                            </td>
+                            <td>{% if obj.transaction_type == 'WITHDRAW' %}
+                                {{ obj.num_of_shares }}
+                                {% else %}
+                                --
+                                {% endif %}
+                            </td>
+                     </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+     </div>
+{% endblock %}
+
+{% block other_js %}
+    <script>
+        var members_table = Backbone.View.extend({});
+    </script>
+{% endblock %}

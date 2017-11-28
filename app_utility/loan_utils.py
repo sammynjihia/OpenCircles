@@ -29,6 +29,19 @@ class Loan():
                 return False,"The applied loan amount exceeds your loan limit"
         return False,"The allowed minimum loan is KES %s"%(settings.MINIMUM_LOAN)
 
+    def validate_loan_guarantors(self, guarantors, guaranteed_amount, circle):
+        total_guarantors_amount = 0
+        for guarantor in guarantors:
+            total_guarantors_amount += guarantor["amount"]
+            member = Member.objects.get(phone_number = guarantor["phone_number"])
+            available_shares = app_utility.circle_utils.Circle().get_available_circle_member_shares(circle, member)
+            if available_shares < guarantor["amount"]:
+                msg = "Unable to process loan request. Guarantor {} {} is unable to guarantee you {} {}".format(member.user.first_name, member.user.last_name, member.currency, guarantor["amount"])
+                return False,msg
+        if total_guarantors_amount > guaranteed_amount or total_guarantors_amount < guaranteed_amount:
+            return False,"Unable to process loan request."
+        return True,""
+
     def validate_repayment_amount(self,amount,loan_amortization):
         max_repaid_amount = loan_amortization.total_repayment + math.ceil(loan_amortization.ending_balance)
         min_repaid_amount = loan_amortization.total_repayment

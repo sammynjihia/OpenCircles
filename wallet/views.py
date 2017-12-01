@@ -781,6 +781,7 @@ class MpesaB2BResultURL(APIView):
 
                 mpesa_transactions = Transactions(wallet=wallet, transaction_type="DEBIT",
                                                   transaction_desc=transaction_desc,
+                                                  recipient="{} for {}".format(receiverPartyPublicName, BillReferenceNumber),
                                                   transacted_by=wallet.acc_no, transaction_amount=transactionAmount,
                                                   transaction_code=transactionReceipt,source="MPESA B2B")
                 mpesa_transactions.save()

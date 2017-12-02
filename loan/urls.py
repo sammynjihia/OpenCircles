@@ -13,4 +13,5 @@ urlpatterns = [
     url(r'^get_loan_repayment/$',views.LoanRepaymentDetails.as_view(),name='loan_repayment_details'),
     url(r'^process_guarantee_loan_request/$',views.LoanGuarantorResponse.as_view()),
     url(r'^unprocessed_guarantee_loan_requests/$',views.UnprocessedLoanGuarantorRequest.as_view()),
+    url(r'^cancel_loan/$',views.LoanCancellation.as_view()),
 ]

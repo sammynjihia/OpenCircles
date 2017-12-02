@@ -5,21 +5,23 @@ import datetime
 import base64
 from M2Crypto import RSA, X509
 from base64 import b64encode
+from decouple import config,Csv
 
-consumer_key = "iT4xDCEGuaAbQkcOVTvjm8vGl2K3jqcz"
-consumer_secret = "Wwyu7nOkNGGDom6V"
+
+consumer_key = config('consumer_key')
+consumer_secret = config('consumer_secret')
 api_URL = "https://api.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials"
 main_url = "https://opencircles-mpesa-test.teamnairobi.com/"
 lipaonline_callbackURL = main_url + "wallet/mpesaCallbackURL/"
 shortcode = "564433"
 timestamp_raw = datetime.datetime.now()
 timestamp = timestamp_raw.strftime('%Y%m%d%I%M%S')
-passkey = "068807038af3ff41280527fc8f6f034a17d334b997403e46798d0fb8a171a99e"
+passkey = config('passkey')
 password_raw = bytes(shortcode + passkey + timestamp)
-password = base64.b64encode(password_raw )
+password = base64.b64encode(password_raw)
 
-consumer_key_b2c = "LFCFAVOFnVWRC5GQg5pzEKlebG4wV6H5"
-consumer_secret_b2c = "hCVEhj2ArfDCv5F8"
+consumer_key_b2c = config('consumer_key_b2c')
+consumer_secret_b2c = config('consumer_secret_b2c')
 
 B2BResultURL = main_url + "/wallet/mpesaB2BResultURL/"
 B2BQueueTimeOutURL = main_url + "/wallet/mpesaB2BQueueTimeOutURL/"
@@ -28,8 +30,8 @@ B2CQueueTimeOutURL = main_url + "wallet/mpesaB2CQueueTimeoutURL/"
 B2CPartyB = "254708374149"
 B2CPartyA = "892362"
 #B2CPartyA = "564433"
-INITIATOR = "FLEMISHINFORMATICS"
-INITIATOR_PASS  = "Opencircles2017b"
+INITIATOR = config('INITIATOR')
+INITIATOR_PASS  = config('INITIATOR_PASS')
 CERTIFICATE_FILE = "cert.cer"
 security_credential2 = "ju95cBXnjD1mkvo2auzEdvRTD0k3CpfvZes9GXzkcyEXRWzpKz6e3EutzXuM/odNhmttkRv8OxmkUDNwYYKzPyQ8Irrrzej0WU9x2t9Au0seJYmzMjpa/btlqGhmpon1xQ0TzWdBQdQWB3qMHOAixZIYUGqY26YLH8gAiCAOTvAVTLE5x7zhUZuvRbWr2OZ26rpYSreIchfIUEpugmm+cazx9PKOs8dFQHS1LQWOPfyCO1Cz0rL3t/7f1AwoOOWZRNcZAgysd76HRQqrBVyrs0vqfXb6i8MHu6WQ0yWa9yzGMhyxtARtF7VJAPfQSUSusc8E1ADUvdABymviwehV7w=="
 

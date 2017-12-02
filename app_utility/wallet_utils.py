@@ -19,7 +19,7 @@ class Wallet():
             if amount > 0:
                 wallet = request.user.member.wallet
                 balance = self.calculate_wallet_balance(wallet)
-                balance -= self.get_pending_mpesa_amount(request.user.member)
+                balance -= float(self.get_pending_mpesa_amount(request.user.member))
                 print("wallet balance")
                 print(balance)
                 if balance >= amount:

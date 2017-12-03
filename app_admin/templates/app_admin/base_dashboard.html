@@ -98,7 +98,7 @@
                 <i class="fa fa-list w3-text-blue-gray"></i>
                  Members list
               </a>
-            </li>
+            </li>c
             <li>
               <a href="{% url 'app_admin:members_reg_analysis' %}" class="w3-text-black">
                 <i class="fa fa-bar-chart w3-text-blue-gray"></i>
@@ -134,6 +134,11 @@
         <li>
           <a class="w3-text-black" href="{% url 'app_admin:transactions_days_analytics' %}">
               <i class="fa fa-line-chart"></i>&nbsp;&nbsp;Analytics
+          </a>
+        </li>
+        <li>
+          <a class="w3-text-black" href="{% url 'app_admin:financial_stmt' %}">
+              <i class="fa fa-book"></i>&nbsp;&nbsp;Financial statements
           </a>
         </li>
       </ul>

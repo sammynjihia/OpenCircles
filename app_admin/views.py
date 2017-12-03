@@ -418,6 +418,38 @@ def transactions_days_analytics(request):
 
 
 @login_required(login_url='app_admin:login_page')
+def financial_stmt(request):
+    context = {}
+    return render(request, 'app_admin/financial_stmt.html')
+
+
+@login_required(login_url='app_admin:login_page')
+def cash_flow(request):
+    context = {
+
+    }
+    return render(request, 'app_admin/cash_flow.html')
+
+@login_required(login_url='app_admin:login_page')
+def revenue(request):
+    context = {}
+    return render(request, 'app_admin/revenue.html')
+
+
+@login_required(login_url='app_admin:login_page')
+def expenditure(request):
+    context = {}
+    return render(request, 'app_admin/expenditure.html')
+
+
+@login_required(login_url='app_admin:login_page')
+def balance_sheet(request):
+    context = {}
+    return render(request, 'app_admin/balance_sheet.html', context)
+
+
+
+@login_required(login_url='app_admin:login_page')
 def loan_applications(request):
     context = {
         'loans': loan_utils.LoanUtils.get_months_loans()

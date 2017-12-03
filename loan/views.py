@@ -680,7 +680,7 @@ class UnprocessedLoanGuarantorRequest(APIView):
         return Response(data,status=status.HTTP_200_OK)
 
 class LoanCancellation(APIView):
-    # authentication_classes = (TokenAuthentication,)
+    authentication_classes = (TokenAuthentication,)
     permission_classes = (IsAuthenticated,)
 
     def post(self, request):

@@ -693,6 +693,9 @@ class LoanCancellation(APIView):
                 except loanapplication.DoesNotExist():
                     data = {"status":0, "message":"The loan does not exist."}
                     return Response(data, status=status.HTTP_200_OK)
+                if loan.is_approved or loan.is_disbursed:
+                    data = {"status":0, "message":"Unable to delete loan.This loan is active."}
+                    return Response(data, status=status.HTTP_200_OK)
                 member, circle = request.user.member, loan.circle_member.circle
                 circle_instance = circle_utils.Circle()
                 general_instance, loan_instance = general_utils.General(), loan_utils.Loan()

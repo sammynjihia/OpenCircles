@@ -390,19 +390,22 @@ class Loan():
         if len(registration_ids):
             threads = []
             for reg_id in registration_ids:
-                try:
-                    member = Member.objects.get(device_token=reg_id)
-                    print(member.user.first_name)
-                    loan_limit = self.calculate_loan_limit(circle,member)
-                    print("loan limit")
-                    print(loan_limit)
-                    fcm_data = {"request_type":"UPDATE_LOAN_LIMIT","circle_acc_number":circle.circle_acc_number,"loan_limit":loan_limit}
-                    fcm_instance.data_push("single",reg_id,fcm_data)
-                    # t = threading.Thread(target=fcm_instance.data_push, args=("single",reg_id,fcm_data))
-                    # t.start()
-                    # threads.append(t)
-                except Member.DoesNotExist:
+                if reg_id == 'null':
                     continue
+                else:
+                    try:
+                        member = Member.objects.get(device_token=reg_id)
+                        print(member.user.first_name)
+                        loan_limit = self.calculate_loan_limit(circle,member)
+                        print("loan limit")
+                        print(loan_limit)
+                        fcm_data = {"request_type":"UPDATE_LOAN_LIMIT","circle_acc_number":circle.circle_acc_number,"loan_limit":loan_limit}
+                        fcm_instance.data_push("single",reg_id,fcm_data)
+                        # t = threading.Thread(target=fcm_instance.data_push, args=("single",reg_id,fcm_data))
+                        # t.start()
+                        # threads.append(t)
+                    except Member.DoesNotExist:
+                        continue
             # for t in threads:
             #     t.join()
 

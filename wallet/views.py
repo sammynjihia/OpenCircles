@@ -246,8 +246,6 @@ class WalletToMpesa(APIView):
         data = {"status": 0, "message": serializers.errors}
         return Response(data, status=status.HTTP_200_OK)
 
-
-
 class MpesaCallbackURL(APIView):
     """
     callbackURL for mpesa transactions
@@ -261,7 +259,6 @@ class MpesaCallbackURL(APIView):
 
         data = {"status": 1, "message": "Callback URL reached successfully by mpesa"}
         return Response(data, status=status.HTTP_200_OK)
-
 
 class MpesaCallbackURL1(APIView):
     """
@@ -334,7 +331,6 @@ class MpesaCallbackURL1(APIView):
         else:
             data = {"status": 0, "message": "Transaction unsuccessful, something went wrong"}
             return Response(data, status=status.HTTP_200_OK)
-
 
 class MpesaB2CResultURL(APIView):
     """
@@ -485,7 +481,6 @@ class MpesaB2CResultURL(APIView):
             data = {"status": 0, "message": "Transaction unsuccessful, something went wrong"}
             return Response(data, status=status.HTTP_200_OK)
 
-
 class MpesaB2CQueueTimeoutURL(APIView):
     """
     Queue Timeout URL for mpesa B2C transaction
@@ -566,7 +561,6 @@ class MpesaC2BConfirmationURL(APIView):
         #Create a transaction with the given transaction details and wallet
         #Then push the notification
         # Send message to person doing the mpesa transaction confirming transaction
-
 
 class MpesaC2BValidationURL(APIView):
     """
@@ -717,7 +711,6 @@ class WalletToBankPayBill(APIView):
         data = {"status": 0, "message": serializers.errors}
         return Response(data, status=status.HTTP_200_OK)
 
-
 class MpesaB2BResultURL(APIView):
     """
     URL to receive mpesa b2b result response
@@ -775,9 +768,9 @@ class MpesaB2BResultURL(APIView):
                 general_instance, wallet_instance = general_utils.General(), wallet_utils.Wallet()
                 wallet = member.wallet
                 wallet_balance =  wallet_instance.calculate_wallet_balance(wallet) - transactionAmount
-                amount_sent = transactionAmount -charges
+                amount_sent = transactionAmount - charges
                 transaction_desc = "{} confirmed. {} {} has been sent to {} for account {} from your wallet at {}. Transaction cost {} {}. New wallet balance is {} {}." \
-                    .format(transactionReceipt, member.currency, amount_sent, receiverPartyPublicName, BillReferenceNumber, transactionDateTime, member.currency, charges, member.currency, wallet_balance)
+                    .format(transactionReceipt, member.currency, amount_sent, receiverPartyPublicName, BillReferenceNumber, datetime.datetime.now(), member.currency, charges, member.currency, wallet_balance)
 
                 mpesa_transactions = Transactions(wallet=wallet, transaction_type="DEBIT",
                                                   transaction_desc=transaction_desc,

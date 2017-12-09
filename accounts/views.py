@@ -23,8 +23,9 @@ from member.serializers import MemberSerializer
 from member.models import Member
 from wallet.models import Wallet
 
-import random, datetime, json,threading
-from accounts.tasks import save_member_contacts
+import random, json,threading
+from datetime import datetime, timedelta
+from accounts.tasks import save_member_contacts, send_welcome_message1, send_welcome_message2, send_welcome_message3, send_welcome_message4
 
 
 class MemberRegistration(APIView):
@@ -51,6 +52,19 @@ class MemberRegistration(APIView):
                 new_member.save()
                 Wallet.objects.create(member=new_member, acc_no=new_member.national_id)
                 save_member_contacts.delay(new_member.id, contacts)
+                ###### start sending welcoming message ########
+                try:
+                    send_date = datetime.utcnow() + timedelta(seconds=15)
+                    send_date2 = datetime.utcnow() + timedelta(seconds=57)
+                    send_date3 = datetime.utcnow() + timedelta(seconds=84)
+                    send_date4 = datetime.utcnow() + timedelta(seconds=102)
+                    send_welcome_message1.apply_async((new_member.id,), eta=send_date)
+                    send_welcome_message2.apply_async((new_member.id,), eta=send_date2)
+                    send_welcome_message3.apply_async((new_member.id,), eta=send_date3)
+                    send_welcome_message4.apply_async((new_member.id,), eta=send_date4)
+                except Exception as e:
+                    print(str(e))
+                ##### end welcoming message
                 login(request, new_member.user)
                 data = {"status":1, "token":token.key}
                 return Response(data, status=status.HTTP_201_CREATED)

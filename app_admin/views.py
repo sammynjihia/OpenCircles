@@ -115,18 +115,20 @@ def home_page(request):
                     .filter(stream_type__icontains='LOAN')
                     .values_list('stream_amount')])
         },
-        'shares_withdrawal': {
+        'shares': {
             'total_withdrawals_today': sum([x[0] for x in shares_utils.SharesUtils.get_shares_withdrawal_by_date()
                                 .values_list('num_of_shares')]),
             'num_of_withdrawals': shares_utils.SharesUtils.get_shares_withdrawal_by_date().count(),
             'revenue': sum([x[0] for x in revenue_streams_utils.RevenueStreamsUtils.get_revenue_streams_by_date()
                            .filter(stream_type__icontains='SHARES')
-                           .values_list('stream_amount')])
+                           .values_list('stream_amount')]),
+            'available_shares': shares_utils.SharesUtils.get_total_available_shares()
         },
         'wallet_transactions': {
             'mpesa_c2b': mpesa_c2b_total,
             'mpesa_b2c': mpesa_b2c_total,
-            'mpesa_b2b': mpesa_b2b_total
+            'mpesa_b2b': mpesa_b2b_total,
+            'wallet_balance': transactions_utils.TransactionUtils.get_total_wallet_balance(),
         },
         'contacts': {
             'total': contacts_utils.ContactsUtils.get_num_of_all_contacts(),
@@ -170,9 +172,28 @@ def contact_list(request, offset=0):
 
 
 @login_required(login_url='app_admin:login_page')
-def members_page(request):
+def members_page(request, offset=0):
+    members_list = members_utils.MemberUtils.get_all_members()
+    offset = int(offset)
+    is_at_end = False
+    members = None
+    try:
+        if (offset + 100) < members_list.count() - 1:
+            members = members_list[offset:offset + 100]
+        else:
+            is_at_end = True
+            members = members_list[offset: members_list.count()]
+    except IndexError as exp:
+        is_at_end = True
+        members = members_list[offset: members_list.count()]
+
     context = {
-        'members': members_utils.MemberUtils.get_all_members()
+        'members': members,
+        'is_at_top': True if offset == 0 else False,
+        'previous_offset': offset - 100,
+        'current_offset': offset,
+        'next_offset': offset+100,
+        'is_at_end': is_at_end,
     }
     return render(request, 'app_admin/members.html', context)
 
@@ -230,9 +251,28 @@ def view_member_details(request, member_id):
 
 
 @login_required(login_url='app_admin:login_page')
-def wallet_transactions(request):
+def wallet_transactions(request, offset=0):
+    trx_list = transactions_utils.TransactionUtils.get_days_wallet_transactions()
+    offset = int(offset)
+    is_at_end = False
+    transactions = None
+    try:
+        if (offset + 100) < trx_list.count() - 1:
+            transactions = trx_list[offset:offset + 100]
+        else:
+            is_at_end = True
+            transactions = trx_list[offset: trx_list.count()]
+    except IndexError as exp:
+        is_at_end = True
+        transactions = trx_list[offset: trx_list.count()]
+
     context = {
-        'transactions': transactions_utils.TransactionUtils.get_days_wallet_transactions()
+        'transactions': transactions,
+        'is_at_top': True if offset == 0 else False,
+        'previous_offset': offset - 100,
+        'current_offset': offset,
+        'next_offset': offset + 100,
+        'is_at_end': is_at_end,
     }
     return render(request, 'app_admin/wallet_transactions_list.html', context)
 
@@ -279,7 +319,7 @@ def view_transaction_details(request, transaction_id):
 
 
 @login_required(login_url='app_admin:login_page')
-def mpesa_transactions(request):
+def mpesa_transactions(request, offset=0):
     mpesa_trx_obj = transactions_utils.TransactionUtils.get_mpesa_transactions_log()
     mpesa_trx_list = []
 
@@ -311,8 +351,28 @@ def mpesa_transactions(request):
             'response': obj.Response
         })
 
+    transactions = None
+
+    offset = int(offset)
+    is_at_end = False
+    transactions = None
+    try:
+        if (offset + 100) < len(mpesa_trx_list) - 1:
+            transactions = mpesa_trx_list[offset:offset + 100]
+        else:
+            is_at_end = True
+            transactions = mpesa_trx_list[offset: len(mpesa_trx_list)]
+    except IndexError as exp:
+        is_at_end = True
+        transactions = mpesa_trx_list[offset: len(mpesa_trx_list)]
+
     context = {
-        'transactions': mpesa_trx_list
+        'transactions': transactions,
+        'is_at_top': True if offset == 0 else False,
+        'previous_offset': offset - 100,
+        'current_offset': offset,
+        'next_offset': offset + 100,
+        'is_at_end': is_at_end,
     }
     return render(request, 'app_admin/mpesa_transactions.html', context)
 
@@ -419,8 +479,11 @@ def transactions_days_analytics(request):
 
 @login_required(login_url='app_admin:login_page')
 def financial_stmt(request):
-    context = {}
-    return render(request, 'app_admin/financial_stmt.html')
+    context = {
+        'wallet_balance': transactions_utils.TransactionUtils.get_total_wallet_balance(),
+        'available_shares': shares_utils.SharesUtils.get_total_available_shares()
+    }
+    return render(request, 'app_admin/financial_stmt.html', context)
 
 
 @login_required(login_url='app_admin:login_page')

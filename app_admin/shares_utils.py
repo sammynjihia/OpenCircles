@@ -97,6 +97,28 @@ class SharesUtils:
             'circle': share_obj.circle_member.circle
         }
 
+    @staticmethod
+    def get_total_available_shares():
+        deposits_obj = IntraCircleShareTransaction.objects.filter(transaction_type='DEPOSIT') \
+            .aggregate(total=Sum('num_of_shares'))
+
+        withdraw_obj = IntraCircleShareTransaction.objects.filter(transaction_type='WITHDRAW') \
+            .aggregate(total=Sum('num_of_shares'))
+
+        locked_obj = IntraCircleShareTransaction.objects.filter(transaction_type='LOCKED') \
+            .aggregate(total=Sum('num_of_shares'))
+
+        unlocked_obj = IntraCircleShareTransaction.objects.filter(transaction_type='UNLOCKED') \
+            .aggregate(total=Sum('num_of_shares'))
+
+        total_deposits = deposits_obj['total'] if deposits_obj['total'] is not None else 0
+        total_withdraw = withdraw_obj['total'] if withdraw_obj['total'] is not None else 0
+        total_locked = locked_obj['total'] if locked_obj['total'] is not None else 0
+        total_unlocked = unlocked_obj['total'] if unlocked_obj['total'] is not None else 0
+
+        return (total_deposits - total_withdraw) - (total_locked - total_unlocked)
+
+
 
 
 

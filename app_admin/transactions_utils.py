@@ -308,6 +308,15 @@ class TransactionUtils:
             return None
 
 
+    @staticmethod
+    def get_total_wallet_balance():
+        credit_obj = Transactions.objects.filter(transaction_type__icontains='CREDIT').aggregate(total=Sum('transaction_amount'))
+        debit_obj = Transactions.objects.filter(transaction_type__icontains='DEBIT').aggregate(total=Sum('transaction_amount'))
+
+        credit = credit_obj['total'] if credit_obj['total'] is not None else 0
+        debit = debit_obj['total'] if debit_obj['total'] is not None else 0
+        return credit - debit
+
 
 
 

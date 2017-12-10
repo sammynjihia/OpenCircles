@@ -688,17 +688,17 @@ class LoanCancellation(APIView):
         if serializer.is_valid():
             created_objects = []
             try:
-                try:
-                    loan = loanapplication.objects.get(loan_code=serializer.validated_data["loan_code"])
-                except loanapplication.DoesNotExist():
-                    data = {"status":0, "message":"The loan does not exist."}
-                    return Response(data, status=status.HTTP_200_OK)
-                if loan.is_approved or loan.is_disbursed:
-                    data = {"status":0, "message":"Unable to delete loan.This loan is active."}
-                    return Response(data, status=status.HTTP_200_OK)
-                member, circle = request.user.member, loan.circle_member.circle
-                circle_instance = circle_utils.Circle()
-                general_instance, loan_instance = general_utils.General(), loan_utils.Loan()
+                loan = loanapplication.objects.get(loan_code=serializer.validated_data["loan_code"])
+            except loanapplication.DoesNotExist():
+                data = {"status":0, "message":"The loan does not exist."}
+                return Response(data, status=status.HTTP_200_OK)
+            if loan.is_approved or loan.is_disbursed:
+                data = {"status":0, "message":"Unable to delete loan.This loan is active."}
+                return Response(data, status=status.HTTP_200_OK)
+            member, circle = request.user.member, loan.circle_member.circle
+            circle_instance = circle_utils.Circle()
+            general_instance, loan_instance, fcm_instance = general_utils.General(), loan_utils.Loan(), fcm_utils.Fcm()
+            try:
                 amount = loan.amount
                 guarantors = loan.guarantor.filter()
                 shares_desc = " following cancellation of the loan."
@@ -718,24 +718,23 @@ class LoanCancellation(APIView):
                 created_objects.append(unlocked_shares)
                 shares_transaction_serializer = SharesTransactionSerializer(shares_transaction)
                 loan_limit = loan_instance.calculate_loan_limit(circle,member)
-                fcm_instance = fcm_utils.Fcm()
                 registration_id = member.device_token
                 fcm_data = {"request_type":"UNLOCK_SHARES","shares_transaction":shares_transaction_serializer.data,"loan_limit":loan_limit}
                 fcm_instance.data_push("single",registration_id,fcm_data)
                 fcm_data = {"request_type":"DECLINE_LOAN","loan_code":loan.loan_code}
                 fcm_instance.data_push("single",registration_id,fcm_data)
                 loan.delete()
-                updating_loan_limit.delay(circle.id, member.id)
-                fcm_available_shares = circle_instance.get_guarantor_available_shares(circle,member)
-                fcm_data = {"request_type":"UPDATE_AVAILABLE_SHARES","circle_acc_number":circle.circle_acc_number,"phone_number":member.phone_number,"available_shares":fcm_available_shares}
-                registration_ids = fcm_instance.get_circle_members_token(circle,member)
-                fcm_instance.data_push("multiple",registration_ids,fcm_data)
-                data = {"status":1, "message":"Loan has been successfully cancelled."}
-                return Response(data, status=status.HTTP_200_OK)
             except Exception as e:
                 print(str(e))
                 general_utils.General().delete_created_objects(created_objects)
                 data = {"status":0, "message":"Unable to cancel loan."}
                 return Response(data, status=status.HTTP_200_OK)
+            updating_loan_limit.delay(circle.id, member.id)
+            fcm_available_shares = circle_instance.get_guarantor_available_shares(circle,member)
+            fcm_data = {"request_type":"UPDATE_AVAILABLE_SHARES","circle_acc_number":circle.circle_acc_number,"phone_number":member.phone_number,"available_shares":fcm_available_shares}
+            registration_ids = fcm_instance.get_circle_members_token(circle,member)
+            fcm_instance.data_push("multiple",registration_ids,fcm_data)
+            data = {"status":1, "message":"Loan has been successfully cancelled."}
+            return Response(data, status=status.HTTP_200_OK)
         data = {"status":0, "message":serializer.errors}
         return Response(data, status=status.HTTP_200_OK)

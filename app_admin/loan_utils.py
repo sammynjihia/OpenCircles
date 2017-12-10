@@ -34,6 +34,11 @@ class LoanUtils:
         pass
 
     @staticmethod
+    def get_loans_by_member(member):
+        loans_obj = LoanApplication.objects.filter(circle_member__member=member).order_by('-time_of_application')
+        return loans_obj
+
+    @staticmethod
     def get_months_loans():
         today = datetime.date.today()
         year = today.year
@@ -41,6 +46,12 @@ class LoanUtils:
         loan_objs = LoanApplication.objects.filter(time_of_application__year=year, time_of_application__month=month)\
             .order_by('-time_of_application')
         return loan_objs
+
+    @staticmethod
+    def get_loans_list():
+        loan_objs = LoanApplication.objects.filter().order_by('-time_of_application')
+        return loan_objs
+
 
     @staticmethod
     def search_for_loan(search_val):

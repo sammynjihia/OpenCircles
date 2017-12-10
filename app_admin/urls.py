@@ -34,6 +34,7 @@ urlpatterns = [
     url(r'^expenditure$', views.expenditure, name='expenditure'),
     url(r'^balance_sheet$', views.balance_sheet, name='balance_sheet'),
     url(r'^loan_applications$', views.loan_applications, name='loan_applications'),
+    url(r'^loan_applications/(?P<offset>[0-9]+)/$', views.loan_applications, name='loan_applications'),
     url(r'^search_for_loan_applications$', views.search_for_loan_applications, name='search_for_loan_applications'),
     url(r'^view_loan_application_details/(?P<loan_code>[A-Za-z0-9]+)/$', views.view_loan_application_details,
         name='view_loan_application_details'),

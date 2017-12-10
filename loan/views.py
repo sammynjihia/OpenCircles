@@ -688,8 +688,9 @@ class LoanCancellation(APIView):
         if serializer.is_valid():
             created_objects = []
             try:
-                loan = loanapplication.objects.get(loan_code=serializer.validated_data["loan_code"])
-            except loanapplication.DoesNotExist():
+                print(request.user.member.id)
+                loan = loanapplication.objects.get(loan_code=serializer.validated_data["loan_code"],circle_member__member=request.user.member)
+            except loanapplication.DoesNotExist:
                 data = {"status":0, "message":"The loan does not exist."}
                 return Response(data, status=status.HTTP_200_OK)
             if loan.is_approved or loan.is_disbursed:

@@ -227,6 +227,32 @@
           </div>
          </div>
          <br>
+         <div class="w3-row">
+          <div class="w3-col l12 m12 s12 w3-card-2 w3-container"  style="height: 300px;">
+            <div class="panel-heading border-bottom-blue">
+              <i class="fa fa-google-wallet w3-text-brown"></i> Wallet Statement
+            </div>
+            <div class="w3-row">
+              <div class="w3-col l6 m6 s6 w3-container">
+                <div class="panel-heading w3-small">
+                  <b><i class="fa fa-circle fa-2x w3-text-green"></i>&nbsp;&nbsp;Wallet Balance</b>
+                </div>
+                <div class="panel-heading  w3-small">
+                    {{ wallet_transactions.wallet_balance|intcomma}}
+                </div>
+              </div>
+              <div class="w3-col l6 m6 s6 w3-container">
+                <div class="panel-heading w3-small">
+                  <b><i class="fa fa-bank fa-2x w3-text-red"></i> &nbsp;&nbsp; Available Savings</b>
+                </div>
+                <div class="panel-heading  w3-small">
+                    {{ shares.available_shares|intcomma }}
+                </div>
+              </div>
+            </div>
+          </div>
+         </div>
+         <br>
          <div class="w3-row" >
           <div class="w3-col l6 m6 s6 w3-card-2 w3-container" style="height: 300px;">
             <div class="panel-heading border-bottom-blue">
@@ -345,7 +371,7 @@
                   <i class="fa fa-arrows-h w3-text-black"></i> Shares withdrawal
                 </div>
                 <div class="panel-heading w3-xlarge" id="loans-applied-div">
-                    {{ shares_withdrawal.total_withdrawals_today|intcomma }}
+                    {{ shares.total_withdrawals_today|intcomma }}
                 </div>
                 <div class="w3-row">
                   <div class="w3-col l6 m6 s6 w3-container">
@@ -353,7 +379,7 @@
                       <b>No. of withdraws</b>
                     </div>
                     <div class="panel-heading  w3-small" id="num-of-loans-div">
-                        {{ shares_withdrawal.num_of_withdrawals|intcomma }}
+                        {{ shares.num_of_withdrawals|intcomma }}
                     </div>
                   </div>
 
@@ -362,7 +388,7 @@
                       <b>Revenue</b>
                     </div>
                     <div class="panel-heading  w3-small" id="loans-approved-div">
-                        {{ shares_withdrawal.revenue|intcomma }}
+                        {{ shares.revenue|intcomma }}
                     </div>
                   </div>
                 </div>

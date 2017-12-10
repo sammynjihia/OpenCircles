@@ -38,10 +38,28 @@
             </div>
           </div>
         </form>
+        <div class="w3-row w3-container">
+            <span class="pull-right">
+                {% if is_at_top == False %}
+                <a class="w3-btn w3-blue-gray" href="{% url 'app_admin:wallet_transactions' offset=previous_offset %}">
+                    <i class="fa fa-angle-double-left"></i> Prev</a>
+                    &nbsp;
+                {% endif %}
+
+                {% if is_at_end == False %}
+                    &nbsp;
+                <a class="w3-btn w3-blue-gray" href="{% url 'app_admin:wallet_transactions' offset=next_offset %}">
+                     Next <i class="fa fa-angle-double-right"></i>
+                </a>
+                {% endif %}
+            </span>
+        </div>
+        <br>
         <div>
             <table class="w3-table w3-striped">
                 <thead class="w3-grey w3-text-white">
                     <tr>
+                        <td>#</td>
                         <td>Time</td>
                         <td>Transaction ID</td>
                         <td>Is Committed</td>
@@ -53,6 +71,7 @@
                 <tbody id="transactions-table">
                     {% for obj in transactions %}
                         <tr>
+                            <td>{{ current_offset|add:forloop.counter }}</td>
                             <td>{{ obj.time }}</td>
                             <td>
                                 <a href="{% url 'app_admin:view_mpesa_transaction' transaction_code=obj.transaction_code %}">

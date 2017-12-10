@@ -330,8 +330,35 @@ class Loan():
             print(str(e))
             general_instance.delete_created_objects(created_objects)
 
+    def get_estimated_earning(self):
+        guarantors = GuarantorRequest.objects.filter(estimated_earning=0)
+        print(guarantors)
+        if guarantors.exists():
+            for guarantor in guarantors:
+                loan = guarantor.loan
+                loan_tariff = loan.loan_tariff
+                if loan_tariff is None:
+                    loan_tariff = LoanTariff.objects.get(circle=loan.circle_member.circle,max_amount__gte=loan.amount,min_amount__lte=loan.amount)
+                annual_interest_rate = loan_tariff.monthly_interest_rate*12
+                loan_amortization = self.full_amortization_schedule(annual_interest_rate, loan.amount, loan_tariff.num_of_months, datetime.now().date())[0]
+                interest = loan_amortization['interest'] * loan_tariff.num_of_months
+                guarantor_interest = settings.GUARANTORS_INTEREST/100
+                guarantors_interest = guarantor_interest*interest
+                estimated_earning = float(guarantors_interest*guarantor.fraction_guaranteed)
+                estimated_earning_str = str(estimated_earning).split('.')
+                whole, dec = estimated_earning_str[0], estimated_earning_str[1]
+                if len(dec) > 4:
+                    dec = dec[0:4]
+                    new_amount = whole + "." + dec
+                    estimated_earning = float(new_amount)
+                guarantor.estimated_earning = estimated_earning
+                guarantor.save()
+
+
     def send_guarantee_requests(self,loan_guarantors,member):
-        loan = loan_guarantors[0].loan
+        for loan_guarantor in loan_guarantors:
+            loan = loan_guarantor.loan
+            break
         loan_tariff = loan.loan_tariff
         if loan_tariff is None:
             loan_tariff = LoanTariff.objects.get(circle=loan.circle_member.circle,max_amount__gte=loan.amount,min_amount__lte=loan.amount)
@@ -346,18 +373,26 @@ class Loan():
             guarantor_member, circle = guarantor.circle_member.member, guarantor.circle_member.circle
             loan = guarantor.loan
             guarantor_available_shares = circle_instance.get_guarantor_available_shares(circle, guarantor_member)
-            estimated_earning = guarantors_interest*guarantor.fraction_guaranteed
+            estimated_earning = float(guarantors_interest*guarantor.fraction_guaranteed)
+            estimated_earning_str = str(estimated_earning).split('.')
+            whole, dec = estimated_earning_str[0], estimated_earning_str[1]
+            if len(dec) > 4:
+                dec = dec[0:4]
+                new_amount = whole + "." + dec
+                estimated_earning = float(new_amount)
+            guarantor.estimated_earning = estimated_earning
+            guarantor.save()
             rating = self.calculate_circle_member_loan_rating(member)
             fcm_instance = app_utility.fcm_utils.Fcm()
-            fcm_data = {"request_type":"UPDATE_AVAILABLE_SHARES","circle_acc_number":circle.circle_acc_number,"phone_number":guarantor_member.phone_number,"available_shares":guarantor_available_shares}
-            registration_ids = fcm_instance.get_circle_members_token(circle,guarantor_member)
-            fcm_instance.data_push("multiple",registration_ids,fcm_data)
             # t1 = threading.Thread(target=fcm_instance.data_push, args=("multiple",registration_ids,fcm_data))
             # t1.start()
             # threads.append(t1)
             fcm_data = {"request_type":"GUARANTEE_LOAN_REQUEST","phone_number":member.phone_number,"circle_acc_number":circle.circle_acc_number,"loan_code":loan.loan_code,"amount":guarantor.num_of_shares,"num_of_months":loan_tariff.num_of_months,"rating":rating,"estimated_earning":estimated_earning}
             registration_id = guarantor_member.device_token
             fcm_instance.data_push("single",registration_id,fcm_data)
+            fcm_data = {"request_type":"UPDATE_AVAILABLE_SHARES","circle_acc_number":circle.circle_acc_number,"phone_number":guarantor_member.phone_number,"available_shares":guarantor_available_shares}
+            registration_ids = fcm_instance.get_circle_members_token(circle,guarantor_member)
+            fcm_instance.data_push("multiple",registration_ids,fcm_data)
             # t2 = threading.Thread(target=fcm_instance.data_push,args=("single",registration_id,fcm_data))
             # t2.start()
             # threads.append(t2)

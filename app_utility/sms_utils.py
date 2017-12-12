@@ -19,7 +19,8 @@ class Sms:
         to = self.format_phone_number(to)
         gateway = AfricasTalkingGateway(self.username,self.api_key)
         try:
-            response = gateway.sendMessage(to,message)
+            sender = "FLEMISHLTD"
+            response = gateway.sendMessage(to,message,sender)
             print(response)
             if response[0]['status'] == 'Success':
                 return True

@@ -24,9 +24,23 @@
             </div>
           </div>
         </form>
+        <div class="w3-row w3-container">
+            <span class="pull-right">
+                {% if is_at_top == False %}
+                    <a class="w3-text-blue" href="{% url 'app_admin:wallet_transactions' offset=previous_offset %}">
+                        <i class="fa fa-angle-double-left"></i> Prev
+                    </a>                    &nbsp;
+                {% endif %}
+
+                {% if is_at_end == False %}                    &nbsp;
+                    <a class="w3-text-blue" href="{% url 'app_admin:wallet_transactions' offset=next_offset %}">
+                        Next <i class="fa fa-angle-double-right"></i>
+                    </a>
+                {% endif %}
+            </span>
+        </div>
         <br>
-        <div class="w3-container">
-            <table class="w3-table w3-striped">
+        <table class="w3-table w3-striped w3-responsive w3-small">
                 <thead class="w3-grey w3-text-white">
                     <tr>
                         <td>#</td>
@@ -42,7 +56,7 @@
                 <tbody id="transactions-table">
                     {% for obj in transactions %}
                         <tr>
-                            <td>{{ forloop.counter }}</td>
+                            <td>{{ current_offset|add:forloop.counter }}</td>
                             <td>
                                 <a href="{% url 'app_admin:view_transaction_details' transaction_id=obj.id %}">
                                    {{ obj.transaction_code }}
@@ -50,7 +64,14 @@
                             </td>
                             <td>{{ obj.transaction_time }}</td>
                             <td>{{ obj.transaction_amount }}</td>
-                            <td>{{ obj.transaction_type }}</td>
+                            <td>
+                                {% if obj.transaction_type == 'CREDIT' %}
+                                    <i class="fa fa-caret-down w3-text-green"></i>
+                                {% elif obj.transaction_type == 'DEBIT' %}
+                                    <i class="fa fa-caret-up w3-text-red"></i>
+                                {% endif %}
+                                {{ obj.transaction_type }}
+                            </td>
                             <td>{{ obj.source }}</td>
                             <td>{{ obj.transacted_by }}</td>
                             <td>{{ obj.recipient }}</td>
@@ -58,7 +79,7 @@
                     {% endfor %}
                 </tbody>
             </table>
-        </div>
+        <br>
      </div>
 {% endblock %}
 

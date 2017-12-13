@@ -27,7 +27,7 @@ class Transactions(models.Model):
     transacted_by = models.CharField(max_length=100,default="SELF")
     recipient = models.CharField(max_length=100,default="SELF")
     transaction_code = models.CharField(max_length=100,unique=True)
-    source = models.CharField(max_length=15,null=True)
+    source = models.CharField(max_length=30,null=True)
 
     class Meta():
         db_table = "Transactions"

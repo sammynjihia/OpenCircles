@@ -26,52 +26,51 @@
         <div class="w3-row w3-container">
             <span class="pull-right">
                 {% if is_at_top == False %}
-                <a class="w3-btn w3-blue-gray" href="{% url 'app_admin:members' offset=previous_offset %}">
+                <a class="w3-text-blue" href="{% url 'app_admin:members' offset=previous_offset %}">
                     <i class="fa fa-angle-double-left"></i> Prev</a>
                     &nbsp;
                 {% endif %}
 
                 {% if is_at_end == False %}
                     &nbsp;
-                <a class="w3-btn w3-blue-gray" href="{% url 'app_admin:members' offset=next_offset %}">
+                <a class="w3-text-blue" href="{% url 'app_admin:members' offset=next_offset %}">
                      Next <i class="fa fa-angle-double-right"></i>
                 </a>
                 {% endif %}
             </span>
         </div>
         <br>
-        <div class="w3-container">
-            <table class="w3-table w3-striped">
-                <thead class="w3-grey w3-text-white">
+        <table class="w3-table w3-striped w3-small w3-responsive">
+            <thead class="w3-grey w3-text-white">
+                <tr>
+                    <td>#</td>
+                    <td>Name</td>
+                    <td>National ID</td>
+                    <td>Phone number</td>
+                    <td>Email</td>
+                    <td>Gender</td>
+                    <td>Date of Joined</td>
+                </tr>
+            </thead>
+            <tbody id="members-table">
+                {% for obj in members %}
                     <tr>
-                        <td>#</td>
-                        <td>Name</td>
-                        <td>National ID</td>
-                        <td>Phone number</td>
-                        <td>Email</td>
-                        <td>Gender</td>
-                        <td>Date of Joined</td>
-                    </tr>
-                </thead>
-                <tbody id="members-table">
-                    {% for obj in members %}
-                        <tr>
-                            <td>{{ current_offset|add:forloop.counter }}</td>
-                            <td>
-                               <a href="{% url 'app_admin:view_member_details' member_id=obj.id %}">
-                                {{ obj.user.first_name }} {{ obj.user.last_name }} {{ obj.other_name }}
-                               </a>
-                            </td>
-                            <td>{{ obj.national_id }}</td>
-                            <td>{{ obj.phone_number }}</td>
-                            <td>{{ obj.user.email }}</td>
-                            <td>{{ obj.gender }}</td>
-                            <td>{{ obj.user.date_joined }}</td>
-                     </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+                        <td>{{ current_offset|add:forloop.counter }}</td>
+                        <td>
+                           <a href="{% url 'app_admin:view_member_details' member_id=obj.id %}">
+                            {{ obj.user.first_name }} {{ obj.user.last_name }} {{ obj.other_name }}
+                           </a>
+                        </td>
+                        <td>{{ obj.national_id }}</td>
+                        <td>{{ obj.phone_number }}</td>
+                        <td>{{ obj.user.email }}</td>
+                        <td>{{ obj.gender }}</td>
+                        <td>{{ obj.user.date_joined }}</td>
+                 </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <br>
      </div>
 {% endblock %}
 

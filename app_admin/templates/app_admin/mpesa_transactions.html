@@ -41,54 +41,58 @@
         <div class="w3-row w3-container">
             <span class="pull-right">
                 {% if is_at_top == False %}
-                <a class="w3-btn w3-blue-gray" href="{% url 'app_admin:wallet_transactions' offset=previous_offset %}">
-                    <i class="fa fa-angle-double-left"></i> Prev</a>
-                    &nbsp;
+                    <a class="w3-text-blue" href="{% url 'app_admin:mpesa_transactions' offset=previous_offset %}">
+                        <i class="fa fa-angle-double-left"></i> Prev
+                    </a>                    &nbsp;
                 {% endif %}
 
-                {% if is_at_end == False %}
-                    &nbsp;
-                <a class="w3-btn w3-blue-gray" href="{% url 'app_admin:wallet_transactions' offset=next_offset %}">
-                     Next <i class="fa fa-angle-double-right"></i>
-                </a>
+                {% if is_at_end == False %}                    &nbsp;
+                    <a class="w3-text-blue" href="{% url 'app_admin:mpesa_transactions' offset=next_offset %}">
+                        Next <i class="fa fa-angle-double-right"></i>
+                    </a>
                 {% endif %}
             </span>
         </div>
         <br>
-        <div>
-            <table class="w3-table w3-striped">
-                <thead class="w3-grey w3-text-white">
+        <table class="w3-table w3-striped w3-responsive w3-small">
+            <thead class="w3-grey w3-text-white">
+                <tr>
+                    <td>#</td>
+                    <td>Time</td>
+                    <td>Transaction ID</td>
+                    <td>Amount</td>
+                    <td>Is Committed</td>
+                    <td>Transaction Type</td>
+                    <td>Response</td>
+                </tr>
+            </thead>
+            <tbody id="transactions-table">
+                {% for obj in transactions %}
                     <tr>
-                        <td>#</td>
-                        <td>Time</td>
-                        <td>Transaction ID</td>
-                        <td>Is Committed</td>
-                        <td>Transaction Type</td>
-                        <td>Amount</td>
-                        <td>Response</td>
+                        <td>{{ current_offset|add:forloop.counter }}</td>
+                        <td>{{ obj.time }}</td>
+                        <td>
+                            <a href="{% url 'app_admin:view_mpesa_transaction' transaction_code=obj.transaction_code %}">
+                                {{ obj.transaction_code }}
+                            </a>
+                        </td>
+                        <td>{{ obj.amount|intcomma }}</td>
+                        {% if obj.is_committed == True %}
+                            <td class="w3-text-green"><b>{{ obj.is_committed }}</b></td>
+                        {% elif obj.is_committed == False %}
+                            <td class="w3-text-red"><b>{{ obj.is_committed }}</b></td>
+                        {% else %}
+                             <td class="w3-text-orange"><b>{{ obj.is_committed }}</b></td>
+                        {% endif %}
+                        <td>{{ obj.type }}</td>
+                        <td>
+                            <textarea rows="3" style="width: 100%">{{ obj.response|pprint }}</textarea>
+                        </td>
                     </tr>
-                </thead>
-                <tbody id="transactions-table">
-                    {% for obj in transactions %}
-                        <tr>
-                            <td>{{ current_offset|add:forloop.counter }}</td>
-                            <td>{{ obj.time }}</td>
-                            <td>
-                                <a href="{% url 'app_admin:view_mpesa_transaction' transaction_code=obj.transaction_code %}">
-                                    {{ obj.transaction_code }}
-                                </a>
-                            </td>
-                            <td>{{ obj.is_committed }}</td>
-                            <td>{{ obj.type }}</td>
-                            <td>{{ obj.amount|intcomma }}</td>
-                            <td>
-                                <textarea rows="3" style="width: 100%">{{ obj.response|pprint }}</textarea>
-                            </td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
+                {% endfor %}
+            </tbody>
             </table>
-        </div>
+        <br>
      </div>
 {% endblock %}
 

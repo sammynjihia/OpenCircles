@@ -245,7 +245,8 @@ def view_member_details(request, member_id):
         'member': member,
         'next_of_kin': members_utils.MemberUtils.get_next_of_kin(member),
         'circles': circles_utils.CircleUtils.get_circles_by_member(member),
-        'transactions': transactions_utils.TransactionUtils.get_wallet_transaction_by_member(member)[:100]
+        'transactions': transactions_utils.TransactionUtils.get_wallet_transaction_by_member(member)[:100],
+        'loans': loan_utils.LoanUtils.get_loans_by_member(member)
     }
     return render(request, 'app_admin/member_details.html', context)
 
@@ -511,11 +512,28 @@ def balance_sheet(request):
     return render(request, 'app_admin/balance_sheet.html', context)
 
 
-
 @login_required(login_url='app_admin:login_page')
-def loan_applications(request):
+def loan_applications(request, offset=0):
+    loans_list = loan_utils.LoanUtils.get_loans_list()
+    offset = int(offset)
+    is_at_end = False
+    loans = None
+    try:
+        if (offset + 100) < loans_list.count() - 1:
+            loans = loans_list[offset:offset + 100]
+        else:
+            is_at_end = True
+            loans = loans_list[offset: loans_list.count()]
+    except IndexError as exp:
+        is_at_end = True
+        loans = loans_list[offset: loans_list.count()]
     context = {
-        'loans': loan_utils.LoanUtils.get_months_loans()
+        'loans': loans,
+        'is_at_top': True if offset == 0 else False,
+        'previous_offset': offset - 100,
+        'current_offset': offset,
+        'next_offset': offset + 100,
+        'is_at_end': is_at_end,
     }
     template = 'app_admin/loan_applications_list.html'
     return render(request, template, context)

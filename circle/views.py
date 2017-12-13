@@ -403,7 +403,7 @@ class JoinCircle(APIView):
                                 # message = "Circle {} has been activated.You can now purchase shares,apply for loan and earn interest on loan repayments.".format(circle.circle_name)
                                 # fcm_instance.notification_push("multiple",registration_ids,title,message)
                         # unblock task
-                        updating_loan_limit(circle.id,member.id)
+                        updating_loan_limit.delay(circle.id,member.id)
                         #loan_instance.update_loan_limit(circle,member)
                         fcm_data = {"request_type":"NEW_CIRCLE_MEMBERSHIP","circle_acc_number":circle.circle_acc_number,"circle_member":circle_member_serializer.data}
                         registration_ids = fcm_instance.get_circle_members_token(circle,member)

@@ -19,7 +19,7 @@ from wallet.models import Transactions,RevenueStreams
 from shares.models import IntraCircleShareTransaction,Shares,SharesWithdrawalTariff
 from circle.models import Circle,CircleMember
 
-from loan.tasks import unlocking_guarantors_shares, updating_loan_limit, sending_guarantee_requests, task_share_loan_interest
+from loan.tasks import updating_loan_limit
 
 import datetime,uuid
 

@@ -24,8 +24,9 @@ def xsum(numbers):
 def send_frequent_invitations():
     invite_contacts = Contacts.objects.filter(is_member=False, is_valid=True, invitation_sent=False)
     contacts_to_sent = invite_contacts.order_by('phone_number').values_list('phone_number', flat=True).distinct()
-    numbers = ','.join(contacts_to_sent)
-    numbers = numbers[:500]
+    contacts_to_send = contacts_to_sent[:500]
+    numbers = ','.join(contacts_to_send)
+    numbers = numbers.encode("ascii")
     sms = sms_utils.Sms()
     message = "Opencircles is a peer to peer credit and savings platform that makes you and your close friends, family and colleagues into investment and saving partners. Simply download the app from playstore at https://goo.gl/5KWXhx create a circle and invite them to join and start saving, lending and borrowing from that circle."
     if invite_contacts.exists():

@@ -185,7 +185,7 @@ CELERY_TIMEZONE = 'Africa/Nairobi'
 CELERY_BEAT_SCHEDULE = {
     'task-number-one': {
             'task': 'member.tasks.send_frequent_invitations',
-            'schedule': crontab(hour=6, minute=30)
+            'schedule': crontab(hour=9, minute=30)
         }
 }
 

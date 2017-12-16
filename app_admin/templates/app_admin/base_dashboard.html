@@ -194,177 +194,130 @@
          <br>
          <br>
          <div class="w3-row">
-          <div class="w3-col l12 m12 s12 w3-card-2 w3-container"  style="height: 300px;">
+          <div class="w3-col l12 m12 s12 w3-card-2 w3-container">
             <div class="panel-heading border-bottom-blue">
               <i class="fa fa-arrows-h w3-text-brown"></i> Transactions
             </div>
             <div class="w3-row">
-              <div class="w3-col l4 m4 s4 w3-container">
-                <div class="panel-heading w3-small">
-                  <b><i class="fa fa-caret-down fa-2x w3-text-green"></i>&nbsp;&nbsp;M-PESA C2B</b>
-                </div>
-                <div class="panel-heading  w3-small">
-                    {{ wallet_transactions.mpesa_c2b|intcomma}}
-                </div>
+              <div class="w3-col l6 m6 s6 w3-container">
+                  <table class="w3-table w3-striped">
+                      <tr>
+                          <td><i class="fa fa-caret-down w3-text-green"></i> M-PESA C2B</td>
+                          <td>{{ wallet_transactions.mpesa_c2b|intcomma}}</td>
+                      </tr>
+                      <tr>
+                          <td><i class="fa fa-caret-up w3-text-red"></i> M-PESA B2C</td>
+                          <td>{{ wallet_transactions.mpesa_b2c|intcomma }}</td>
+                      </tr>
+                      <tr>
+                          <td><i class="fa fa-caret-up w3-text-red"></i> M-PESA B2B</td>
+                          <td>{{ wallet_transactions.mpesa_b2b|intcomma }}</td>
+                      </tr>
+                  </table>
               </div>
-              <div class="w3-col l4 m4 s4 w3-container">
-                <div class="panel-heading w3-small">
-                  <b><i class="fa fa-caret-up fa-2x w3-text-red"></i> &nbsp;&nbsp; M-PESA B2C</b>
-                </div>
-                <div class="panel-heading  w3-small">
-                    {{ wallet_transactions.mpesa_b2c|intcomma }}
-                </div>
-              </div>
-              <div class="w3-col l4 m4 s4 w3-container">
-                <div class="panel-heading w3-small">
-                  <b><i class="fa fa-caret-up fa-2x w3-text-red"></i> &nbsp;&nbsp; M-PESA B2B</b>
-                </div>
-                <div class="panel-heading  w3-small">
-                    {{ wallet_transactions.mpesa_b2b|intcomma }}
-                </div>
+              <div class="w3-col l6 m6 s6 w3-container">
+                  <table class="w3-table w3-striped">
+                      <tr>
+                          <td><i class="fa fa-circle w3-text-green"></i> Wallet Balance</td>
+                          <td>{{ wallet_transactions.wallet_balance|intcomma}}</td>
+                      </tr>
+                      <tr>
+                          <td><i class="fa fa-bank w3-text-teal"></i> Available Savings</td>
+                          <td>{{ shares.available_shares|intcomma }}</td>
+                      </tr>
+                  </table>
               </div>
             </div>
           </div>
          </div>
+
+
          <br>
-         <div class="w3-row">
-          <div class="w3-col l12 m12 s12 w3-card-2 w3-container"  style="height: 300px;">
-            <div class="panel-heading border-bottom-blue">
-              <i class="fa fa-google-wallet w3-text-brown"></i> Wallet Statement
-            </div>
-            <div class="w3-row">
-              <div class="w3-col l6 m6 s6 w3-container">
-                <div class="panel-heading w3-small">
-                  <b><i class="fa fa-circle fa-2x w3-text-green"></i>&nbsp;&nbsp;Wallet Balance</b>
-                </div>
-                <div class="panel-heading  w3-small">
-                    {{ wallet_transactions.wallet_balance|intcomma}}
-                </div>
-              </div>
-              <div class="w3-col l6 m6 s6 w3-container">
-                <div class="panel-heading w3-small">
-                  <b><i class="fa fa-bank fa-2x w3-text-red"></i> &nbsp;&nbsp; Available Savings</b>
-                </div>
-                <div class="panel-heading  w3-small">
-                    {{ shares.available_shares|intcomma }}
-                </div>
-              </div>
-            </div>
-          </div>
-         </div>
-         <br>
-         <div class="w3-row" >
-          <div class="w3-col l6 m6 s6 w3-card-2 w3-container" style="height: 300px;">
-            <div class="panel-heading border-bottom-blue">
-              <i class="fa fa-users w3-text-blue"></i> Members
-            </div>
-            <div class="panel-heading w3-xlarge" id="num-of-members-div">
-                {{ member.total_members|intcomma }}
-            </div>
-            <div class="w3-row">
-              <div class="w3-col l6 m6 s6 w3-container">
-                <div class="panel-heading w3-small">
-                  <b>Day's registration</b>
-                </div>
-                <div class="panel-heading  w3-small" id="members-day-reg-num-div">
-                    {{ member.registered_today|intcomma }}
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="w3-col l6 m6 s6 w3-card-2 w3-container" style="height: 300px;">
-        <div class="panel-heading border-bottom-blue">
-          <i class="fa fa-circle-o-notch w3-text-brown"></i> Circles
-        </div>
-        <div class="panel-heading w3-xlarge" id="num-circles-div">
-            {{ circle.num_of_circles|intcomma }}
-        </div>
-        <div class="w3-row">
+         <div class="w3-row w3-margin-bottom w3-card-2" >
           <div class="w3-col l6 m6 s6 w3-container">
-            <div class="panel-heading w3-small">
-              <b>Active circles</b>
-            </div>
-            <div class="panel-heading w3-small" id="num-of-active-circles-div">
-                {{ circle.num_of_active_circles|intcomma }}
-            </div>
+              <table class="w3-table w3-striped">
+                  <thead class="border-bottom-blue">
+                    <tr>
+                        <td colspan="2">
+                            <i class="fa fa-user"></i> Members
+                        </td>
+                    </tr>
+                  </thead>
+                  <tbody>
+                      <tr>
+                          <td>Members registered today</td>
+                          <td>{{ member.registered_today|intcomma }}</td>
+                      </tr>
+                      <tr>
+                          <td>Total number of members</td>
+                          <td>{{ member.total_members|intcomma }}</td>
+                      </tr>
+                  </tbody>
+              </table>
           </div>
           <div class="w3-col l6 m6 s6 w3-container">
-            <div class="panel-heading w3-small">
-              <b>Circles registered today</b>
-            </div>
-            <div class="panel-heading w3-small" id="num-of-circles-reg--by-day-div">
-                {{ circle.num_of_circles_created_today|intcomma }}
-            </div>
+            <table class="w3-table w3-striped">
+                  <thead class="border-bottom-blue">
+                    <tr>
+                        <td colspan="2">
+                            <i class="fa fa-circle-o"></i> Circles
+                        </td>
+                    </tr>
+                  </thead>
+                  <tbody>
+                      <tr>
+                          <td>Circles registered today</td>
+                          <td>{{ circle.num_of_circles_created_today|intcomma }}</td>
+                      </tr>
+                      <tr>
+                          <td>Active circles</td>
+                          <td>{{ circle.num_of_active_circles|intcomma }}</td>
+                      </tr>
+                      <tr>
+                          <td>Total number of circles</td>
+                          <td>{{ circle.num_of_circles|intcomma }}</td>
+                      </tr>
+                  </tbody>
+              </table>
           </div>
         </div>
-      </div>
+     <br>
+     <div class="w3-row w3-card-2">
+         <div class="panel-heading border-bottom-blue">
+            <i class="fa fa-hand-paper-o w3-text-red"></i> Loans
+          </div>
+          <div class="w3-row">
+              <div class="w3-col l6 m6 s6 w3-container">
+                  <table class="w3-table w3-striped">
+                      <tr>
+                          <td>No. of loans</td>
+                          <td>{{ loan_application.num_of_loans_today|intcomma }}</td>
+                      </tr>
+                      <tr>
+                          <td>Money borrowed today</td>
+                          <td>{{ loan_application.total_loans_applied_today|intcomma }}</td>
+                      </tr>
+                      <tr>
+                          <td>Approved Loans</td>
+                          <td>{{ loan_application.amount_approved_today|intcomma }}</td>
+                      </tr>
+                  </table>
+              </div>
+              <div class="w3-col l6 m6 s6 w3-container">
+                  <table class="w3-table w3-striped">
+                      <tr>
+                          <td>Loans repaid</td>
+                          <td>{{ loan_repayment.num_of_repayments|intcomma }}</td>
+                      </tr>
+                      <tr>
+                          <td>Revenue earned</td>
+                          <td>{{ loan_repayment.revenue|intcomma }}</td>
+                      </tr>
+                  </table>
+              </div>
+          </div>
      </div>
-         <br>
-         <div class="w3-row">
-             <div class="w3-col l6 m6 s6 w3-card-2 w3-container" style="height: 300px;">
-                <div class="panel-heading border-bottom-blue">
-                    <i class="fa fa-hand-paper-o w3-text-red"></i> Loans
-                </div>
-                <div class="panel-heading w3-xlarge" id="loans-applied-div">
-                    {{ loan_application.total_loans_applied_today|intcomma }}
-                </div>
-                <div class="w3-row">
-                  <div class="w3-col l4 m4 s4 w3-container">
-                    <div class="panel-heading w3-small">
-                      <b>No. of loans</b>
-                    </div>
-                    <div class="panel-heading  w3-small" id="num-of-loans-div">
-                        {{ loan_application.num_of_loans_today|intcomma }}
-                    </div>
-                  </div>
-
-                  <div class="w3-col l4 m4 s4 w3-container">
-                    <div class="panel-heading w3-small">
-                      <b>Approved loans</b>
-                    </div>
-                    <div class="panel-heading  w3-small" id="loans-approved-div">
-                        {{ loan_application.amount_approved_today|intcomma }}
-                    </div>
-                  </div>
-
-                  <div class="w3-col l4 m4 s4 w3-container">
-                    <div class="panel-heading w3-small">
-                      <b>Pending</b>
-                    </div>
-                    <div class="panel-heading  w3-small" id="loans-pending-div">
-                        {{ loan_application.amount_pending_approval_today|intcomma }}
-                    </div>
-                  </div>
-                </div>
-            </div>
-             <div class="w3-col l6 m6 s6 w3-card-2 w3-container" style="height: 300px;">
-                <div class="panel-heading border-bottom-blue">
-                  <i class="fa fa-money w3-text-green"></i> Loan repayments
-                </div>
-                <div class="panel-heading w3-xlarge" id="loan-repayments-div">
-                    {{ loan_repayment.total_loan_repaid_today|intcomma }}
-                </div>
-                <div class="w3-row">
-                  <div class="w3-col l6 m6 s6 w3-container">
-                    <div class="panel-heading w3-small">
-                      <b>No. of loans repaid</b>
-                    </div>
-                    <div class="panel-heading w3-small" id="num-of-repayments-div">
-                        {{ loan_repayment.num_of_repayments|intcomma }}
-                    </div>
-                  </div>
-                  <div class="w3-col l6 m6 s6 w3-container">
-                    <div class="panel-heading w3-small">
-                      <b>Revenue</b>
-                    </div>
-                    <div class="panel-heading w3-tiny" id="loans-revenue-div">
-                       {{ loan_repayment.revenue|intcomma }}
-                    </div>
-                  </div>
-                </div>
-             </div >
-         </div>
-         <br>
+     <br>
          <div class="w3-row">
               <div class="w3-col l6 m6 s6 w3-card-2 w3-container" style="height: 300px;">
                 <div class="panel-heading border-bottom-blue">

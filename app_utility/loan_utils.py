@@ -107,13 +107,19 @@ class Loan():
         today = datetime.now().date()
         loans = LoanApplication.objects.filter(is_fully_repaid=False, is_disbursed=True, is_approved=True)
         for loan in loans:
+            print("loan to be reminded")
+            print(loan.loan_code)
             member, circle = loan.circle_member.member, loan.circle_member.circle
-            days_to_send = [0,1,3,7]
+            days_to_send = [0,1,2,3,4,5,6,7]
             amortize_loan = loan.loan_amortization.filter()
+            print("amortize loan")
+            print(amortize_loan)
             if amortize_loan.exists():
                 latest_schedule = amortize_loan.latest('id')
-                diff = today - latest_schedule.repayment_date
+                diff = latest_schedule.repayment_date - datetime.now().date()
                 delta = diff.days
+                print("delta")
+                print(delta)
                 if delta in days_to_send:
                     fcm_instance = app_utility.fcm_utils.Fcm()
                     title = "Circle {} loan repayment".format(circle.circle_name)
@@ -332,7 +338,6 @@ class Loan():
 
     def get_estimated_earning(self):
         guarantors = GuarantorRequest.objects.filter(estimated_earning=0)
-        print(guarantors)
         if guarantors.exists():
             for guarantor in guarantors:
                 loan = guarantor.loan
@@ -341,6 +346,7 @@ class Loan():
                     loan_tariff = LoanTariff.objects.get(circle=loan.circle_member.circle,max_amount__gte=loan.amount,min_amount__lte=loan.amount)
                 annual_interest_rate = loan_tariff.monthly_interest_rate*12
                 loan_amortization = self.full_amortization_schedule(annual_interest_rate, loan.amount, loan_tariff.num_of_months, datetime.now().date())[0]
+                circle_instance = app_utility.circle_utils.Circle()
                 interest = loan_amortization['interest'] * loan_tariff.num_of_months
                 guarantor_interest = settings.GUARANTORS_INTEREST/100
                 guarantors_interest = guarantor_interest*interest

@@ -110,7 +110,7 @@ class Loan():
             print("loan to be reminded")
             print(loan.loan_code)
             member, circle = loan.circle_member.member, loan.circle_member.circle
-            days_to_send = [0,1,2,3,4,5,6,7]
+            days_to_send = [0,1,3,7]
             amortize_loan = loan.loan_amortization.filter()
             print("amortize loan")
             print(amortize_loan)

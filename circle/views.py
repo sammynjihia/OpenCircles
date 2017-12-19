@@ -53,8 +53,8 @@ class CircleCreation(APIView):
             wallet_instance = wallet_utils.Wallet()
             minimum_share = serializer.validated_data['minimum_share']
             if minimum_share < settings.MININIMUM_CIRCLE_SHARES:
-                data = {"status":0,"message":"The allowed minimum circle shares is {}".format(settings.MININIMUM_CIRCLE_SHARES)}
-                return Response(data,status=status.HTTP_200_OK)
+                data = {"status":0,"message":"The allowed minimum circle deposit is {} {}".format(request.user.member.currency, settings.MININIMUM_CIRCLE_SHARES)}
+                return Response(data, status=status.HTTP_200_OK)
             valid,response = wallet_instance.validate_account(request,serializer.validated_data['pin'],minimum_share)
             if valid:
                 created_objects=[]
@@ -89,7 +89,6 @@ class CircleCreation(APIView):
                         member_instance = member_utils.OpenCircleMember()
                         circle_invites = [CircleInvitation(invited_by=circle_member,phone_number=phone,is_member=member_instance.get_is_member(phone)) for phone in contacts]
                         invites = CircleInvitation.objects.bulk_create(circle_invites)
-                        # send invites
                         id_list = [invite.id for invite in invites]
                         send_circle_invites.delay(id_list)
                         # instance = circle_utils.Circle()
@@ -97,29 +96,17 @@ class CircleCreation(APIView):
                     wallet_serializer = WalletTransactionsSerializer(wallet_transaction)
                     shares_serializer = SharesTransactionSerializer(shares_transaction)
                     circle_serializer = CircleSerializer(circle,context={'request':request})
-
-                    # fcm_instance = fcm_utils.Fcm()
-                    # registration_ids = fcm_instance.get_invited_circle_member_token(circle,member)
                     circle_instance = circle_utils.Circle()
                     loan_tariffs = circle_instance.save_loan_tariff(circle,circle_loan_tariff)
-                    # if len(registration_ids):
-                    #     device =  "multiple"
-                    #     invited_by = "{} {}".format(request.user.first_name,request.user.last_name)
-                    #     invited_serializer = InvitedCircleSerializer(circle,context={"invited_by":invited_by})
-                    #     fcm_data = {"request_type":"NEW_CIRCLE_INVITATION","circle":invited_serializer.data}
-                    #     fcm_instance.notification_push(device,registration_ids,title,message)
-                    #     fcm_instance.data_push(device,registration_ids,fcm_data)
-                    #     print(fcm_data)
                     circle = circle_serializer.data
                     wallet_transaction = wallet_serializer.data
                     shares_transaction = shares_serializer.data
-
                     data={
                         "status":1,
                         "circle":circle,
                         "wallet_transaction":wallet_transaction,
                         "shares_transaction":shares_transaction,
-                        "message":"Circle created successfully.Circle will be activated when atleast four members  join."
+                        "message":"Circle created successfully.Circle will be activated when atleast four members join."
                     }
                     return Response(data,status=status.HTTP_201_CREATED)
                 except Exception as e:
@@ -226,15 +213,14 @@ class CircleInvitationResponse(APIView):
         serializer = CircleInvitationSerializer(data=request.data)
         if serializer.is_valid():
             circle = Circle.objects.get(circle_acc_number = serializer.validated_data['circle_acc_number'])
-            circle_invites = CircleInvitation.objects.filter(invited_by__in = CircleMember.objects.filter(circle=circle),phone_number=request.user.member.phone_number)
-            print("kule")
+            circle_invites = CircleInvitation.objects.filter(invited_by__in = CircleMember.objects.filter(circle=circle), phone_number=request.user.member.phone_number)
             if circle_invites.exists():
                 circle_invites.update(status="Declined")
             else:
                 DeclinedCircles.objects.create(circle=circle,member=request.user.member)
             data = {"status":1}
             return Response(data,status=status.HTTP_200_OK)
-        data = {"status":0,"message":serializer.errors}
+        data = {"status":0, "message":serializer.errors}
         return Response(data,status=status.HTTP_200_OK)
 
 class AllowedGuaranteeRegistration(APIView):
@@ -243,15 +229,15 @@ class AllowedGuaranteeRegistration(APIView):
     """
     authentication_classes = (TokenAuthentication,)
     permission_classes = (IsAuthenticated,)
-    def post(self,request,*args,**kwargs):
+    def post(self, request):
         serializer = AllowedGuaranteeSerializer(data=request.data)
         if serializer.is_valid():
             instance = sms_utils.Sms()
-            circle,guarantee_phone,member = Circle.objects.get(circle_acc_number=serializer.validated_data['circle_acc_number']),instance.format_phone_number(serializer.validated_data['guarantee']),request.user.member
+            circle, guarantee_phone, member = Circle.objects.get(circle_acc_number=serializer.validated_data['circle_acc_number']), instance.format_phone_number(serializer.validated_data['guarantee']), request.user.member
             if guarantee_phone == member.phone_number:
                 data = {"status":0,"message":"Unable to add yourself to guarantee request list"}
                 return Response(data,status=status.HTTP_200_OK)
-            user_circle_member = CircleMember.objects.get(circle=circle,member=member)
+            user_circle_member = CircleMember.objects.get(circle=circle, member=member)
             guarantee_member = Member.objects.get(phone_number=guarantee_phone)
             allowed_guarantee = CircleMember.objects.get(circle=circle,member=guarantee_member)
             try:
@@ -269,6 +255,7 @@ class AllowedGuaranteeRegistration(APIView):
             fcm_data = {"request_type":"UPDATE_ALLOW_GUARANTOR_REQUEST","circle_acc_number":circle.circle_acc_number,"phone_number":member.phone_number,"allow_guarantor_request":True}
             fcm_instance.data_push("single",registration_id,fcm_data)
             print(fcm_data)
+            updating_loan_limit.delay(circle.id,member.id)
             return Response(data,status=status.HTTP_201_CREATED)
         data = {"status":0,"errors":serializer.errors}
         return Response(data,status=status.HTTP_200_OK)
@@ -285,12 +272,8 @@ class AllowedGuaranteeRequestsSetting(APIView):
         if serializer.is_valid():
             allowed = serializer.validated_data['allow_public_guarantees']
             circle,member = Circle.objects.get(circle_acc_number=serializer.validated_data['circle_acc_number']), request.user.member
-            print(allowed)
             if allowed == 'true':
                 try:
-                    circle_member = CircleMember.objects.get(circle=circle, member=member)
-                    circle_member.allow_public_guarantees_request=True
-                    circle_member.save()
                     CircleMember.objects.filter(circle=circle, member=member).update(allow_public_guarantees_request=True)
                     AllowedGuarantorRequest.objects.filter(circle_member=circle_member).delete()
                 except Exception as e:
@@ -303,6 +286,7 @@ class AllowedGuaranteeRequestsSetting(APIView):
                 registration_ids = fcm_instance.get_circle_members_token(circle,member)
                 fcm_instance.data_push("multiple",registration_ids,fcm_data)
                 print(fcm_data)
+                updating_loan_limit.delay(circle.id,member.id)
                 data = {"status":1}
                 return Response(data,status=status.HTTP_200_OK)
             fcm_instance = fcm_utils.Fcm()
@@ -310,6 +294,7 @@ class AllowedGuaranteeRequestsSetting(APIView):
             fcm_data = {"request_type":"UPDATE_ALLOW_GUARANTOR_REQUEST", "circle_acc_number":circle.circle_acc_number, "phone_number":member.phone_number, "allow_guarantor_request":False}
             fcm_instance.data_push("multiple", registration_ids, fcm_data)
             print(fcm_data)
+            updating_loan_limit.delay(circle.id,member.id)
             CircleMember.objects.filter(circle=circle, member=member).update(allow_public_guarantees_request=False)
             data = {"status":1}
             return Response(data,status=status.HTTP_200_OK)
@@ -319,7 +304,7 @@ class AllowedGuaranteeRequestsSetting(APIView):
 @api_view(['POST'])
 @authentication_classes([TokenAuthentication])
 @permission_classes([IsAuthenticated])
-def remove_allowed_guarantee_request(request,*args,**kwargs):
+def remove_allowed_guarantee_request(request):
     serializer = AllowedGuaranteeSerializer(data=request.data)
     if serializer.is_valid():
         member = request.user.member
@@ -342,6 +327,7 @@ def remove_allowed_guarantee_request(request,*args,**kwargs):
         fcm_data = {"request_type":"UPDATE_ALLOW_GUARANTOR_REQUEST","circle_acc_number":circle.circle_acc_number,"phone_number":member.phone_number,"allow_guarantor_request":False}
         fcm_instance.data_push("single",registration_id,fcm_data)
         print(fcm_data)
+        updating_loan_limit.delay(circle.id,member.id)
         return Response(data,status=status.HTTP_200_OK)
     data = {"status":0,"message":serializer.errors}
     return Response(data,status=status.HTTP_200_OK)
@@ -360,7 +346,7 @@ class JoinCircle(APIView):
             circle_members_count = CircleMember.objects.filter(circle=circle).count()
             if circle_members_count <= settings.MAX_CIRCLE_MEMBER:
                 if amount < circle.minimum_share:
-                    data = {"status":0,"message":"The allowed minimum shares for circle {} is KES {}".format(circle.circle_name, circle.minimum_share)}
+                    data = {"status":0,"message":"The allowed minimum initial deposit for circle {} is KES {}".format(circle.circle_name, circle.minimum_share)}
                     return Response(data,status=status.HTTP_200_OK)
                 wallet_instance = wallet_utils.Wallet()
                 valid,response = wallet_instance.validate_account(request,pin,amount)
@@ -459,23 +445,20 @@ class CircleInvite(APIView):
                         try:
                             invited_member = Member.objects.get(phone_number=phone)
                             DeclinedCircles.objects.filter(circle=circle,member=invited_member).delete()
-                            fcm_instance = fcm_utils.Fcm()
-                            invited_by = "{} {}".format(request.user.first_name,request.user.last_name)
-                            invited_serializer = InvitedCircleSerializer(circle,context={"invited_by":invited_by})
-                            print(invited_serializer.data)
-                            fcm_data = {"request_type":"NEW_CIRCLE_INVITATION","circle":invited_serializer.data}
                             registration_id = invited_member.device_token
-                            print(invited_member.user.first_name)
                             if len(registration_id):
+                                fcm_instance = fcm_utils.Fcm()
+                                invited_by = "{} {}".format(request.user.first_name,request.user.last_name)
+                                invited_serializer = InvitedCircleSerializer(circle,context={"invited_by":invited_by})
+                                fcm_data = {"request_type":"NEW_CIRCLE_INVITATION","circle":invited_serializer.data}
                                 fcm_instance.data_push("single",registration_id,fcm_data)
                                 print(fcm_data)
                             else:
-                                #send sms
                                 message = "{} {} has invited you to join circle {} on Opencircles.".format(request.user.first_name, request.user.last_name, circle.circle_name)
                                 sms_instance.sendsms(phone, message)
                         except Member.DoesNotExist:
                             #send sms
-                            message = "{} {} has invited you to join circle {} on Opencircles. Join Opencircles today and be part of the revolutionized community of borrowers and lenders. Get it on https://goo.gl/5KWXhx ".format(request.user.first_name, request.user.last_name, circle.circle_name)
+                            message = "{} {} has invited you to join circle {} on Opencircles.Opencircles is a peer to peer credit and savings platform that makes you and your close friends, family and colleagues into investment and saving partners.Get it on {} ".format(request.user.first_name, request.user.last_name, circle.circle_name, settings.APP_STORE_LINK)
                             sms_instance.sendsms(phone, message)
                         ms ="Invitation to {} has been sent.".format(phone)
                         data = {"status":1,"message":ms}

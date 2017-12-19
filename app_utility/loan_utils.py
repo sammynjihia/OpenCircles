@@ -34,6 +34,10 @@ class Loan():
         for guarantor in guarantors:
             total_guarantors_amount += guarantor["amount"]
             member = Member.objects.get(phone_number = guarantor["phone_number"])
+            member_status = CircleMember.objects.filter(member=member, circle=circle, is_active=False)
+            if member_status.exists():
+                msg = "{} {} is unable to guarantee you. Kindly request another member.".format(member.user.first_name, member.user.last_name)
+                return False, msg
             available_shares = app_utility.circle_utils.Circle().get_available_circle_member_shares(circle, member)
             if available_shares < guarantor["amount"]:
                 msg = "Unable to process loan request. Guarantor {} {} is unable to guarantee you {} {}".format(member.user.first_name, member.user.last_name, member.currency, guarantor["amount"])
@@ -110,7 +114,7 @@ class Loan():
             print("loan to be reminded")
             print(loan.loan_code)
             member, circle = loan.circle_member.member, loan.circle_member.circle
-            days_to_send = [0,1,2,3,4,5,6,7]
+            days_to_send = [0,1,3,7]
             amortize_loan = loan.loan_amortization.filter()
             print("amortize loan")
             print(amortize_loan)
@@ -137,7 +141,6 @@ class Loan():
                         if delta == 0:
                             sms = app_utility.sms_utils.Sms()
                             sms.sendsms(member.phone_number, message)
-
 
     def unlock_guarantors_shares(self, guarantors, shares_desc):
         for guarantor in guarantors:
@@ -180,7 +183,6 @@ class Loan():
                 fcm_data = {"request_type":"UPDATE_AVAILABLE_SHARES", "circle_acc_number":circle.circle_acc_number, "phone_number":member.phone_number, "available_shares":fcm_available_shares}
                 registration_id = instance.get_circle_members_token(circle, member)
                 instance.data_push("multiple", registration_id, fcm_data)
-
 
     def delete_expired_loan(self):
         loans = LoanApplication.objects.filter(is_approved=False, is_disbursed=False)
@@ -360,7 +362,6 @@ class Loan():
                 guarantor.estimated_earning = estimated_earning
                 guarantor.save()
 
-
     def send_guarantee_requests(self,loan_guarantors,member):
         for loan_guarantor in loan_guarantors:
             loan = loan_guarantor.loan
@@ -412,17 +413,35 @@ class Loan():
     def calculate_loan_limit(self,circle,member):
         circle_instance = app_utility.circle_utils.Circle()
         available_shares = circle_instance.get_available_circle_member_shares(circle,member)
-
-        total_shares = circle_instance.get_available_circle_shares(circle)
+        active_circle_members = CircleMember.objects.filter(circle=circle, is_active=True)
+        restricted_requests = active_circle_members.filter(allow_public_guarantees_request=False).exclude(member=member)
+        if restricted_requests.exists():
+            members = []
+            for req in restricted_requests:
+                try:
+                    allowed = AllowedGuarantorRequest.objects.get(circle_member=req, allows_request_from__member=member)
+                except AllowedGuarantorRequest.DoesNotExist:
+                    members.append(req.member.id)
+            if len(members):
+                total_shares = circle_instance.get_available_restricted_circle_shares(circle,members)
+            else:
+                total_shares = circle_instance.get_available_circle_shares(circle)
+        else:
+            total_shares = circle_instance.get_available_circle_shares(circle)
+        print(circle.circle_name)
+        print("total_shares")
         print(total_shares)
+        print("{} {}".format(member.user.first_name,member.user.last_name))
         actual_available_shares = total_shares - available_shares
-        if total_shares > 0:
+        if total_shares > 0 and actual_available_shares > 0:
             loan_limit = int(math.floor(available_shares + ((available_shares/total_shares)*actual_available_shares)))
             if loan_limit >= settings.MAXIMUM_CIRCLE_SHARES:
                 return settings.MAXIMUM_CIRCLE_SHARES
             print("loan_limit")
             print(loan_limit)
             return loan_limit
+        print("loan_limit")
+        print(available_shares)
         return available_shares
 
     def update_loan_limit(self,circle,member):

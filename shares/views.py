@@ -103,9 +103,9 @@ class PurchaseShares(APIView):
                             return Response(data,status=status.HTTP_200_OK)
                         data = {"status":0, "message":response}
                         return Response(data, status=status.HTTP_200_OK)
-                data = {"status":0,"message":"Unable to process loan.Your account is currently deactivated."}
+                data = {"status":0,"message":"Unable to deposit to circle.Your account is currently deactivated due to delayed loan repayment."}
                 return Response(data,status=status.HTTP_200_OK)
-            data = {"status":0,"message":"Unable to process loan.Circle is inactive."}
+            data = {"status":0,"message":"Unable to deposit to circle.Circle is inactive."}
             return Response(data,status=status.HTTP_200_OK)
             data = {"status":0, "message":response}
             return Response(data, status=status.HTTP_200_OK)
@@ -171,7 +171,7 @@ class SharesWithdrawal(APIView):
             member = request.user.member
             created_objects = []
             if circle.is_active:
-                circle_member = CircleMember.objects.get(circle=circle,member=member)
+                circle_member = CircleMember.objects.get(circle=circle, member=member)
                 if circle_member.is_active:
                     if request.user.check_password(pin):
                         amount = serializer.validated_data['amount']
@@ -241,9 +241,9 @@ class SharesWithdrawal(APIView):
                         return Response(data, status=status.HTTP_200_OK)
                     data = {"status":0, "message":"Invalid pin"}
                     return Response(data, status=status.HTTP_200_OK)
-                data = {"status":0,"message":"Unable to process loan.Your account is currently deactivated."}
+                data = {"status":0,"message":"Unable to withdraw savings from circle.Your account is currently deactivated due to delayed loan repayment."}
                 return Response(data,status=status.HTTP_200_OK)
-            data = {"status":0,"message":"Unable to process loan.Circle is inactive."}
+            data = {"status":0,"message":"Unable to withdraw savings from circle.Circle is inactive."}
         data = {"status":0, "message":serializer.errors}
         return Response(data, status=status.HTTP_200_OK)
 

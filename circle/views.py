@@ -274,6 +274,7 @@ class AllowedGuaranteeRequestsSetting(APIView):
             circle,member = Circle.objects.get(circle_acc_number=serializer.validated_data['circle_acc_number']), request.user.member
             if allowed == 'true':
                 try:
+                    circle_member = CircleMember.objects.get(circle=circle, member=member)
                     CircleMember.objects.filter(circle=circle, member=member).update(allow_public_guarantees_request=True)
                     AllowedGuarantorRequest.objects.filter(circle_member=circle_member).delete()
                 except Exception as e:

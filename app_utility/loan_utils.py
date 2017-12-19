@@ -9,7 +9,7 @@ from django.db.models import Sum,Q
 from loan.models import LoanApplication,GuarantorRequest,LoanTariff
 from shares.models import IntraCircleShareTransaction,LockedShares,UnlockedShares
 from wallet.models import RevenueStreams,Transactions
-from circle.models import CircleMember
+from circle.models import CircleMember, AllowedGuarantorRequest
 from member.models import Member
 
 from shares.serializers import SharesTransactionSerializer
@@ -419,7 +419,7 @@ class Loan():
             members = []
             for req in restricted_requests:
                 try:
-                    allowed = AllowedGuarantorRequest.objects.get(circle_member=req, allows_request_from__member=member)
+                    AllowedGuarantorRequest.objects.get(circle_member=req, allows_request_from__member=member)
                 except AllowedGuarantorRequest.DoesNotExist:
                     members.append(req.member.id)
             if len(members):

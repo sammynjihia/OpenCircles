@@ -16,7 +16,6 @@ import operator, re, datetime
 
 class Circle():
     def get_suggested_circles(self,unjoined_circles,contacts,request,suggested_num):
-        suggested_circles={}
         unjoined_circles = unjoined_circles.filter(circle_type="OPEN")
         circle_invites_ids = CircleInvitation.objects.filter(phone_number=request.user.member.phone_number).values_list("invited_by__circle",flat=True)
         invited_circles = CircleModel.objects.filter(id__in = circle_invites_ids)

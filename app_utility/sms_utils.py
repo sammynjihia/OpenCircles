@@ -33,7 +33,8 @@ class Sms:
     def sendmultiplesms(self,to,message):
         gateway = AfricasTalkingGateway(self.username, self.api_key)
         try:
-            response = gateway.sendMessage(to,message)
+            sender = "FLEMISHLTD"
+            response = gateway.sendMessage(to,message,sender)
             unsent = [res['number'] for res in response if res['status'] != 'Success']
             return True,unsent
         except Exception as e:

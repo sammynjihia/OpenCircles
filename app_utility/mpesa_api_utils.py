@@ -23,8 +23,8 @@ password = base64.b64encode(password_raw)
 consumer_key_b2c = config('consumer_key_b2c')
 consumer_secret_b2c = config('consumer_secret_b2c')
 
-B2BResultURL = main_url + "/wallet/mpesaB2BResultURL/"
-B2BQueueTimeOutURL = main_url + "/wallet/mpesaB2BQueueTimeOutURL/"
+B2BResultURL = main_url + "wallet/mpesaB2BResultURL/"
+B2BQueueTimeOutURL = main_url + "wallet/mpesaB2BQueueTimeOutURL/"
 B2CResultURL = main_url + "wallet/mpesaB2CResultURL/"
 B2CQueueTimeOutURL = main_url + "wallet/mpesaB2CQueueTimeoutURL/"
 B2CPartyB = "254708374149"

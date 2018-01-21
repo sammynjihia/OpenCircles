@@ -1,7 +1,5 @@
 from django.db import models
 from member.models import Member
-from app_utility import sms_utils
-
 
 CIRCLE_TYPE = (
     ('PRIVATE', 'Private circle'),
@@ -16,7 +14,7 @@ INVITE_STATUS = (
 
 
 class Circle(models.Model):
-    circle_name = models.CharField(max_length=100,blank=False,unique=True)
+    circle_name = models.CharField(max_length=100, blank=False, unique=True)
     circle_type = models.CharField(max_length=10, blank=False, choices=CIRCLE_TYPE)
     circle_acc_number = models.CharField(max_length=10, blank=False, unique=True)
     initiated_by = models.ForeignKey(Member,null=False, blank=False)
@@ -44,12 +42,12 @@ class CircleInvitation(models.Model):
     is_member = models.BooleanField(default=False)
     phone_number = models.CharField(max_length=20, blank=True)
     time_invited = models.DateTimeField(auto_now=True)
-    status = models.CharField(max_length=10,default='Pending',choices=INVITE_STATUS)
+    status = models.CharField(max_length=10, default='Pending', choices=INVITE_STATUS)
     is_sent = models.BooleanField(default=False)
 
     class Meta:
         db_table = 'CircleInvitation'
-        unique_together= ("invited_by","phone_number")
+        unique_together= ("invited_by", "phone_number")
 
 
 class CircleDirector(models.Model):
@@ -69,13 +67,13 @@ class AllowedGuarantorRequest(models.Model):
 
     class Meta:
         db_table = 'AllowedGuarantorRequest'
-        unique_together = ['circle_member','allows_request_from']
+        unique_together = ['circle_member', 'allows_request_from']
 
 class DeclinedCircles(models.Model):
-    circle = models.ForeignKey(Circle,null=False,on_delete=models.CASCADE)
-    member = models.ForeignKey(Member,null=False,on_delete=models.CASCADE)
+    circle = models.ForeignKey(Circle, null=False, on_delete=models.CASCADE)
+    member = models.ForeignKey(Member, null=False, on_delete=models.CASCADE)
     time_declined = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         db_table = "DeclinedCircles"
-        unique_together = ['circle','member']
+        unique_together = ['circle', 'member']

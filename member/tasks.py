@@ -28,7 +28,10 @@ def send_frequent_invitations():
     numbers = ','.join(contacts_to_send)
     numbers = numbers.encode("ascii")
     sms = sms_utils.Sms()
-    message = "Opencircles is a platform where friends, family and colleagues can pull resources to save and invest in consumer credit. Create a circle and get your whatsapp group to join and save in the circle and stand a chance to win Kes 5,000 every friday this festive season. Get the app on play store at https://goo.gl/5KWXhx"
+    message = "Opencircles is a platform where friends, family and colleagues can pull resources to save and invest" \
+              " in consumer credit. Create a circle and get your whatsapp group to join and save in the circle and" \
+              " stand a chance to win Kes 5,000 every friday this festive season." \
+              " Get the app on play store at https://goo.gl/5KWXhx"
     if invite_contacts.exists():
         # response,unsent = sms.sendmultiplesms(numbers, message)
         # if response:

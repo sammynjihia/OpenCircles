@@ -13,7 +13,7 @@ class WallettoWalletTransferSerializer(serializers.Serializer):
     pin = serializers.IntegerField()
 
     class Meta():
-        fields = ["amount","phone_number","pin"]
+        fields = ["amount", "phone_number", "pin"]
 
 class WalletTransactionsSerializer(serializers.ModelSerializer):
     """
@@ -23,9 +23,10 @@ class WalletTransactionsSerializer(serializers.ModelSerializer):
 
     class Meta():
         model = Transactions
-        fields = ["transaction_type","transaction_desc","transaction_amount","transacted_by","recipient","transaction_time"]
+        fields = ["transaction_type", "transaction_desc", "transaction_amount", "transacted_by",
+                  "recipient", "transaction_time"]
 
-    def get_transaction_time(self,transaction):
+    def get_transaction_time(self, transaction):
         return transaction.transaction_time.strftime("%Y-%m-%d %H:%M:%S")
 
 class WalletTransactionSerializer(serializers.Serializer):

@@ -1,34 +1,29 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
-from django.utils.dateparse import parse_datetime
-from django.shortcuts import render
 from django.conf import settings
+from django.db import DatabaseError, transaction
 
-from wallet import disable_csrf
 from rest_framework.views import APIView
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.authentication import TokenAuthentication
-from rest_framework.decorators import api_view,authentication_classes,permission_classes
+from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.reverse import reverse
 
 from .serializers import *
 
-from .models import Transactions,Wallet, B2CTransaction_log, B2BTransaction_log, MpesaTransaction_logs, AdminMpesaTransaction_logs, RevenueStreams, PendingMpesaTransactions
+from .models import Transactions, Wallet, B2CTransaction_log, B2BTransaction_log, MpesaTransaction_logs, \
+                    AdminMpesaTransaction_logs, RevenueStreams, PendingMpesaTransactions
 from member.models import Member
-from django.core.exceptions import ValidationError
+from circle.models import CircleMember
 
-from django.db import DatabaseError,transaction
+from app_utility import wallet_utils, general_utils, fcm_utils, mpesa_api_utils, sms_utils, brain_tree_utils
 
-from app_utility import wallet_utils,general_utils,fcm_utils, mpesa_api_utils, sms_utils, brain_tree_utils
-
-
-
-import datetime,json
-import pytz,uuid
-import math
+import datetime
+import json
 import braintree
+
 # Create your views here.
 @api_view(['GET'])
 def api_root(request,format=None):
@@ -45,7 +40,7 @@ class WallettoWalletTranfer(APIView):
     """
     authentication_classes = (TokenAuthentication,)
     permission_classes = (IsAuthenticated,)
-    def post(self,request,*args,**kwargs):
+    def post(self, request):
         serializer = WallettoWalletTransferSerializer(data=request.data)
         created_objects = []
         if serializer.is_valid():
@@ -54,17 +49,23 @@ class WallettoWalletTranfer(APIView):
                 recipient = Member.objects.get(phone_number=serializer.validated_data['phone_number'])
             except Member.DoesNotExist:
                 error = "Member with the phone number does not exist"
-                data = {"status":0,"message":error}
-                return Response(data,status=status.HTTP_200_OK)
-            amount,pin,account = serializer.validated_data['amount'],serializer.validated_data['pin'],recipient.wallet.acc_no
+                data = {"status":0, "message":error}
+                return Response(data, status=status.HTTP_200_OK)
+            circle_member_status = CircleMember.objects.filter(member=sender, is_active=False, circle__is_active=True)
+            if circle_member_status.exists():
+                data = {"status": 0, "message":"Unable to perform transaction."
+                                               "You currently have atleast one or more deactivated circle accounts."}
+                return Response(data, status=status.HTTP_200_OK)
+            amount, pin = serializer.validated_data['amount'], serializer.validated_data['pin']
+            account = recipient.wallet.acc_no
             if amount < 50:
-                data = {"status":0,"message":"Transfers below KES 50 are not allowed"}
-                return Response(data,status=status.HTTP_200_OK)
-            valid,message = wallet_utils.Wallet().validate_account_info(request,amount,pin,account)
+                data = {"status":0, "message":"Transfers below KES 50 are not allowed"}
+                return Response(data, status=status.HTTP_200_OK)
+            valid, message = wallet_utils.Wallet().validate_account_info(request, amount, pin, account)
             if valid:
                 general_instance = general_utils.General()
                 wallet_instance = wallet_utils.Wallet()
-                sender_wallet,recipient_wallet = sender.wallet,recipient.wallet
+                sender_wallet, recipient_wallet = sender.wallet, recipient.wallet
                 suffix = general_instance.generate_unique_identifier('')
                 sender_transaction_code = 'WTD' + suffix
                 recipient_transaction_code = 'WTC' + suffix
@@ -74,36 +75,65 @@ class WallettoWalletTranfer(APIView):
                 print("sender_wallet_balance")
                 print(sender_wallet_balance)
                 recipient_wallet_balance = wallet_instance.calculate_wallet_balance(recipient_wallet) + amount
-                sender_desc = "{} confirmed.You have sent {} {} to {} {}.New wallet balance is {} {}.".format(sender_transaction_code, sender.currency, amount, recipient.user.first_name, recipient.user.last_name, sender.currency, sender_wallet_balance)
-                recipient_desc = "{} confirmed.You have received {} {} from {} {}.New wallet balance is {} {}".format(recipient_transaction_code, recipient.currency, amount, request.user.first_name, request.user.last_name, recipient.currency, recipient_wallet_balance)
+                sender_desc = "{} confirmed.You have sent {} {} to {} {}." \
+                              "New wallet balance is {} {}.".format(sender_transaction_code,
+                                                                    sender.currency,
+                                                                    amount,
+                                                                    recipient.user.first_name,
+                                                                    recipient.user.last_name,
+                                                                    sender.currency,
+                                                                    sender_wallet_balance)
+                recipient_desc = "{} confirmed.You have received {} {} from {} {}." \
+                                 "New wallet balance is {} {}".format(recipient_transaction_code,
+                                                                      recipient.currency,
+                                                                      amount,
+                                                                      request.user.first_name,
+                                                                      request.user.last_name,
+                                                                      recipient.currency,
+                                                                      recipient_wallet_balance)
                 try:
                     try:
                         with transaction.atomic():
-                            sender_transaction = Transactions.objects.create(wallet= sender_wallet, transaction_type="DEBIT", transaction_desc=sender_desc, transaction_amount=amount, transaction_time=datetime.datetime.now(), recipient=account, transaction_code=sender_transaction_code, source="wallet")
-                            recipient_transaction = Transactions.objects.create(wallet = recipient_wallet, transaction_type="CREDIT", transaction_desc=recipient_desc, transaction_amount=amount,transacted_by=sender_wallet.acc_no, transaction_time=datetime.datetime.now(), transaction_code=recipient_transaction_code, source="wallet")
+                            sender_transaction = Transactions.objects.create(wallet= sender_wallet,
+                                                                             transaction_type="DEBIT",
+                                                                             transaction_desc=sender_desc,
+                                                                             transaction_amount=amount,
+                                                                             transaction_time=datetime.datetime.now(),
+                                                                             recipient=account,
+                                                                             transaction_code=sender_transaction_code,
+                                                                             source="wallet")
+                            recipient_transaction = Transactions.objects.create(wallet = recipient_wallet,
+                                                                                transaction_type="CREDIT",
+                                                                                transaction_desc=recipient_desc,
+                                                                                transaction_amount=amount,
+                                                                                transacted_by=sender_wallet.acc_no,
+                                                                                transaction_time=datetime.datetime.now(),
+                                                                                transaction_code=recipient_transaction_code,
+                                                                                source="wallet")
                     except Exception as e:
                         print(str(e))
                         transaction.rollback()
-                        data = {"status":0,"message":"Unable to process transaction"}
-                        return Response(data,status=status.HTTP_200_OK)
+                        data = {"status":0, "message":"Unable to process transaction"}
+                        return Response(data, status=status.HTTP_200_OK)
                     instance = fcm_utils.Fcm()
                     registration_id = recipient.device_token
                     recipient_wallet_transaction = WalletTransactionsSerializer(recipient_transaction)
-                    fcm_data = {"request_type":"WALLET_TO_WALLET_TRANSACTION","wallet_transaction":recipient_wallet_transaction.data}
+                    fcm_data = {"request_type":"WALLET_TO_WALLET_TRANSACTION",
+                                "wallet_transaction":recipient_wallet_transaction.data}
                     sender_wallet_transaction = WalletTransactionsSerializer(sender_transaction)
-                    data = {"status":1,"wallet_transaction":sender_wallet_transaction.data}
-                    instance.data_push("single",registration_id,fcm_data)
-                    return Response(data,status=status.HTTP_200_OK)
+                    data = {"status":1, "wallet_transaction":sender_wallet_transaction.data}
+                    instance.data_push("single", registration_id, fcm_data)
+                    return Response(data, status=status.HTTP_200_OK)
                 except Exception as e:
                     print(str(e))
                     instance = general_utils.General()
                     instance.delete_created_objects(created_objects)
-                    data = {"status":0,"message":"Unable to process transaction"}
-                    return Response(data,status=status.HTTP_200_OK)
-            data = { "status":0,"message":message}
-            return Response(data,status=status.HTTP_200_OK)
-        data = { "status":0,"message":serializer.errors}
-        return Response(data,status=status.HTTP_200_OK)
+                    data = {"status":0, "message":"Unable to process transaction"}
+                    return Response(data, status=status.HTTP_200_OK)
+            data = { "status":0, "message":message}
+            return Response(data, status=status.HTTP_200_OK)
+        data = { "status":0, "message":serializer.errors}
+        return Response(data, status=status.HTTP_200_OK)
 
 class TransactionsDetails(APIView):
     """
@@ -111,15 +141,15 @@ class TransactionsDetails(APIView):
     """
     authentication_classes = (TokenAuthentication,)
     permissions_classes = (IsAuthenticated,)
-    def get_objects(self,request):
+    def get_objects(self, request):
         wallet_transactions = Transactions.objects.filter(wallet=request.user.member.wallet)
         return wallet_transactions
 
-    def post(self,request,*args,**kwargs):
+    def post(self,request):
         wallet_transactions = self.get_objects(request)
-        serializer = WalletTransactionsSerializer(wallet_transactions,many=True)
-        data = {"status":1,"message":serializer.data}
-        return Response(data,status=status.HTTP_200_OK)
+        serializer = WalletTransactionsSerializer(wallet_transactions, many=True)
+        data = {"status":1, "message":serializer.data}
+        return Response(data, status=status.HTTP_200_OK)
 
 class WalletTransactionDetails(APIView):
     """
@@ -133,8 +163,8 @@ class WalletTransactionDetails(APIView):
         if serializer.is_valid():
             wallet_transaction = Transactions.objects.get(id=serializer.validated_data['transaction_id'])
             wallet_transaction_serializer = WalletTransactionsSerializer(wallet_transaction)
-            data = {"status":1,"wallet_transaction":wallet_transaction_serializer.data}
-            return Response(data,status=status.HTTP_200_OK)
+            data = {"status":1, "wallet_transaction":wallet_transaction_serializer.data}
+            return Response(data, status=status.HTTP_200_OK)
 
 class MpesaToWallet(APIView):
     """
@@ -142,7 +172,7 @@ class MpesaToWallet(APIView):
     """
     authentication_classes = (TokenAuthentication,)
     permissions_class = (IsAuthenticated,)
-    def post(self, request, *args):
+    def post(self, request):
         serializers = MpesaToWalletSerializer(data=request.data)
         if serializers.is_valid():
             amount = serializers.validated_data["amount"]
@@ -158,7 +188,8 @@ class MpesaToWallet(APIView):
 
             elif result["ResponseCode"] == '0':
                 # If response from the request is ResponseCode 0 then request was accepted for processing successfully
-                data = {"status": 1, "message": "Your request has been accepted successfully. Wait for m-pesa to process this transaction."}
+                data = {"status": 1, "message": "Your request has been accepted successfully. "
+                                                "Wait for m-pesa to process this transaction."}
                 return Response(data, status=status.HTTP_200_OK)
 
             else:
@@ -175,10 +206,9 @@ class WalletToMpesa(APIView):
     """
     authentication_classes = (TokenAuthentication,)
     permissions_class = (IsAuthenticated,)
-    def post(self, request, *args):
+    def post(self, request):
         serializers = WalletToMpesaSerializer(data=request.data)
         phonenumber = sms_utils.Sms()
-
 
         if serializers.is_valid():
             amount = serializers.validated_data["amount"]
@@ -187,6 +217,13 @@ class WalletToMpesa(APIView):
             phone_number_raw = phonenumber.format_phone_number(phone_number_raw1)
             safaricom_prefices = ['0', '1', '2', '4', '9']
             number_prefix = phone_number_raw[5]
+            circle_member_status = CircleMember.objects.filter(member=request.user.member, is_active=False,
+                                                               circle__is_active=True)
+            if circle_member_status.exists():
+                data = {"status": 0, "message": "Unable to perform transaction."
+                                                "You currently have atleast one or more deactivated circle accounts."}
+                return Response(data, status=status.HTTP_200_OK)
+
             if number_prefix in safaricom_prefices:
                 mpesaAPI = mpesa_api_utils.MpesaUtils()
                 phone_number = phone_number_raw.strip('+')
@@ -216,7 +253,8 @@ class WalletToMpesa(APIView):
                             senders_PhoneNumber = request.user.member.phone_number
                             raw_recepient_PhoneNumber = phone_number
                             recepient_PhoneNumber = "+{}".format(str(raw_recepient_PhoneNumber))
-                            b2c_Transaction_log = B2CTransaction_log(OriginatorConversationID=OriginatorConversationID, Initiator_PhoneNumber= senders_PhoneNumber,
+                            b2c_Transaction_log = B2CTransaction_log(OriginatorConversationID=OriginatorConversationID,
+                                                                     Initiator_PhoneNumber= senders_PhoneNumber,
                                                                      Recipient_PhoneNumber=recepient_PhoneNumber)
                             b2c_Transaction_log.save()
 
@@ -227,20 +265,23 @@ class WalletToMpesa(APIView):
                                                      is_valid=True).save()
 
                             print (result["ResponseDescription"])
-                            data = {"status": 1, "message": "Your request has been accepted successfully. Wait for m-pesa to process this transaction."}
+                            data = {"status": 1, "message": "Your request has been accepted successfully. "
+                                                            "Wait for m-pesa to process this transaction."}
                             return Response(data, status=status.HTTP_200_OK)
                         else:
                             #If response was unexpected then request not sent, an error occured.
                             data = {"status": 0, "message": "Sorry! Request not sent"}
                             return Response(data, status=status.HTTP_200_OK)
                     except Exception as e:
-                        data = {"status":0, "message":"This transaction can not be completed at the moment.Kindly try again later."}
+                        data = {"status":0, "message":"This transaction can not be completed at the moment."
+                                                      "Kindly try again later."}
                         return Response(data, status=status.HTTP_200_OK)
                 data = {"status":0, "message":message}
                 return Response(data, status=status.HTTP_200_OK)
             else:
                 data = {"status": 0,
-                        "message": 'Sorry. We cannot complete the transaction. Kindly provide a registered Safaricom phone number'}
+                        "message": 'Sorry. We cannot complete the transaction.'
+                                   ' Kindly provide a registered Safaricom phone number'}
                 return Response(data, status=status.HTTP_200_OK)
 
         data = {"status": 0, "message": serializers.errors}
@@ -301,12 +342,18 @@ class MpesaCallbackURL1(APIView):
                 general_instance, wallet_instance = general_utils.General(),wallet_utils.Wallet()
                 wallet = member.wallet
                 wallet_balance =  wallet_instance.calculate_wallet_balance(wallet) + amount
-                transaction_desc = "{} confirmed.You have received {} {} from {}.New wallet balance is {} {}." \
-                    .format(transaction_code, member.currency, amount, phone_number, member.currency, wallet_balance)
+                transaction_desc = "{} confirmed.You have received {} {} from {}." \
+                                   "New wallet balance is {} {}.".format(transaction_code,
+                                                                         member.currency,
+                                                                         amount,
+                                                                         phone_number,
+                                                                         member.currency,
+                                                                         wallet_balance)
 
                 mpesa_transactions = Transactions(wallet=wallet, transaction_type="CREDIT",
                                                   transaction_desc=transaction_desc,
-                                                  transacted_by=wallet.acc_no, transaction_amount=amount,transaction_code=general_instance.generate_unique_identifier('WTC'))
+                                                  transacted_by=wallet.acc_no, transaction_amount=amount,
+                                                  transaction_code=general_instance.generate_unique_identifier('WTC'))
                 mpesa_transactions.save()
                 with open('db_file.txt', 'a') as db_file:
                     db_file.write("Transaction {}, saved successfully ".format(transaction_code))
@@ -314,9 +361,13 @@ class MpesaCallbackURL1(APIView):
                 created_objects.append(mpesa_transactions)
                 serializer = WalletTransactionsSerializer(mpesa_transactions)
                 instance = fcm_utils.Fcm()
-                registration_id, title, message = member.device_token, "Wallet", "{} confirmed, your wallet has been credited with {} {} from mpesa" \
-                                                                                 " number {} at {}".format(
-                    transaction_code, member.currency, amount, phone_number, transaction_date)
+                registration_id, title = member.device_token, "Wallet"
+                message = "{} confirmed, your wallet has been credited with {} {} " \
+                          "from mpesa number {} at {}".format(transaction_code,
+                                                              member.currency,
+                                                              amount,
+                                                              phone_number,
+                                                              transaction_date)
                 instance.notification_push("single", registration_id, title, message)
                 fcm_data = {"request_type": "MPESA_TO_WALLET_TRANSACTION",
                             "transaction": serializer.data}
@@ -353,16 +404,19 @@ class MpesaB2CResultURL(APIView):
         TransactionID = B2CResults["TransactionID"]
         PhoneNumber = B2CTransaction_log.objects.get(OriginatorConversationID=OriginatorConversationID)
         initiatorPhoneNumber = PhoneNumber.Initiator_PhoneNumber
-        mpesa_transaction = MpesaTransaction_logs(OriginatorConversationID=OriginatorConversationID, ResultCode=ResultCode, ResultDesc=ResultDesc)
+        mpesa_transaction = MpesaTransaction_logs(OriginatorConversationID=OriginatorConversationID,
+                                                  ResultCode=ResultCode, ResultDesc=ResultDesc)
         mpesa_transaction.save()
-        admin_mpesa_transaction = AdminMpesaTransaction_logs(TransactioID=TransactionID, TransactionType='B2C', Response=data, is_committed=False)
+        admin_mpesa_transaction = AdminMpesaTransaction_logs(TransactioID=TransactionID, TransactionType='B2C',
+                                                             Response=data, is_committed=False)
         admin_mpesa_transaction.save()
 
         if ResultCode == 0:
             TransactionID = B2CResults["TransactionID"]
             ResultParameters = B2CResults["ResultParameters"]["ResultParameter"]
             mpesa_data ={n['Key']:n['Value'] for n in ResultParameters for key,value in n.iteritems() if value in
-                         ["TransactionReceipt","TransactionAmount", "TransactionCompletedDateTime", "ReceiverPartyPublicName"]}
+                         ["TransactionReceipt","TransactionAmount",
+                          "TransactionCompletedDateTime", "ReceiverPartyPublicName"]}
             transactionAmount = mpesa_data["TransactionAmount"]
             transactionDateTime = mpesa_data["TransactionCompletedDateTime"]
             transactionReceipt = mpesa_data["TransactionReceipt"]
@@ -387,11 +441,16 @@ class MpesaB2CResultURL(APIView):
                 wallet = member.wallet
                 wallet_balance = wallet_instance.calculate_wallet_balance(wallet) - transactionAmount
                 amount_sent = transactionAmount - charges
-                transaction_desc = "{} confirmed. You have sent {} {} to {} via mpesa at {}. Transaction cost {} {}. New wallet balance is {} {}. " \
-                    .format(transactionReceipt, member.currency, amount_sent, receiverPartyPublicName, transactionDateTime, member.currency, charges, member.currency, wallet_balance)
+                transaction_desc = "{} confirmed. You have sent {} {} to {} via mpesa at {}. Transaction cost {} {}." \
+                                   " New wallet balance is {} {}. ".format(transactionReceipt, member.currency,
+                                                                           amount_sent, receiverPartyPublicName,
+                                                                           transactionDateTime, member.currency,
+                                                                           charges, member.currency, wallet_balance)
                 mpesa_transactions = Transactions(wallet=wallet, transaction_type="DEBIT",
-                                                  transaction_desc=transaction_desc,
-                                                  transacted_by=wallet.acc_no, recipient=receiverPartyPublicName, transaction_amount=transactionAmount,transaction_code=transactionReceipt, source="MPESA B2C")
+                                                  transaction_desc=transaction_desc, transacted_by=wallet.acc_no,
+                                                  recipient=receiverPartyPublicName,
+                                                  transaction_amount=transactionAmount,
+                                                  transaction_code=transactionReceipt, source="MPESA B2C")
                 mpesa_transactions.save()
                 admin_mpesa_transaction.is_committed=True
                 admin_mpesa_transaction.save()
@@ -438,8 +497,10 @@ class MpesaB2CResultURL(APIView):
             instance = fcm_utils.Fcm()
             try:
                 member = Member.objects.get(phone_number=initiatorPhoneNumber)
-                registration_id, title, message = member.device_token, "Wallet to Mpesa transaction unsuccessful", " We cannot process your request at the moment. Try again later. If the problem persists" \
-                                                                                 " kindly call our customer care service on (254) 795891656, use M-pesa transaction code {} for reference".format(TransactionID)
+                registration_id, title = member.device_token, "Wallet to Mpesa transaction unsuccessful"
+                message = " We cannot process your request at the moment. Try again later. " \
+                          "If the problem persists kindly call our customer care service on (254) 795891656," \
+                          " use M-pesa transaction code {} for reference".format(TransactionID)
                 #instance.notification_push("single", registration_id, title, message)
                 date_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 fcm_data = {"request_type": "SYSTEM_WARNING_MSG",
@@ -465,8 +526,10 @@ class MpesaB2CResultURL(APIView):
             instance = fcm_utils.Fcm()
             try:
                 member = Member.objects.get(phone_number=initiatorPhoneNumber)
-                registration_id, title, message = member.device_token, "Wallet to Mpesa transaction unsuccessful", " We cannot process your request at the moment. Try again later. If the problem persists" \
-                                                                                 " kindly call our customer care service on (254) 795891656, use M-pesa transaction code {} for reference".format(TransactionID)
+                registration_id, title = member.device_token, "Wallet to Mpesa transaction unsuccessful"
+                message = " We cannot process your request at the moment. Try again later. " \
+                          "If the problem persists kindly call our customer care service on (254) 795891656, " \
+                          "use M-pesa transaction code {} for reference".format(TransactionID)
                 #instance.notification_push("single", registration_id, title, message)
                 date_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 fcm_data = {"request_type": "SYSTEM_WARNING_MSG",
@@ -474,7 +537,6 @@ class MpesaB2CResultURL(APIView):
                 instance.data_push("single", registration_id, fcm_data)
 
             except Member.DoesNotExist as exp:
-
                 with open('member_fetched_failed.txt', 'a') as result_file:
                     result_file.write(str(exp))
                     result_file.write("\n")
@@ -520,9 +582,12 @@ class MpesaC2BConfirmationURL(APIView):
         transacted_by_firstname = result["FirstName"].encode()
         transacted_by_middlename = result["MiddleName"].encode()
         transacted_by_lastname = result["LastName"].encode()
-        transacted_by = "{} {} {} {}".format(transacted_by_msisdn, transacted_by_firstname, transacted_by_middlename, transacted_by_lastname)
+        transacted_by = "{} {} {} {}".format(transacted_by_msisdn, transacted_by_firstname,
+                                             transacted_by_middlename, transacted_by_lastname)
 
-        admin_mpesa_transaction = AdminMpesaTransaction_logs.objects.create(TransactioID=transaction_id, TransactionType='C2B', Response=data, is_committed=False)
+        admin_mpesa_transaction = AdminMpesaTransaction_logs.objects.create(TransactioID=transaction_id,
+                                                                            TransactionType='C2B',
+                                                                            Response=data, is_committed=False)
         # Format phone number and convert amount from string to integer
         transaction_amount = float(amount)
         phonenumber = sms_utils.Sms()
@@ -532,14 +597,21 @@ class MpesaC2BConfirmationURL(APIView):
         #Check for existence of member with that wallet account
         try:
             member = Member.objects.get(phone_number=wallet_account)
-        except Member.DoesNotExist as exp:
+        except Member.DoesNotExist:
             data = {"status": 0, "message":"Member with phone number does not exist"}
             return Response(data, status=status.HTTP_200_OK)
 
         general_instance,wallet_instance = general_utils.General(), wallet_utils.Wallet()
         wallet = member.wallet
         wallet_balance = wallet_instance.calculate_wallet_balance(wallet) + transaction_amount
-        transaction_desc = "{} confirmed.You have received {} {} from {} {} {} via mpesa. New wallet balance is {} {}".format(transaction_id,member.currency, transaction_amount, transacted_by_msisdn, transacted_by_firstname, transacted_by_lastname, member.currency, wallet_balance)
+        transaction_desc = "{} confirmed.You have received {} {} from {} {} {} via mpesa. " \
+                           "New wallet balance is {} {}".format(transaction_id,member.currency,
+                                                                transaction_amount,
+                                                                transacted_by_msisdn,
+                                                                transacted_by_firstname,
+                                                                transacted_by_lastname,
+                                                                member.currency,
+                                                                wallet_balance)
         mpesa_transactions = Transactions.objects.create(wallet=wallet, transaction_type="CREDIT",
                                                           transaction_desc=transaction_desc,
                                                           transacted_by=transacted_by, transaction_amount=transaction_amount,
@@ -547,7 +619,9 @@ class MpesaC2BConfirmationURL(APIView):
                                                           source="MPESA C2B")
         admin_mpesa_transaction.is_committed = True
         admin_mpesa_transaction.save()
-        message = "{} confirmed. You have successfully credited wallet account {} with {} {} on OPENCIRCLES ".format(transaction_id, wallet_account, member.currency, transaction_amount)
+        message = "{} confirmed. You have successfully credited wallet account {}" \
+                  " with {} {} on OPENCIRCLES ".format(transaction_id, wallet_account,
+                                                       member.currency, transaction_amount)
         phonenumber.sendsms(transacted_by_msisdn, message)
         serializer = WalletTransactionsSerializer(mpesa_transactions)
         instance = fcm_utils.Fcm()
@@ -834,7 +908,6 @@ class MpesaB2BResultURL(APIView):
                     result_file.write("\n")
             data = {"status": 0, "message": "Transaction unsuccessful, something went wrong"}
             return Response(data, status=status.HTTP_200_OK)
-
 
 class MpesaB2BQueueTimeOutURL(APIView):
     """

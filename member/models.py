@@ -36,24 +36,24 @@ class Member(models.Model):
         A class that stores the Investor
     """
 
-    user = models.OneToOneField(User,on_delete=models.CASCADE)
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
     national_id = models.CharField(max_length=20, blank=False, unique=True)
     phone_number = models.CharField(max_length=20, blank=False, unique=True)
-    other_name = models.CharField(max_length=20,default="")
+    other_name = models.CharField(max_length=20, default="")
     gender = models.CharField(max_length=6, choices=GENDER_CHOICES)
     nationality = models.CharField(max_length=20, blank=True)
     country = models.CharField(max_length=20)
     date_of_birth = models.DateField(null=True)
     # iprs_image_url = models.URLField(null=True, blank=True)
     # iprs_image = models.ImageField(upload_to=upload_path, null=True, blank=True)
-    passport_image = models.ImageField(upload_to="MEMBER_PROFILE_PICS",null=True,blank=True)
+    passport_image = models.ImageField(upload_to="MEMBER_PROFILE_PICS", null=True, blank=True)
     registered_device = models.TextField(max_length=1000, blank=True)
-    currency = models.CharField(max_length=10,default="KES")
+    currency = models.CharField(max_length=10, default="KES")
     occupation = models.CharField(max_length=100, blank=True)
     time_registered = models.DateTimeField(auto_now_add=True)
     is_validated = models.BooleanField(default = False)
-    device_token = models.CharField(max_length=300,default='')
-    imei_number = models.CharField(max_length=50,unique=True)
+    device_token = models.CharField(max_length=300, default='')
+    imei_number = models.CharField(max_length=50, unique=True)
 
     class Meta:
         db_table = 'Member'
@@ -79,7 +79,7 @@ class Beneficiary(models.Model):
         ('OTHER', 'Other')
     )
 
-    member = models.ForeignKey(Member, null=False, blank=False, on_delete=models.CASCADE,related_name='owner')
+    member = models.ForeignKey(Member, null=False, blank=False, on_delete=models.CASCADE, related_name='owner')
     first_name = models.CharField(max_length=20, blank=False)
     last_name = models.CharField(max_length=20, blank=False)
     gender = models.CharField(max_length=7, choices=GENDER_CHOICES)
@@ -94,7 +94,7 @@ class Beneficiary(models.Model):
     class Meta:
         db_table = 'Beneficiary'
 
-    def save(self,*args,**kwargs):
+    def save(self):
         instance = sms_utils.Sms()
         self.phone_number = instance.format_phone_number(self.phone_number)
         self.benefit = self.benefit/100
@@ -149,4 +149,4 @@ class Contacts(models.Model):
 
     class Meta():
         db_table = 'Contacts'
-        unique_together = ['phone_number','member']
+        unique_together = ['phone_number', 'member']

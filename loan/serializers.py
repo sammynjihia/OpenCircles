@@ -1,6 +1,5 @@
 from rest_framework import serializers
-from loan.models import LoanApplication,LoanTariff,LoanRepayment,LoanAmortizationSchedule,GuarantorRequest
-from circle.models import Circle
+from loan.models import LoanApplication, LoanTariff, LoanRepayment, LoanAmortizationSchedule, GuarantorRequest, LoanProcessingFee
 from app_utility import loan_utils
 
 
@@ -19,7 +18,7 @@ class LoanRepaySerializer(serializers.Serializer):
     loan_code = serializers.CharField()
 
     class Meta:
-        fields = ['amount','pin','loan_code']
+        fields = ['amount', 'pin', 'loan_code']
 
 class LoansSerializer(serializers.ModelSerializer):
     """
@@ -32,27 +31,28 @@ class LoansSerializer(serializers.ModelSerializer):
     locked_shares = serializers.SerializerMethodField()
     class Meta:
         model = LoanApplication
-        fields = ['amount','loan_code','locked_shares','num_of_repayment_cycles','time_of_application', 'is_approved', 'time_approved','is_disbursed','time_disbursed','is_fully_repaid', 'time_of_last_payment']
+        fields = ['amount', 'loan_code', 'locked_shares', 'num_of_repayment_cycles', 'time_of_application',
+                  'is_approved', 'time_approved', 'is_disbursed', 'time_disbursed', 'is_fully_repaid', 'time_of_last_payment']
 
-    def get_time_of_application(self,loan):
+    def get_time_of_application(self, loan):
         return loan.time_of_application.strftime("%Y-%m-%d %H:%M:%S")
 
-    def get_time_approved(self,loan):
+    def get_time_approved(self, loan):
         if loan.time_approved is None:
             return loan.time_approved
         return loan.time_approved.strftime("%Y-%m-%d %H:%M:%S")
 
-    def get_time_disbursed(self,loan):
+    def get_time_disbursed(self, loan):
         if loan.time_disbursed is None:
             return loan.time_disbursed
         return loan.time_disbursed.strftime("%Y-%m-%d %H:%M:%S")
 
-    def get_time_of_last_payment(self,loan):
+    def get_time_of_last_payment(self, loan):
         if loan.time_of_last_payment is None:
             return loan.time_of_last_payment
         return loan.time_of_last_payment.strftime("%Y-%m-%d %H:%M:%S")
 
-    def get_locked_shares(self,loan):
+    def get_locked_shares(self, loan):
         try:
             ln = loan.locked.filter(shares_transaction__shares=loan.circle_member.shares.get())
             return ln[0].shares_transaction.num_of_shares
@@ -73,9 +73,9 @@ class LoanAmortizationSerializer(serializers.ModelSerializer):
     repayment_date = serializers.SerializerMethodField()
     class Meta:
         model = LoanAmortizationSchedule
-        fields = ['repayment_date','principal','interest','total_monthly_repayment']
+        fields = ['repayment_date', 'principal', 'interest', 'total_monthly_repayment']
 
-    def get_repayment_date(self,amortization_schedule):
+    def get_repayment_date(self, amortization_schedule):
         return amortization_schedule.repayment_date.strftime("%Y-%m-%d")
 
 class LoanTariffSerializer(serializers.ModelSerializer):
@@ -84,7 +84,7 @@ class LoanTariffSerializer(serializers.ModelSerializer):
     """
     class Meta:
         model = LoanTariff
-        fields = ['min_amount','max_amount','num_of_months','monthly_interest_rate']
+        fields = ['min_amount', 'max_amount', 'num_of_months', 'monthly_interest_rate']
 
 class LoanRepaymentSerializer(serializers.ModelSerializer):
     """
@@ -95,17 +95,17 @@ class LoanRepaymentSerializer(serializers.ModelSerializer):
     time_of_repayment = serializers.SerializerMethodField()
     class Meta:
         model = LoanRepayment
-        fields = ['time_of_repayment','amount','is_fully_repaid','loan_code']
+        fields = ['time_of_repayment', 'amount', 'is_fully_repaid', 'loan_code']
 
-    def get_time_of_repayment(self,loan_repayment):
+    def get_time_of_repayment(self, loan_repayment):
         return loan_repayment.time_of_repayment.strftime("%Y-%m-%d %H:%M:%S")
 
-    def get_is_fully_repaid(self,loan_repayment):
+    def get_is_fully_repaid(self, loan_repayment):
         if "is_fully_repaid" in self.context:
             return self.context.get("is_fully_repaid")
         return False
 
-    def get_loan_code(self,loan_repayment):
+    def get_loan_code(self, loan_repayment):
         return loan_repayment.amortization_schedule.loan.loan_code
 
 class StrictBooleanField(serializers.BooleanField):
@@ -139,9 +139,9 @@ class LoanGuarantorsSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = GuarantorRequest
-        fields = ['phone_number','status','amount']
+        fields = ['phone_number', 'status', 'amount']
 
-    def get_status(self,guarantor):
+    def get_status(self, guarantor):
         if guarantor.has_accepted is None:
             return "pending"
         elif guarantor.has_accepted is True:
@@ -149,7 +149,7 @@ class LoanGuarantorsSerializer(serializers.ModelSerializer):
         else:
             return "declined"
 
-    def get_phone_number(self,guarantor):
+    def get_phone_number(self, guarantor):
         return guarantor.circle_member.member.phone_number
 
 class NewLoanGuarantorSerializer(serializers.Serializer):
@@ -180,26 +180,42 @@ class UnprocessedGuarantorRequestSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = GuarantorRequest
-        fields = ['phone_number','circle_acc_number','loan_code','amount','num_of_months','rating','estimated_earning']
+        fields = ['phone_number', 'circle_acc_number', 'loan_code', 'amount', 'num_of_months', 'rating', 'estimated_earning']
 
-    def get_phone_number(self,guarantor):
+    def get_phone_number(self, guarantor):
         return guarantor.loan.circle_member.member.phone_number
 
-    def get_circle_acc_number(self,guarantor):
+    def get_circle_acc_number(self, guarantor):
         return guarantor.circle_member.circle.circle_acc_number
 
-    def get_loan_code(self,guarantor):
+    def get_loan_code(self, guarantor):
         return guarantor.loan.loan_code
 
-    def get_num_of_months(self,guarantor):
+    def get_num_of_months(self, guarantor):
         amount = guarantor.loan.amount
         try:
             loan_tariff = guarantor.loan.loan_tariff
             if loan_tariff is None:
-                loan_tariff = LoanTariff.objects.get(circle=guarantor.circle_member.circle,max_amount__gte=amount,min_amount__lte=amount)
+                loan_tariff = LoanTariff.objects.get(circle=guarantor.circle_member.circle,
+                                                     max_amount__gte=amount,
+                                                     min_amount__lte=amount)
             return loan_tariff.num_of_months
         except LoanTariff.DoesNotExist:
             return 0
 
-    def get_rating(self,guarantor):
+    def get_rating(self, guarantor):
         return loan_utils.Loan().calculate_circle_member_loan_rating(guarantor.loan.circle_member.member)
+
+class LoanAmountSerializer(serializers.Serializer):
+    """
+    Serializer for loan amount endpoint
+    """
+    loan_amount = serializers.IntegerField()
+
+class ProcessingFeeSerializer(serializers.ModelSerializer):
+    """
+    Serializer for processing fee endpoint
+    """
+    class Meta:
+        model = LoanProcessingFee
+        fields = ['processing_fee']

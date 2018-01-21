@@ -41,14 +41,16 @@ class PurchaseShares(APIView):
     def post(self, request, *args, **kwargs):
         serializer = PurchaseSharesSerializer(data=request.data)
         if serializer.is_valid():
-            pin, amount, circle_acc_number = serializer.validated_data['pin'], serializer.validated_data['amount'], serializer.validated_data['circle_acc_number']
+            pin, amount = serializer.validated_data['pin'], serializer.validated_data['amount']
+            circle_acc_number = serializer.validated_data['circle_acc_number']
             circle, member = Circle.objects.get(circle_acc_number=circle_acc_number), request.user.member
             if circle.is_active:
-                circle_member = CircleMember.objects.get(circle=circle,member=member)
+                circle_member = CircleMember.objects.get(circle=circle, member=member)
                 if circle_member.is_active:
                     if amount < settings.MIN_SUBSEQUENT_SHARES:
-                        data = {"status":0,"message":"The allowed minimum purchased shares is KES {}".format(settings.MIN_SUBSEQUENT_SHARES)}
-                        return Response(data,status=status.HTTP_200_OK)
+                        data = {"status":0, "message":"The allowed minimum purchased shares is "
+                                                      "KES {}".format(settings.MIN_SUBSEQUENT_SHARES)}
+                        return Response(data, status=status.HTTP_200_OK)
                     valid,response = shares_utils.Shares().validate_purchased_shares(amount, circle, member)
                     if valid:
                         wallet_instance = wallet_utils.Wallet()
@@ -64,17 +66,31 @@ class PurchaseShares(APIView):
                                 wallet = member.wallet
                                 wallet_balance = wallet_instance.calculate_wallet_balance(wallet) - amount
                                 transaction_code = general_instance.generate_unique_identifier('WTD')
-                                wallet_desc = "{} confirmed.You have purchased shares worth {} {} in circle {}.New wallet balance is {} {}.".format(transaction_code, member.currency, amount, circle.circle_name, member.currency, wallet_balance)
+                                wallet_desc = "{} confirmed.You have purchased shares worth {} {} in circle {}." \
+                                              "New wallet balance is {} {}.".format(transaction_code, member.currency,
+                                                                                    amount, circle.circle_name,
+                                                                                    member.currency, wallet_balance)
                                 wallet_transaction = Transactions.objects.create(wallet=wallet, transaction_type="DEBIT",
                                                                                  transaction_time=datetime.datetime.now(),
-                                                                                 transaction_desc=wallet_desc,transaction_amount=amount, recipient=circle_acc_number, transaction_code=transaction_code,
+                                                                                 transaction_desc=wallet_desc,
+                                                                                 transaction_amount=amount,
+                                                                                 recipient=circle_acc_number,
+                                                                                 transaction_code=transaction_code,
                                                                                  source="wallet")
                                 created_objects.append(wallet_transaction)
                                 print("wallet transaction")
                                 print(wallet_transaction.transaction_amount)
                                 transaction_code = general_instance.generate_unique_identifier('STD')
-                                shares_desc = "{} confirmed.You have purchased shares worth {} {} in circle {}.".format(transaction_code, member.currency, amount, circle.circle_name)
-                                shares_transaction = IntraCircleShareTransaction.objects.create(shares=shares, transaction_type="DEPOSIT", sender=circle_member, recipient= circle_member, num_of_shares=amount, transaction_desc=shares_desc, transaction_code=transaction_code)
+                                shares_desc = "{} confirmed.You have purchased shares worth {} {} " \
+                                              "in circle {}.".format(transaction_code, member.currency,
+                                                                     amount, circle.circle_name)
+                                shares_transaction = IntraCircleShareTransaction.objects.create(shares=shares,
+                                                                                                transaction_type="DEPOSIT",
+                                                                                                sender=circle_member,
+                                                                                                recipient= circle_member,
+                                                                                                num_of_shares=amount,
+                                                                                                transaction_desc=shares_desc,
+                                                                                                transaction_code=transaction_code)
                                 created_objects.append(shares_transaction)
                                 circle_instance = circle_utils.Circle()
                                 available_shares = circle_instance.get_available_circle_member_shares(circle, member)
@@ -86,7 +102,10 @@ class PurchaseShares(APIView):
                                 loan_limit = loan_instance.calculate_loan_limit(circle, member)
                                 print("loan limit")
                                 print(loan_limit)
-                                data = {"status":1, "wallet_transaction":wallet_serializer.data, "shares_transaction":shares_serializer.data, "loan_limit":loan_limit}
+                                data = {"status":1,
+                                        "wallet_transaction":wallet_serializer.data,
+                                        "shares_transaction":shares_serializer.data,
+                                        "loan_limit":loan_limit}
                             except Exception as e:
                                 print(str(e))
                                 general_utils.General().delete_created_objects(created_objects)
@@ -96,17 +115,21 @@ class PurchaseShares(APIView):
                             # loan_instance.update_loan_limit(circle,member)
                             updating_loan_limit.delay(circle.id, member.id)
                             fcm_instance = fcm_utils.Fcm()
-                            fcm_data = {"request_type":"UPDATE_AVAILABLE_SHARES", "circle_acc_number":circle.circle_acc_number, "phone_number":member.phone_number, "available_shares":fcm_available_shares}
+                            fcm_data = {"request_type":"UPDATE_AVAILABLE_SHARES",
+                                        "circle_acc_number":circle.circle_acc_number,
+                                        "phone_number":member.phone_number,
+                                        "available_shares":fcm_available_shares}
                             registration_id = fcm_instance.get_circle_members_token(circle, member)
                             fcm_instance.data_push("multiple", registration_id, fcm_data)
                             print(fcm_data)
                             return Response(data,status=status.HTTP_200_OK)
                         data = {"status":0, "message":response}
                         return Response(data, status=status.HTTP_200_OK)
-                data = {"status":0,"message":"Unable to deposit to circle.Your account is currently deactivated due to delayed loan repayment."}
-                return Response(data,status=status.HTTP_200_OK)
-            data = {"status":0,"message":"Unable to deposit to circle.Circle is inactive."}
-            return Response(data,status=status.HTTP_200_OK)
+                data = {"status":0,"message":"Unable to deposit to circle.Your account is currently deactivated due"
+                                             " to delayed loan repayment."}
+                return Response(data, status=status.HTTP_200_OK)
+            data = {"status":0, "message":"Unable to deposit to circle.Circle is inactive."}
+            return Response(data, status=status.HTTP_200_OK)
             data = {"status":0, "message":response}
             return Response(data, status=status.HTTP_200_OK)
         data = {"status":0, "message":serializer.errors}
@@ -119,7 +142,7 @@ class MemberShares(APIView):
     authentication_classes = (TokenAuthentication,)
     permission_classes = (IsAuthenticated,)
 
-    def post(self,request,*args,**kwargs):
+    def post(self,request):
         serializer = MemberSharesSerializer(data=request.data)
         if serializer.is_valid():
             circle_acc = serializer.validated_data['circle_acc_number']
@@ -127,10 +150,10 @@ class MemberShares(APIView):
             member = request.user.member
             shares = Shares.objects.get(circle_member=CircleMember.objects.get(circle=circle, member=member))
             shares_serializer = SharesSerializer(shares)
-            data = {"status":1,"shares":shares_serializer.data}
-            return Response(data,status=status.HTTP_200_OK)
-        data = {"status":0,"message":serializer.errors}
-        return Response(data,status=status.HTTP_200_OK)
+            data = {"status":1, "shares":shares_serializer.data}
+            return Response(data, status=status.HTTP_200_OK)
+        data = {"status":0, "message":serializer.errors}
+        return Response(data, status=status.HTTP_200_OK)
 
 class MemberSharesTransactions(APIView):
     """
@@ -139,7 +162,7 @@ class MemberSharesTransactions(APIView):
     authentication_classes = (TokenAuthentication,)
     permission_classes = (IsAuthenticated,)
 
-    def post(self,request,*args,**kwargs):
+    def post(self,request):
         serializer = MemberSharesSerializer(data=request.data)
         if serializer.is_valid():
             circle_acc = serializer.validated_data['circle_acc_number']
@@ -164,10 +187,11 @@ class SharesWithdrawal(APIView):
     """
     authentication_classes = (TokenAuthentication,)
     permission_classes = (IsAuthenticated,)
-    def post(self,request,*args,**kwargs):
+    def post(self,request):
         serializer = SharesWithdrawalSerializer(data=request.data)
         if serializer.is_valid():
-            pin,circle = serializer.validated_data['pin'],Circle.objects.get(circle_acc_number=serializer.validated_data['circle_acc_number'])
+            pin = serializer.validated_data['pin']
+            circle = Circle.objects.get(circle_acc_number=serializer.validated_data['circle_acc_number'])
             member = request.user.member
             created_objects = []
             if circle.is_active:
@@ -182,7 +206,8 @@ class SharesWithdrawal(APIView):
                             print("before available_shares")
                             print(available_shares)
                             if amount <= available_shares:
-                                shares_tariff = SharesWithdrawalTariff.objects.get(max_amount__gte=amount, min_amount__lte=amount)
+                                shares_tariff = SharesWithdrawalTariff.objects.get(max_amount__gte=amount,
+                                                                                   min_amount__lte=amount)
                                 fcm_available_shares = circle_instance.get_guarantor_available_shares(circle, member)
                                 total_amount = amount + shares_tariff.amount
                                 if total_amount <= available_shares:
@@ -195,15 +220,41 @@ class SharesWithdrawal(APIView):
                                             shares = circle_member.shares.get()
                                             time_processed = datetime.datetime.now()
                                             transaction_code = general_instance.generate_unique_identifier('STW')
-                                            shares_desc = "%s confirmed.You have withdrawn shares worth %s %s from circle %s.Transaction cost %s %s"%(transaction_code, member.currency, amount, circle.circle_name, member.currency, shares_tariff.amount)
-                                            shares_transaction =  IntraCircleShareTransaction.objects.create(shares=shares, transaction_type="WITHDRAW", num_of_shares=total_amount, transaction_desc=shares_desc, transaction_code=transaction_code)
+                                            shares_desc = "{} confirmed.You have withdrawn shares worth {} {} from " \
+                                                          "circle {}.Transaction cost {} {}".format(transaction_code,
+                                                                                                    member.currency,
+                                                                                                    amount,
+                                                                                                    circle.circle_name,
+                                                                                                    member.currency,
+                                                                                                    shares_tariff.amount)
+                                            shares_transaction =  IntraCircleShareTransaction.objects.create(
+                                                                                                        shares=shares,
+                                                                                                        transaction_type="WITHDRAW",
+                                                                                                        num_of_shares=total_amount,
+                                                                                                        transaction_desc=shares_desc,
+                                                                                                        transaction_code=transaction_code)
                                             created_objects.append(shares_transaction)
-                                            revenue = RevenueStreams.objects.create(stream_amount=shares_tariff.amount,stream_type="SHARES WITHDRAW",stream_code=transaction_code,time_of_transaction=time_processed)
+                                            revenue = RevenueStreams.objects.create(stream_amount=shares_tariff.amount,
+                                                                                    stream_type="SHARES WITHDRAW",
+                                                                                    stream_code=transaction_code,
+                                                                                    time_of_transaction=time_processed)
                                             created_objects.append(revenue)
                                             transaction_code = general_instance.generate_unique_identifier('WTC')
                                             wallet_balance = wallet_instance.calculate_wallet_balance(member.wallet) + amount
-                                            wallet_desc = "{} confirmed.You have received {} {} from circle {} shares withdrawal.New wallet balance is {} {}".format(transaction_code, member.currency, amount, circle.circle_name, member.currency, wallet_balance)
-                                            wallet_transaction = Transactions.objects.create(wallet= member.wallet, transaction_type='CREDIT', transaction_time = time_processed, transaction_desc=wallet_desc, transaction_amount= amount, transaction_code=transaction_code, source="shares")
+                                            wallet_desc = "{} confirmed.You have received {} {} from circle {} shares " \
+                                                          "withdrawal.New wallet balance is {} {}".format(transaction_code,
+                                                                                                          member.currency,
+                                                                                                          amount,
+                                                                                                          circle.circle_name,
+                                                                                                          member.currency,
+                                                                                                          wallet_balance)
+                                            wallet_transaction = Transactions.objects.create(wallet= member.wallet,
+                                                                                             transaction_type='CREDIT',
+                                                                                             transaction_time=time_processed,
+                                                                                             transaction_desc=wallet_desc,
+                                                                                             transaction_amount=amount,
+                                                                                             transaction_code=transaction_code,
+                                                                                             source="shares")
                                             created_objects.append(wallet_transaction)
                                             shares_transaction_serializer = SharesTransactionSerializer(shares_transaction)
                                             wallet_transaction_serializer = WalletTransactionsSerializer(wallet_transaction)
@@ -213,45 +264,55 @@ class SharesWithdrawal(APIView):
                                             available_shares = circle_instance.get_available_circle_member_shares(circle, member)
                                             print("new available_shares")
                                             print(available_shares)
-                                            loan_limit = loan_instance.calculate_loan_limit(circle,member)
+                                            loan_limit = loan_instance.calculate_loan_limit(circle, member)
                                             print("loan limit")
                                             print(loan_limit)
-                                            data = {"status":1, "shares_transaction":shares_transaction_serializer.data, "wallet_transaction":wallet_transaction_serializer.data, "loan_limit":loan_limit, "message":wallet_desc}
+                                            data = {"status":1,
+                                                    "shares_transaction":shares_transaction_serializer.data,
+                                                    "wallet_transaction":wallet_transaction_serializer.data,
+                                                    "loan_limit":loan_limit,
+                                                    "message":wallet_desc}
                                         except Exception as e:
                                             print(str(e))
                                             general_instance = general_utils.General()
                                             general_instance.delete_created_objects(created_objects)
-                                            data = {"status":0,"message":"Unable to process the shares withdrawal request"}
-                                            return Response(data,status=status.HTTP_200_OK)
+                                            data = {"status":0, "message":"Unable to process the shares withdrawal request"}
+                                            return Response(data, status=status.HTTP_200_OK)
                                         # unblock task
                                         # loan_instance.update_loan_limit(circle,member)
                                         updating_loan_limit.delay(circle.id, member.id)
                                         fcm_instance = fcm_utils.Fcm()
-                                        fcm_data = {"request_type":"UPDATE_AVAILABLE_SHARES", "circle_acc_number":circle.circle_acc_number, "phone_number":member.phone_number, "available_shares":fcm_available_shares}
+                                        fcm_data = {"request_type":"UPDATE_AVAILABLE_SHARES",
+                                                    "circle_acc_number":circle.circle_acc_number,
+                                                    "phone_number":member.phone_number,
+                                                    "available_shares":fcm_available_shares}
                                         registration_id = fcm_instance.get_circle_members_token(circle, member)
                                         fcm_instance.data_push("multiple", registration_id, fcm_data)
-                                        return Response(data,status=status.HTTP_200_OK)
-                                    data = {"status":0, "message":"Unable to perform shares withdrawal request due pending loan guarantee requests.Kindly response to the requests."}
+                                        return Response(data, status=status.HTTP_200_OK)
+                                    data = {"status":0, "message":"Unable to perform shares withdrawal request due to"
+                                                                  " pending loan guarantee requests."
+                                                                  "Kindly response to the requests."}
                                     return Response(data, status=status.HTTP_200_OK)
-                                data = {"status":0,"message":"Insufficient shares to cover the shares withdrawal charges"}
-                                return Response(data,status=status.HTTP_200_OK)
+                                data = {"status":0, "message":"Insufficient shares to cover the shares withdrawal charges"}
+                                return Response(data, status=status.HTTP_200_OK)
                             data = {"status":0, "message":"Amount entered exceeds your available shares."}
                             return Response(data, status=status.HTTP_200_OK)
                         data = {"status":0, "message":response}
                         return Response(data, status=status.HTTP_200_OK)
                     data = {"status":0, "message":"Invalid pin"}
                     return Response(data, status=status.HTTP_200_OK)
-                data = {"status":0,"message":"Unable to withdraw savings from circle.Your account is currently deactivated due to delayed loan repayment."}
-                return Response(data,status=status.HTTP_200_OK)
-            data = {"status":0,"message":"Unable to withdraw savings from circle.Circle is inactive."}
+                data = {"status":0, "message":"Unable to withdraw savings from circle. Your account is currently "
+                                             "deactivated due to delayed loan repayment."}
+                return Response(data, status=status.HTTP_200_OK)
+            data = {"status":0, "message":"Unable to withdraw savings from circle.Circle is inactive."}
         data = {"status":0, "message":serializer.errors}
         return Response(data, status=status.HTTP_200_OK)
 
 @api_view(['POST'])
 @authentication_classes([TokenAuthentication])
 @permission_classes([IsAuthenticated])
-def get_shares_withdrawal_tariff(request,*args,**kwargs):
+def get_shares_withdrawal_tariff(request):
     tariff = SharesWithdrawalTariff.objects.all()
-    tariff_serializer = SharesTariffSerializer(tariff,many=True)
+    tariff_serializer = SharesTariffSerializer(tariff, many=True)
     data = {"status":1, "shares_tariff":tariff_serializer.data}
     return Response(data, status=status.HTTP_200_OK)

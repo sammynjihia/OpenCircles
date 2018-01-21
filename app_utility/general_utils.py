@@ -4,7 +4,7 @@ import hashlib
 import base64
 
 class General():
-    def delete_sessions(self,request,keys):
+    def delete_sessions(self, request, keys):
         if type(keys) is not list:
             keys = [keys]
         for key in keys:
@@ -22,16 +22,16 @@ class General():
         m = hashlib.sha256()
         m.update(s)
         m_hash = base64.b64encode(m.digest())
-        m_hash = m_hash.translate(None,'/=+')
+        m_hash = m_hash.translate(None, '/=+')
         return m_hash
 
-    def generate_unique_identifier(self,prefix):
+    def generate_unique_identifier(self, prefix):
         # random_string = ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(8))
         random_string = self.obfuscate(str(time.time())).upper()[:8]
         code = prefix + random_string
         return code
 
-    def get_decimal(self,nume,deno):
+    def get_decimal(self, nume, deno):
         whole = int(nume/deno)
         res = ""
         whole = str(whole) +"."

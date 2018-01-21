@@ -20,13 +20,14 @@ class MemberSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Member
-        fields = ['first_name','surname','other_name','email','gender','country','phone_number','national_id','currency','date_of_birth','time_registered','passport_image']
+        fields = ['first_name','surname','other_name','email','gender','country','phone_number','national_id',
+                  'currency','date_of_birth','time_registered','passport_image']
 
-    def get_time_registered(self,member):
+    def get_time_registered(self, member):
          date = member.time_registered
          return date.strftime("%Y-%m-%d %H:%M:%S")
 
-    def get_passport_image(self,member):
+    def get_passport_image(self, member):
         if member.passport_image:
             # f = open(member.passport_image.path, 'rb')
             # image = File(f)
@@ -53,14 +54,15 @@ class BeneficiarySerializer(serializers.ModelSerializer):
     pin = serializers.CharField(write_only=True)
     email = serializers.EmailField(allow_blank=True)
 
-    def create(self,validated_data):
+    def create(self, validated_data):
         validated_data.pop('pin')
         beneficiary = Beneficiary.objects.create(**validated_data)
         return beneficiary
 
     class Meta:
         model = Beneficiary
-        fields = ['first_name','other_name','pin','gender','relationship','phone_number','email','benefit','date_of_birth']
+        fields = ['first_name','other_name','pin','gender','relationship','phone_number','email','benefit',
+                  'date_of_birth']
 
 
 class MemberBeneficiarySerializer(serializers.ModelSerializer):
@@ -75,7 +77,7 @@ class MemberBeneficiarySerializer(serializers.ModelSerializer):
         model = Beneficiary
         fields = ['first_name','other_name','gender','relationship','phone_number','email','benefit','date_of_birth']
 
-    def get_benefit(self,beneficiary):
+    def get_benefit(self, beneficiary):
         return beneficiary.benefit*100
 
 class NewContactSerializer(serializers.Serializer):

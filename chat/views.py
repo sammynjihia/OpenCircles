@@ -15,13 +15,13 @@ def save_chat(request):
     serializer = ChatSerializer(data=request.data)
     if serializer.is_valid():
         try:
-            serializer.save(owner=request.user.member,recipient="opencircles")
+            serializer.save(owner=request.user.member, recipient="opencircles")
             data = {"status":1}
         except Exception as e:
             data = {"status":0, "message":"Unable to send chat"}
         return Response(data, status=status.HTTP_200_OK)
-    data = {"status":0,"message":serializer.errors}
-    return Response(data,status=status.HTTP_200_OK)
+    data = {"status":0, "message":serializer.errors}
+    return Response(data, status=status.HTTP_200_OK)
 
 @api_view(['POST'])
 @authentication_classes([TokenAuthentication])
@@ -29,8 +29,8 @@ def save_chat(request):
 def retrieve_chat(request):
     chats = Chat.objects.filter(owner=request.user.member)
     try:
-        member_chat_serializer = MemberChatSerializer(chats,many=True)
-        data = {"status":1,"chats":member_chat_serializer.data}
+        member_chat_serializer = MemberChatSerializer(chats, many=True)
+        data = {"status":1, "chats":member_chat_serializer.data}
     except Exception as e:
-        data = {"status":0,"message":"Unable to retrieve chats"}
+        data = {"status":0, "message":"Unable to retrieve chats"}
     return Response(data, status=status.HTTP_200_OK)

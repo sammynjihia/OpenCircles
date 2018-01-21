@@ -2,6 +2,7 @@ from __future__ import division
 
 import math,uuid,threading
 from datetime import datetime
+from datetime import date
 from dateutil.relativedelta import relativedelta
 from django.conf import settings
 from django.db.models import Sum,Q
@@ -18,16 +19,15 @@ from wallet.serializers import WalletTransactionsSerializer
 import app_utility
 
 class Loan():
-    def validate_loan_amount(self,request,loan_amount,circle):
-        circle_instance = app_utility.circle_utils.Circle()
-        circle_member_loan_limit = self.calculate_loan_limit(circle,request.user.member)
+    def validate_loan_amount(self, request, loan_amount, circle):
+        circle_member_loan_limit = self.calculate_loan_limit(circle, request.user.member)
         print("circle member loan limit")
         print(circle_member_loan_limit)
         if loan_amount >= settings.MINIMUM_LOAN:
                 if loan_amount <= circle_member_loan_limit:
-                    return True,""
-                return False,"The applied loan amount exceeds your loan limit"
-        return False,"The allowed minimum loan is KES %s"%(settings.MINIMUM_LOAN)
+                    return True, ""
+                return False, "The applied loan amount exceeds your loan limit"
+        return False, "The allowed minimum loan is KES %s"%(settings.MINIMUM_LOAN)
 
     def validate_loan_guarantors(self, guarantors, guaranteed_amount, circle):
         total_guarantors_amount = 0
@@ -36,26 +36,31 @@ class Loan():
             member = Member.objects.get(phone_number = guarantor["phone_number"])
             member_status = CircleMember.objects.filter(member=member, circle=circle, is_active=False)
             if member_status.exists():
-                msg = "{} {} is unable to guarantee you. Kindly request another member.".format(member.user.first_name, member.user.last_name)
+                msg = "{} {} is unable to guarantee you. Kindly request another member.".format(member.user.first_name,
+                                                                                                 member.user.last_name)
                 return False, msg
             available_shares = app_utility.circle_utils.Circle().get_available_circle_member_shares(circle, member)
             if available_shares < guarantor["amount"]:
-                msg = "Unable to process loan request. Guarantor {} {} is unable to guarantee you {} {}".format(member.user.first_name, member.user.last_name, member.currency, guarantor["amount"])
-                return False,msg
+                msg = "Unable to process loan request. Guarantor {} {} is unable to " \
+                      "guarantee you {} {}".format(member.user.first_name, member.user.last_name,
+                                                   member.currency, guarantor["amount"])
+                return False, msg
         if total_guarantors_amount > guaranteed_amount or total_guarantors_amount < guaranteed_amount:
-            return False,"Unable to process loan request."
-        return True,""
+            return False, "Unable to process loan request."
+        return True, ""
 
-    def validate_repayment_amount(self,amount,loan_amortization):
-        max_repaid_amount = loan_amortization.total_repayment + math.ceil(loan_amortization.ending_balance)
+    def validate_repayment_amount(self, amount, loan_amortization):
         min_repaid_amount = loan_amortization.total_repayment
+        max_repaid_amount = min_repaid_amount + math.ceil(loan_amortization.ending_balance)
         if amount >= min_repaid_amount:
             if amount <= max_repaid_amount:
-                return True,""
-            return False,"Amount entered exceeds the current total repayable loan amount of KES {}".format(max_repaid_amount)
-        return False,"The amount entered is less than this month allowed minimun repayment amount of KES{}".format(min_repaid_amount)
+                return True, ""
+            return False, "Amount entered exceeds the current total repayable " \
+                          "loan amount of KES {}".format(max_repaid_amount)
+        return False, "The amount entered is less than this month allowed minimun" \
+                      " repayment amount of KES{}".format(min_repaid_amount)
 
-    def full_amortization_schedule(self,annual_interest,balance,num_of_months,date_time_approved):
+    def full_amortization_schedule(self, annual_interest, balance, num_of_months, date_time_approved):
         monthly_interest = annual_interest/(12*100)
         i = monthly_interest
         n = num_of_months
@@ -71,12 +76,14 @@ class Loan():
             interest = starting_balance * monthly_interest
             principal = repayment - interest
             ending_balance = max(0, starting_balance - principal)
-            total_repayment = math.ceil(float(format(repayment,'.2f')))
-            data = {'repayment_date':fmt_date,'principal':round(principal,2),'interest':round(interest,2),'total_monthly_repayment':total_repayment,'ending_balance':round(ending_balance,2)}
+            total_repayment = math.ceil(float(format(repayment, '.2f')))
+            data = {'repayment_date':fmt_date, 'principal':round(principal, 2),
+                    'interest':round(interest, 2), 'total_monthly_repayment':total_repayment,
+                    'ending_balance':round(ending_balance, 2)}
             full_amortize.append(data)
         return full_amortize
 
-    def amortization_schedule(self,annual_interest, balance, num_of_months, date_time_approved):
+    def amortization_schedule(self, annual_interest, balance, num_of_months, date_time_approved):
         monthly_interest = annual_interest/(12*100)
         i = monthly_interest
         n = num_of_months
@@ -87,12 +94,16 @@ class Loan():
         interest = starting_balance * monthly_interest
         principal = repayment - interest
         ending_balance = max(0, starting_balance - principal)
-        print("Date: {0} Starting Balance: {1:.2f} principal:  {2:.2f} Interest: {3:.2f} Repayment: {4:.2f} Ending Balance: {5:.2F}".format(repayment_date, starting_balance, principal, interest, repayment,ending_balance))
+        print("Date: {0} Starting Balance: {1:.2f} principal:  {2:.2f} Interest: {3:.2f} Repayment: {4:.2f}"
+              " Ending Balance: {5:.2F}".format(repayment_date, starting_balance, principal,
+                                                interest, repayment,ending_balance))
         total_repayment = math.ceil(float(format(repayment,'.2f')))
-        data = {"repayment_date":repayment_date,"starting_balance":round(starting_balance,2),"principal":round(principal,2),"interest":round(interest,2),"total_repayment":total_repayment,"ending_balance":round(ending_balance,2)}
+        data = {"repayment_date":repayment_date,"starting_balance":round(starting_balance,2),
+                "principal":round(principal,2),"interest":round(interest,2),
+                "total_repayment":total_repayment,"ending_balance":round(ending_balance,2)}
         return data
 
-    def get_total_guaranteed_amount(self,loan,shares):
+    def get_total_guaranteed_amount(self, loan, shares):
         # loan = LoanApplication.objects.get(loan_code=loan_code)
         locked_shares = LockedShares.objects.filter(loan=loan).get(shares_transaction__shares=shares)
         num_of_shares = locked_shares.shares_transaction.num_of_shares
@@ -100,11 +111,12 @@ class Loan():
         print(guaranteed_amount)
         return guaranteed_amount
 
-    def get_remaining_guaranteed_amount(self,loan,shares):
-        total_guaranteed_amount = self.get_total_guaranteed_amount(loan,shares)
-        accepted_guaranteed_amount = GuarantorRequest.objects.filter(loan=loan,has_accepted=True).aggregate(total=Sum('num_of_shares'))
+    def get_remaining_guaranteed_amount(self, loan, shares):
+        # total_guaranteed_amount = self.get_total_guaranteed_amount(loan, shares)
+        accepted_guaranteed_amount = GuarantorRequest.objects.filter(loan=loan,
+                                                                     has_accepted=True).aggregate(total=Sum('num_of_shares'))
         guaranteed_amount = 0 if accepted_guaranteed_amount['total'] is None else accepted_guaranteed_amount['total']
-        remaining_amount = total_guaranteed_amount - guaranteed_amount
+        remaining_amount = loan.amount - guaranteed_amount
         return remaining_amount
 
     def loan_repayment_reminder(self):
@@ -114,7 +126,7 @@ class Loan():
             print("loan to be reminded")
             print(loan.loan_code)
             member, circle = loan.circle_member.member, loan.circle_member.circle
-            days_to_send = [0,1,3,7]
+            days_to_send = [0, 1, 3, 7]
             amortize_loan = loan.loan_amortization.filter()
             print("amortize loan")
             print(amortize_loan)
@@ -128,15 +140,22 @@ class Loan():
                     fcm_instance = app_utility.fcm_utils.Fcm()
                     title = "Circle {} loan repayment".format(circle.circle_name)
                     if delta == 0:
-                        message = "You loan repayment of {} {} in circle {} is due today.Kindly make payments before end of today to avoid penalties.".format(member.currency, latest_schedule.total_repayment, circle.circle_name)
+                        message = "You loan repayment of {} {} in circle {} is due today." \
+                                  "Kindly make payments before end of today to avoid penalties.".format(member.currency,
+                                                                                                        latest_schedule.total_repayment,
+                                                                                                        circle.circle_name)
                     else:
-                        message = "Remember to make your loan repayment of {} {} in circle {} before {}".format(member.currency,latest_schedule.total_repayment,circle.circle_name,latest_schedule.repayment_date)
+                        message = "Remember to make your loan repayment of {} {} in circle {} " \
+                                  "before {}".format(member.currency, latest_schedule.total_repayment,
+                                                     circle.circle_name, latest_schedule.repayment_date)
                     registration_id = member.device_token
                     if len(registration_id):
                         today = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                        fcm_data = {"request_type":"SYSTEM_WARNING_MSG","title":title,"message":message,"time":today}
+                        fcm_data = {"request_type":"SYSTEM_WARNING_MSG",
+                                    "title":title,
+                                    "message":message, "time":today}
                         registration_id = member.device_token
-                        fcm_instance.data_push("single",registration_id,fcm_data)
+                        fcm_instance.data_push("single", registration_id, fcm_data)
                     else:
                         if delta == 0:
                             sms = app_utility.sms_utils.Sms()
@@ -155,38 +174,63 @@ class Loan():
                     created_objects = []
                     shares = guarantor.circle_member.shares.get()
                     shares_transaction_code = general_instance.generate_unique_identifier('STU')
-                    shares_desc = "{} confirmed.Shares worth {} {} that were locked to guarantee loan {} of {} {} have been unlocked{}".format(shares_transaction_code, member.currency, guarantor.num_of_shares, loan.loan_code, loan_member.user.first_name, loan_member.user.last_name, shares_desc)
+                    shares_desc = "{} confirmed.Shares worth {} {} that were locked to guarantee loan {} of" \
+                                  " {} {} have been unlocked{}".format(shares_transaction_code,
+                                                                       member.currency,
+                                                                       guarantor.num_of_shares,
+                                                                       loan.loan_code,
+                                                                       loan_member.user.first_name,
+                                                                       loan_member.user.last_name,
+                                                                       shares_desc)
                     locked_shares = LockedShares.objects.filter(loan=loan).get(shares_transaction__shares=shares)
-                    shares_transaction = IntraCircleShareTransaction.objects.create(shares=shares,transaction_type="UNLOCKED",num_of_shares=guarantor.num_of_shares,transaction_desc=shares_desc,transaction_code=shares_transaction_code)
+                    shares_transaction = IntraCircleShareTransaction.objects.create(shares=shares,
+                                                                                    transaction_type="UNLOCKED",
+                                                                                    num_of_shares=guarantor.num_of_shares,
+                                                                                    transaction_desc=shares_desc,
+                                                                                    transaction_code=shares_transaction_code)
                     created_objects.append(shares_transaction)
-                    unlocked_shares = UnlockedShares.objects.create(locked_shares=locked_shares, shares_transaction=shares_transaction)
+                    unlocked_shares = UnlockedShares.objects.create(locked_shares=locked_shares,
+                                                                    shares_transaction=shares_transaction)
                     created_objects.append(unlocked_shares)
                     shares_transaction_serializer = SharesTransactionSerializer(shares_transaction)
                     available_shares = circle_instance.get_available_circle_member_shares(circle, member)
-                    loan_limit = self.calculate_loan_limit(circle,member)
+                    loan_limit = self.calculate_loan_limit(circle, member)
                     guarantor.unlocked = True
                     guarantor.save()
-                    fcm_data = {"request_type":"UNLOCK_SHARES", "shares_transaction":shares_transaction_serializer.data, "loan_limit":loan_limit}
+                    fcm_data = {"request_type":"UNLOCK_SHARES",
+                                "shares_transaction":shares_transaction_serializer.data,
+                                "loan_limit":loan_limit}
                     registration_id = member.device_token
                     instance.data_push("single", registration_id, fcm_data)
-                    fcm_data = {"request_type":"DELETE_GUARANTEE_LOAN_REQUEST", "loan_code":guarantor.loan.loan_code}
+                    fcm_data = {"request_type":"DELETE_GUARANTEE_LOAN_REQUEST",
+                                "loan_code":guarantor.loan.loan_code}
                     instance.data_push("single", registration_id, fcm_data)
                     fcm_available_shares = circle_instance.get_guarantor_available_shares(circle, member)
-                    fcm_data = {"request_type":"UPDATE_AVAILABLE_SHARES", "circle_acc_number":circle.circle_acc_number, "phone_number":member.phone_number, "available_shares":fcm_available_shares}
+                    fcm_data = {"request_type":"UPDATE_AVAILABLE_SHARES",
+                                "circle_acc_number":circle.circle_acc_number,
+                                "phone_number":member.phone_number,
+                                "available_shares":fcm_available_shares}
                     registration_id = instance.get_circle_members_token(circle, member)
                     instance.data_push("multiple", registration_id, fcm_data)
                 except Exception as e:
                     print(str(e))
                     app_utility.general_utils.General().delete_created_objects(created_objects)
             else:
+                registration_id = member.device_token
+                fcm_data = {"request_type": "DELETE_GUARANTEE_LOAN_REQUEST",
+                            "loan_code": guarantor.loan.loan_code}
+                instance.data_push("single", registration_id, fcm_data)
                 fcm_available_shares = circle_instance.get_guarantor_available_shares(circle, member)
-                fcm_data = {"request_type":"UPDATE_AVAILABLE_SHARES", "circle_acc_number":circle.circle_acc_number, "phone_number":member.phone_number, "available_shares":fcm_available_shares}
+                fcm_data = {"request_type":"UPDATE_AVAILABLE_SHARES",
+                            "circle_acc_number":circle.circle_acc_number,
+                            "phone_number":member.phone_number,
+                            "available_shares":fcm_available_shares}
                 registration_id = instance.get_circle_members_token(circle, member)
                 instance.data_push("multiple", registration_id, fcm_data)
 
     def delete_expired_loan(self):
         loans = LoanApplication.objects.filter(is_approved=False, is_disbursed=False)
-        expiry_days = [1,0]
+        expiry_days = [1, 0]
         for loan in loans:
             loan_expiry_date = loan.time_of_application.date() + relativedelta(weeks=1)
             diff = loan_expiry_date - datetime.now().date()
@@ -198,50 +242,69 @@ class Loan():
                 if delta == 1:
                     today = datetime.now()
                     today = today.strftime("%Y-%m-%d %H:%M:%S")
-                    message = "Your loan of {} {} will be cancelled on {} due to few loan guarantors.".format(member.currency,loan.amount,loan_expiry_date)
-                    fcm_data = {"request_type":"SYSTEM_WARNING_MSG","title":"Loan Cancellation","message":message,"time":today}
+                    message = "Your loan of {} {} will be cancelled on {} due to few " \
+                              "loan guarantors.".format(member.currency,loan.amount, loan_expiry_date)
+                    fcm_data = {"request_type":"SYSTEM_WARNING_MSG",
+                                "title":"Loan Cancellation",
+                                "message":message,"time":today}
                     registration_id = member.device_token
-                    fcm_instance.data_push("single",registration_id,fcm_data)
+                    fcm_instance.data_push("single", registration_id, fcm_data)
                 else:
                     created_objects = []
                     try:
                         circle_instance = app_utility.circle_utils.Circle()
                         general_instance = app_utility.general_utils.General()
                         amount = loan.amount
-                        guarantors = loan.guarantor.filter()
+                        guarantors = loan.guarantor.filter().exclude(circle_member=loan.circle_member)
                         shares_desc = " following cancellation of the loan."
                         if guarantors.exists():
-                            self.unlock_guarantors_shares(guarantors,shares_desc)
+                            self.unlock_guarantors_shares(guarantors, shares_desc)
                         shares = loan.circle_member.shares.get()
                         locked_shares = LockedShares.objects.filter(loan=loan).get(shares_transaction__shares=shares)
                         num_of_shares = locked_shares.shares_transaction.num_of_shares
                         shares_transaction_code = general_instance.generate_unique_identifier('STU')
-                        shares_desc = "{} confirmed.Shares worth {} {} that were locked to guarantee your loan {} of {} {} have been unlocked following cancellation of loan.".format(shares_transaction_code, member.currency, num_of_shares, loan.loan_code, member.currency, loan.amount)
-                        shares_transaction = IntraCircleShareTransaction.objects.create(shares=shares, transaction_type="UNLOCKED", num_of_shares=num_of_shares, transaction_desc=shares_desc, transaction_code=shares_transaction_code)
+                        shares_desc = "{} confirmed.Shares worth {} {} that were locked to guarantee " \
+                                      "your loan {} of {} {} have been unlocked following " \
+                                      "cancellation of loan.".format(shares_transaction_code,
+                                                                     member.currency, num_of_shares,
+                                                                     loan.loan_code,
+                                                                     member.currency,
+                                                                     loan.amount)
+                        shares_transaction = IntraCircleShareTransaction.objects.create(shares=shares,
+                                                                                        transaction_type="UNLOCKED",
+                                                                                        num_of_shares=num_of_shares,
+                                                                                        transaction_desc=shares_desc,
+                                                                                        transaction_code=shares_transaction_code)
                         print("shares transaction: ".format(shares_transaction))
                         created_objects.append(shares_transaction)
-                        unlocked_shares = UnlockedShares.objects.create(locked_shares=locked_shares,shares_transaction=shares_transaction)
+                        unlocked_shares = UnlockedShares.objects.create(locked_shares=locked_shares,
+                                                                        shares_transaction=shares_transaction)
                         print("unlocked_shares: ".format(unlocked_shares))
                         created_objects.append(unlocked_shares)
                         shares_transaction_serializer = SharesTransactionSerializer(shares_transaction)
                         loan_limit = self.calculate_loan_limit(circle,member)
                         fcm_instance = app_utility.fcm_utils.Fcm()
                         registration_id = member.device_token
-                        fcm_data = {"request_type":"UNLOCK_SHARES","shares_transaction":shares_transaction_serializer.data,"loan_limit":loan_limit}
-                        fcm_instance.data_push("single",registration_id,fcm_data)
-                        fcm_data = {"request_type":"DECLINE_LOAN","loan_code":loan.loan_code}
-                        fcm_instance.data_push("single",registration_id,fcm_data)
+                        fcm_data = {"request_type":"UNLOCK_SHARES",
+                                    "shares_transaction":shares_transaction_serializer.data,
+                                    "loan_limit":loan_limit}
+                        fcm_instance.data_push("single", registration_id, fcm_data)
+                        fcm_data = {"request_type":"DECLINE_LOAN", "loan_code":loan.loan_code}
+                        fcm_instance.data_push("single", registration_id, fcm_data)
                         loan.delete()
-                        self.update_loan_limit(circle,member)
-                        fcm_available_shares = circle_instance.get_guarantor_available_shares(circle,member)
-                        fcm_data = {"request_type":"UPDATE_AVAILABLE_SHARES","circle_acc_number":circle.circle_acc_number,"phone_number":member.phone_number,"available_shares":fcm_available_shares}
-                        registration_ids = fcm_instance.get_circle_members_token(circle,member)
-                        fcm_instance.data_push("multiple",registration_ids,fcm_data)
+                        self.update_loan_limit(circle, member)
+                        fcm_available_shares = circle_instance.get_guarantor_available_shares(circle, member)
+                        fcm_data = {"request_type":"UPDATE_AVAILABLE_SHARES",
+                                    "circle_acc_number":circle.circle_acc_number,
+                                    "phone_number":member.phone_number,
+                                    "available_shares":fcm_available_shares}
+                        registration_ids = fcm_instance.get_circle_members_token(circle, member)
+                        fcm_instance.data_push("multiple", registration_ids, fcm_data)
                     except Exception as e:
                         print(str(e))
                         app_utility.general_utils.General().delete_created_objects(created_objects)
 
-    def calculate_total_paid_principal(self,loan):
+    def calculate_total_paid_principal(self, loan):
         guaranteed = GuarantorRequest.objects.filter(loan=loan).aggregate(total=Sum('num_of_shares'))
         total_amortized = loan.loan_amortization.filter()
         interest = total_amortized.aggregate(total=Sum('interest'))
@@ -252,7 +315,7 @@ class Loan():
             return True
         return False
 
-    def share_loan_interest(self,loan):
+    def share_loan_interest(self, loan):
         principal = loan.loan_amortization.filter().aggregate(total=Sum('principal'))
         total_repayment = loan.loan_amortization.filter().aggregate(total=Sum('total_repayment'))
         interest = total_repayment['total'] - principal['total']
@@ -261,24 +324,35 @@ class Loan():
         # interest for flemish
         time_transacted = datetime.now()
         general_instance = app_utility.general_utils.General()
-        flemish_revenue = (settings.INTEREST_SHARE/100)*interest
+        diff = date(2018, 1, 21) - loan.time_disbursed.date()
+        delta = diff.days
+        if delta >= 0:
+            flemish_revenue = (settings.INTEREST_SHARE/100)*interest
+            guarantor_interest_rate =  settings.GUARANTORS_INTEREST - settings.INTEREST_SHARE
+        else:
+            flemish_revenue = 0
+            guarantor_interest_rate = settings.GUARANTORS_INTEREST
         guarantors_interest = 0
         fcm_instance = app_utility.fcm_utils.Fcm()
         created_objects = []
         print("flemish revenue")
         print(flemish_revenue)
         try:
-            revenue = RevenueStreams.objects.create(stream_amount=flemish_revenue, stream_type="LOAN INTEREST", stream_code=loan.loan_code, time_of_transaction=time_transacted)
-            guarantors = GuarantorRequest.objects.filter(loan=loan,has_accepted=True)
+            if delta >= 0:
+                revenue = RevenueStreams.objects.create(stream_amount=flemish_revenue,
+                                                        stream_type="LOAN INTEREST",
+                                                        stream_code=loan.loan_code,
+                                                        time_of_transaction=time_transacted)
+            guarantors = GuarantorRequest.objects.filter(loan=loan, has_accepted=True)
             loan_user = loan.circle_member.member.user
             fcm_instance = app_utility.fcm_utils.Fcm()
             guarantor_amount_disbursed = 0
             if guarantors.exists():
-                guarantors_interest = (settings.GUARANTORS_INTEREST/100)*interest
+                guarantors_interest = (guarantor_interest_rate/100)*interest
                 for guarantor in guarantors:
                     circle_member = guarantor.circle_member
                     circle, member = circle_member.circle, circle_member.member
-                    ms = "guarantor {} with fraction {}".format(member.user.first_name,guarantor.fraction_guaranteed )
+                    ms = "guarantor {} with fraction {}".format(member.user.first_name, guarantor.fraction_guaranteed )
                     amount = float(guarantor.fraction_guaranteed * guarantors_interest)
                     amount_str = str(amount).split('.')
                     whole, dec = amount_str[0], amount_str[1]
@@ -289,28 +363,51 @@ class Loan():
                     wallet_instance = app_utility.wallet_utils.Wallet()
                     transaction_code = general_instance.generate_unique_identifier('WTC')
                     wallet_balance = wallet_instance.calculate_wallet_balance(member.wallet) + amount
-                    wallet_desc = "{} confirmed. You have received {} {} from circle {} as your guarantor interest of loan {} of {} {}. New wallet balance is {} {}.".format(transaction_code, member.currency, amount, circle.circle_name, loan.loan_code, loan_user.first_name, loan_user.last_name, member.currency, wallet_balance)
-                    wallet_transaction = Transactions.objects.create(wallet= member.wallet, transaction_type="CREDIT", transaction_desc=wallet_desc, transaction_amount=amount, transaction_time=time_transacted, transacted_by=circle.circle_name, transaction_code=transaction_code, source="guarantor interest")
+                    wallet_desc = "{} confirmed. You have received {} {} from circle {} as your guarantor " \
+                                  "interest of loan {} of {} {}. New wallet balance is {} {}.".format(transaction_code,
+                                                                                                      member.currency,
+                                                                                                      amount,
+                                                                                                      circle.circle_name,
+                                                                                                      loan.loan_code,
+                                                                                                      loan_user.first_name,
+                                                                                                      loan_user.last_name,
+                                                                                                      member.currency,
+                                                                                                      wallet_balance)
+                    wallet_transaction = Transactions.objects.create(wallet= member.wallet,
+                                                                     transaction_type="CREDIT",
+                                                                     transaction_desc=wallet_desc,
+                                                                     transaction_amount=amount,
+                                                                     transaction_time=time_transacted,
+                                                                     transacted_by=circle.circle_name,
+                                                                     transaction_code=transaction_code,
+                                                                     source="guarantor interest")
                     created_objects.append(wallet_transaction)
                     guarantor_amount_disbursed = guarantor_amount_disbursed + amount
                     wallet_transaction_serializer = WalletTransactionsSerializer(wallet_transaction)
                     registration_id = member.device_token
-                    fcm_data = {"request_type":"CREDIT_WALLET", "wallet_transaction":wallet_transaction_serializer.data}
+                    fcm_data = {"request_type":"CREDIT_WALLET",
+                                "wallet_transaction":wallet_transaction_serializer.data}
                     fcm_instance.data_push("single", registration_id, fcm_data)
             print("guarantee interest")
             print(guarantors_interest)
             circle_member_interest = interest - flemish_revenue - guarantors_interest
             print("circle_member interest")
             print(circle_member_interest)
-            circle_members = CircleMember.objects.filter(time_joined__lt=loan.time_of_application,circle=loan.circle_member.circle,is_active=True).exclude(member=loan_user.member)
+            circle_members = CircleMember.objects.filter(time_joined__lt=loan.time_of_application,
+                                                         circle=loan.circle_member.circle,
+                                                         is_active=True).exclude(member=loan_user.member)
             member_amount_disbursed = 0
             for circle_member in circle_members:
                 circle, member = circle_member.circle, circle_member.member
                 shares = circle_member.shares.get()
-                total_circle_member_shares = app_utility.circle_utils.Circle().get_total_circle_member_shares(circle, member, loan.time_of_application)
+                total_circle_member_shares = app_utility.circle_utils.Circle().get_total_circle_member_shares(circle,
+                                                                                                              member,
+                                                                                                              loan.time_of_application)
                 if total_circle_member_shares > 0:
-                    fraction = app_utility.shares_utils.Shares().get_circle_member_shares_fraction(shares,loan.time_of_application,loan_user.member)
-                    ms = "circle member {} with fraction {}".format(member.user.first_name,fraction)
+                    fraction = app_utility.shares_utils.Shares().get_circle_member_shares_fraction(shares,
+                                                                                                   loan.time_of_application,
+                                                                                                   loan_user.member)
+                    ms = "circle member {} with fraction {}".format(member.user.first_name, fraction)
                     amount = float(circle_member_interest * fraction)
                     amount_str = str(amount).split('.')
                     whole, dec = amount_str[0], amount_str[1]
@@ -321,34 +418,59 @@ class Loan():
                     wallet_instance = app_utility.wallet_utils.Wallet()
                     transaction_code = general_instance.generate_unique_identifier('WTC')
                     wallet_balance = wallet_instance.calculate_wallet_balance(member.wallet) + amount
-                    wallet_desc = "{} confirmed. You have received {} {} from circle {} as interest of loan {}.New wallet balance {} {}.".format(transaction_code, member.currency,amount, circle.circle_name, loan.loan_code, member.currency, wallet_balance)
-                    wallet_transaction = Transactions.objects.create(wallet= member.wallet, transaction_type="CREDIT", transaction_desc=wallet_desc, transaction_amount=amount, transaction_time=time_transacted, transacted_by=circle.circle_name, transaction_code=transaction_code, source="loan interest")
+                    wallet_desc = "{} confirmed. You have received {} {} from circle {} as interest of loan {}." \
+                                  "New wallet balance {} {}.".format(transaction_code,
+                                                                     member.currency,amount,
+                                                                     circle.circle_name,
+                                                                     loan.loan_code,
+                                                                     member.currency,
+                                                                     wallet_balance)
+                    wallet_transaction = Transactions.objects.create(wallet= member.wallet,
+                                                                     transaction_type="CREDIT",
+                                                                     transaction_desc=wallet_desc,
+                                                                     transaction_amount=amount,
+                                                                     transaction_time=time_transacted,
+                                                                     transacted_by=circle.circle_name,
+                                                                     transaction_code=transaction_code,
+                                                                     source="loan interest")
                     created_objects.append(wallet_transaction)
                     member_amount_disbursed += amount
                     wallet_transaction_serializer = WalletTransactionsSerializer(wallet_transaction)
                     registration_id = member.device_token
-                    fcm_data = {"request_type":"CREDIT_WALLET","wallet_transaction":wallet_transaction_serializer.data}
-                    fcm_instance.data_push("single",registration_id,fcm_data)
+                    fcm_data = {"request_type":"CREDIT_WALLET",
+                                "wallet_transaction":wallet_transaction_serializer.data}
+                    fcm_instance.data_push("single", registration_id, fcm_data)
             rem = float(interest - (flemish_revenue + guarantor_amount_disbursed + member_amount_disbursed))
             print("Uncatered")
             print(rem)
             if rem != 0:
-                revenue = RevenueStreams.objects.create(stream_amount=rem,stream_type="LOAN INTEREST",stream_code=loan.loan_code,time_of_transaction=time_transacted,extra_info="Uncatered for")
+                revenue = RevenueStreams.objects.create(stream_amount=rem,
+                                                        stream_type="LOAN INTEREST",
+                                                        stream_code=loan.loan_code,
+                                                        time_of_transaction=time_transacted,
+                                                        extra_info="Uncatered for")
         except Exception as e:
             print(str(e))
             general_instance.delete_created_objects(created_objects)
 
-    def get_estimated_earning(self):
-        guarantors = GuarantorRequest.objects.filter(estimated_earning=0)
+    def get_estimated_earning(self, loan):
+        if loan is None:
+            guarantors = GuarantorRequest.objects.filter(estimated_earning=0)
+        else:
+            guarantors = GuarantorRequest.objects.filter(estimated_earning=0, loan=loan)
         if guarantors.exists():
             for guarantor in guarantors:
                 loan = guarantor.loan
                 loan_tariff = loan.loan_tariff
                 if loan_tariff is None:
-                    loan_tariff = LoanTariff.objects.get(circle=loan.circle_member.circle,max_amount__gte=loan.amount,min_amount__lte=loan.amount)
+                    loan_tariff = LoanTariff.objects.get(circle=loan.circle_member.circle,
+                                                         max_amount__gte=loan.amount,
+                                                         min_amount__lte=loan.amount)
                 annual_interest_rate = loan_tariff.monthly_interest_rate*12
-                loan_amortization = self.full_amortization_schedule(annual_interest_rate, loan.amount, loan_tariff.num_of_months, datetime.now().date())[0]
-                circle_instance = app_utility.circle_utils.Circle()
+                loan_amortization = self.full_amortization_schedule(annual_interest_rate,
+                                                                    loan.amount,
+                                                                    loan_tariff.num_of_months,
+                                                                    datetime.now().date())[0]
                 interest = loan_amortization['interest'] * loan_tariff.num_of_months
                 guarantor_interest = settings.GUARANTORS_INTEREST/100
                 guarantors_interest = guarantor_interest*interest
@@ -362,44 +484,34 @@ class Loan():
                 guarantor.estimated_earning = estimated_earning
                 guarantor.save()
 
-    def send_guarantee_requests(self,loan_guarantors,member):
+    def send_guarantee_requests(self, loan_guarantors, member):
         for loan_guarantor in loan_guarantors:
             loan = loan_guarantor.loan
+            self.get_estimated_earning(loan)
             break
         loan_tariff = loan.loan_tariff
-        if loan_tariff is None:
-            loan_tariff = LoanTariff.objects.get(circle=loan.circle_member.circle,max_amount__gte=loan.amount,min_amount__lte=loan.amount)
-        annual_interest_rate = loan_tariff.monthly_interest_rate*12
-        loan_amortization = self.full_amortization_schedule(annual_interest_rate, loan.amount, loan_tariff.num_of_months, datetime.now().date())[0]
         circle_instance = app_utility.circle_utils.Circle()
-        interest = loan_amortization['interest'] * loan_tariff.num_of_months
-        guarantor_interest = settings.GUARANTORS_INTEREST/100
-        guarantors_interest = guarantor_interest*interest
         threads = []
         for guarantor in loan_guarantors:
             guarantor_member, circle = guarantor.circle_member.member, guarantor.circle_member.circle
             loan = guarantor.loan
             guarantor_available_shares = circle_instance.get_guarantor_available_shares(circle, guarantor_member)
-            estimated_earning = float(guarantors_interest*guarantor.fraction_guaranteed)
-            estimated_earning_str = str(estimated_earning).split('.')
-            whole, dec = estimated_earning_str[0], estimated_earning_str[1]
-            if len(dec) > 4:
-                dec = dec[0:4]
-                new_amount = whole + "." + dec
-                estimated_earning = float(new_amount)
-            guarantor.estimated_earning = estimated_earning
-            guarantor.save()
+            estimated_earning = guarantor.estimated_earning
             rating = self.calculate_circle_member_loan_rating(member)
             fcm_instance = app_utility.fcm_utils.Fcm()
             # t1 = threading.Thread(target=fcm_instance.data_push, args=("multiple",registration_ids,fcm_data))
             # t1.start()
             # threads.append(t1)
-            fcm_data = {"request_type":"GUARANTEE_LOAN_REQUEST","phone_number":member.phone_number,"circle_acc_number":circle.circle_acc_number,"loan_code":loan.loan_code,"amount":guarantor.num_of_shares,"num_of_months":loan_tariff.num_of_months,"rating":rating,"estimated_earning":estimated_earning}
+            fcm_data = {"request_type":"GUARANTEE_LOAN_REQUEST", "phone_number":member.phone_number,
+                        "circle_acc_number":circle.circle_acc_number, "loan_code":loan.loan_code,
+                        "amount":guarantor.num_of_shares, "num_of_months":loan_tariff.num_of_months,
+                        "rating":rating, "estimated_earning":estimated_earning}
             registration_id = guarantor_member.device_token
-            fcm_instance.data_push("single",registration_id,fcm_data)
-            fcm_data = {"request_type":"UPDATE_AVAILABLE_SHARES","circle_acc_number":circle.circle_acc_number,"phone_number":guarantor_member.phone_number,"available_shares":guarantor_available_shares}
-            registration_ids = fcm_instance.get_circle_members_token(circle,guarantor_member)
-            fcm_instance.data_push("multiple",registration_ids,fcm_data)
+            fcm_instance.data_push("single", registration_id, fcm_data)
+            fcm_data = {"request_type":"UPDATE_AVAILABLE_SHARES", "circle_acc_number":circle.circle_acc_number,
+                        "phone_number":guarantor_member.phone_number, "available_shares":guarantor_available_shares}
+            registration_ids = fcm_instance.get_circle_members_token(circle, guarantor_member)
+            fcm_instance.data_push("multiple", registration_ids, fcm_data)
             # t2 = threading.Thread(target=fcm_instance.data_push,args=("single",registration_id,fcm_data))
             # t2.start()
             # threads.append(t2)
@@ -410,9 +522,9 @@ class Loan():
         # for t in threads:
         #     t.join()
 
-    def calculate_loan_limit(self,circle,member):
+    def calculate_loan_limit(self, circle, member):
         circle_instance = app_utility.circle_utils.Circle()
-        available_shares = circle_instance.get_available_circle_member_shares(circle,member)
+        available_shares = circle_instance.get_available_circle_member_shares(circle, member)
         active_circle_members = CircleMember.objects.filter(circle=circle, is_active=True)
         restricted_requests = active_circle_members.filter(allow_public_guarantees_request=False).exclude(member=member)
         if restricted_requests.exists():
@@ -423,7 +535,7 @@ class Loan():
                 except AllowedGuarantorRequest.DoesNotExist:
                     members.append(req.member.id)
             if len(members):
-                total_shares = circle_instance.get_available_restricted_circle_shares(circle,members)
+                total_shares = circle_instance.get_available_restricted_circle_shares(circle, members)
             else:
                 total_shares = circle_instance.get_available_circle_shares(circle)
         else:
@@ -431,7 +543,7 @@ class Loan():
         print(circle.circle_name)
         print("total_shares")
         print(total_shares)
-        print("{} {}".format(member.user.first_name,member.user.last_name))
+        print("{} {}".format(member.user.first_name, member.user.last_name))
         actual_available_shares = total_shares - available_shares
         if total_shares > 0 and actual_available_shares > 0:
             loan_limit = int(math.floor(available_shares + ((available_shares/total_shares)*actual_available_shares)))
@@ -444,9 +556,9 @@ class Loan():
         print(available_shares)
         return available_shares
 
-    def update_loan_limit(self,circle,member):
+    def update_loan_limit(self, circle, member):
         fcm_instance = app_utility.fcm_utils.Fcm()
-        registration_ids = fcm_instance.get_circle_members_token(circle,member)
+        registration_ids = fcm_instance.get_circle_members_token(circle, member)
         if len(registration_ids):
             threads = []
             for reg_id in registration_ids:
@@ -488,11 +600,12 @@ class Loan():
             return 0
 
     def calculate_circle_member_loan_rating(self,member):
-        loans = LoanApplication.objects.filter(circle_member__member=member,is_disbursed=True,is_approved=True).exclude(time_of_last_payment=None)
+        loans = LoanApplication.objects.filter(circle_member__member=member,
+                                               is_disbursed=True,is_approved=True).exclude(time_of_last_payment=None)
         if loans.exists():
             loans = loans.exclude(loan_amortization__loan_repayment__rating=None)
             rating = loans.aggregate(total=Sum('loan_amortization__loan_repayment__rating'))
             repayment_count = loans.values_list('loan_amortization__loan_repayment__rating').count()
             avg_rating = rating['total']/repayment_count
-            return round(avg_rating,2)
+            return round(avg_rating, 2)
         return -1

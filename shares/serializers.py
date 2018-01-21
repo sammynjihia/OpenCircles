@@ -11,7 +11,7 @@ class PurchaseSharesSerializer(serializers.Serializer):
     pin = serializers.CharField()
 
     class Meta:
-        fields = ['circle_acc_number','amount','pin']
+        fields = ['circle_acc_number', 'amount', 'pin']
 
 class SharesSerializer(serializers.ModelSerializer):
     """
@@ -22,9 +22,9 @@ class SharesSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Shares
-        fields = ['total_shares','locked_shares']
+        fields = ['total_shares', 'locked_shares']
 
-    def get_locked_shares(self,share):
+    def get_locked_shares(self, share):
         locked_shares = LockedShares.objects.filter(shares=share)
         if locked_shares.exists():
             locked_shares = locked_shares.aggregate(total=Sum('num_of_shares'))
@@ -51,13 +51,14 @@ class SharesTransactionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = IntraCircleShareTransaction
-        fields = ['type_of_transaction','amount','time_of_transaction','circle_acc_number','transaction_desc']
+        fields = ['type_of_transaction', 'amount', 'time_of_transaction',
+                  'circle_acc_number', 'transaction_desc']
 
-    def get_time_of_transaction(self,transaction):
+    def get_time_of_transaction(self, transaction):
         time = transaction.transaction_time.strftime("%Y-%m-%d %H:%M:%S")
         return time
 
-    def get_circle_acc_number(self,transaction):
+    def get_circle_acc_number(self, transaction):
         return transaction.shares.circle_member.circle.circle_acc_number
 
 class SharesWithdrawalSerializer(serializers.Serializer):
@@ -75,4 +76,4 @@ class SharesTariffSerializer(serializers.ModelSerializer):
     charges = serializers.IntegerField(source='amount')
     class Meta:
         model = SharesWithdrawalTariff
-        fields = ['min_amount','max_amount','charges']
+        fields = ['min_amount', 'max_amount', 'charges']

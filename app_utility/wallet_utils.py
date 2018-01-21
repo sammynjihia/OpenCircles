@@ -41,8 +41,13 @@ class Wallet():
         print(debit)
         print("credit")
         print(credit)
-        balance = credit-debit
-        balance = round(balance,4)
+        balance = float(credit-debit)
+        balance_str = str(balance).split('.')
+        whole, dec = balance_str[0], balance_str[1]
+        if len(dec) > 4:
+            dec = dec[0:4]
+            new_amount = whole + "." + dec
+            balance = float(new_amount)
         return balance
 
     def save_transaction_code(self,transaction):

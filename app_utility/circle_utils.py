@@ -221,13 +221,16 @@ class Circle():
                 print(loan.loan_code)
                 diff = datetime.datetime.now().date() - date_of_payment
                 delta = diff.days
+                amortize_loan = loan.loan_amortization.filter().latest('id')
                 if delta == 1:
                     CircleMember.objects.filter(circle=circle, member=member).update(is_active=False)
                     title = "Circle {} account deactivation".format(circle.circle_name)
-                    message = "Your account has been deactivated due to late repayment of loan {} in circle {}. " \
-                              "Kindly repay your loan to continue saving, borrowing and earning interests " \
-                              "from other circle members' loans.".format(loan.loan_code,
-                                                                         circle.circle_name)
+
+                    message = "Your account has been deactivated due to late repayment of loan {} of" \
+                              " KES {} in circle {}. Kindly repay your loan to continue saving, " \
+                              "borrowing and earning interests from other circle members' loans.".format(loan.loan_code,
+                                                                                                         amortize_loan.total_repayment,
+                                                                                                         circle.circle_name)
                     fcm_instance = fcm_utils.Fcm()
                     registration_id = member.device_token
                     if len(registration_id):
@@ -251,10 +254,12 @@ class Circle():
                                                                                                         circle.circle_name,
                                                                                                         loan.loan_code)
                         sms_instance.sendsms(member.phone_number, message)
-                elif delta % 3 == 0:
+                else:
                     title = "Circle {} loan repayment".format(circle.circle_name)
-                    message = "Kindly repay your loan {} in circle {} to continue saving, borrowing and earning " \
-                              "interests from other circle members' loans.".format(loan.loan_code, circle.circle_name)
+                    message = "Kindly repay your loan {} of KES {} in circle {} to continue saving, " \
+                              "borrowing and earning interests from other " \
+                              "circle members' loans.".format(loan.loan_code,
+                                                              amortize_loan.total_repayment, circle.circle_name)
                     fcm_instance = fcm_utils.Fcm()
                     registration_id = member.device_token
                     if len(registration_id):
@@ -264,6 +269,8 @@ class Circle():
                         fcm_instance.data_push("single", registration_id, fcm_data)
                     else:
                         sms_instance = sms_utils.Sms()
-                        message = "Kindly repay your loan {} in circle {} to continue saving, borrowing and earning " \
-                                  "interests from other circle members' loans.".format(loan.loan_code, circle.circle_name)
+                        message = "Kindly repay your loan {} of KES {} in circle {} to continue saving, borrowing and earning " \
+                                  "interests from other circle members' loans.".format(loan.loan_code,
+                                                                                       amortize_loan.total_repayment,
+                                                                                       circle.circle_name)
                         sms_instance.sendsms(member.phone_number, message)

@@ -18,4 +18,5 @@ urlpatterns = [
    url(r'^wallet_to_paybill/$', views.WalletToPayBill.as_view(), name="wallet_to_paybill"),
    url(r'^mpesaB2BResultURL/$', views.MpesaB2BResultURL.as_view(), name="mpesaB2BResultURL"),
    url(r'^wallet_to_bank/$', views.WalletToBankPayBill.as_view(), name="wallet_to_bank"),
+   url(r'^buy_airtime/$', views.PurchaseAirtime.as_view(), name="purchase_airtime"),
 ]

@@ -769,7 +769,8 @@ class WalletToBankPayBill(APIView):
 
 
                         print(result["ResponseDescription"])
-                        data = {"status": 1, "message": "Your request has been accepted successfully. Wait for m-pesa to process this transaction."}
+                        data = {"status": 1, "message": "Your request has been accepted successfully. "
+                                                        "Wait for m-pesa to process this transaction."}
                         return Response(data, status=status.HTTP_200_OK)
 
                     else:
@@ -924,6 +925,56 @@ class MpesaB2BQueueTimeOutURL(APIView):
         print(json.dumps(result, indent=4, sort_keys=True))
 
         return Response(status=status.HTTP_200_OK)
+
+class PurchaseAirtime(APIView):
+    """
+    buy airtime from africastalking
+    """
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = (IsAuthenticated,)
+    def post(self, request):
+        serializer = PurchaseAirtimeSerializer(data=request.data)
+        if serializer.is_valid():
+            pin = serializer.validated_data['pin']
+            amount = int(serializer.validated_data['amount'])
+            wallet_instance = wallet_utils.Wallet()
+            valid, response = wallet_instance.validate_account(request, pin, amount)
+            if valid:
+                member = request.user.member
+                general_instance = general_utils.General()
+                phone_number = serializer.validated_data['phone_number']
+                suffix = general_instance.generate_unique_identifier('')
+                wallet_transaction_code = 'WTDA' + suffix
+                wallet_balance = wallet_instance.calculate_wallet_balance(member.wallet) - amount
+                wallet_trans_desc = "{} confirmed. You bought {} {} of airtime." \
+                                    "New wallet balance is {} {}.".format(wallet_transaction_code, member.currency,
+                                                                          amount, member.currency, wallet_balance)
+                try:
+                    wallet_transaction = Transactions.objects.create(wallet=member.wallet,
+                                                                     transaction_type="DEBIT",
+                                                                     transaction_desc=wallet_trans_desc,
+                                                                     transaction_amount=amount,
+                                                                     recipient=phone_number,
+                                                                     transaction_time=datetime.datetime.now(),
+                                                                     transaction_code=wallet_transaction_code,
+                                                                     source="MPESA B2B")
+                    response = sms_utils.Sms().buyairtime(phone_number, amount)
+                    if response:
+                        #B2B
+                        wallet_transaction_serializer = WalletTransactionsSerializer(wallet_transaction)
+                        data = {"status": 1, "wallet_transaction": wallet_transaction_serializer.data}
+                    else:
+                        wallet_transaction.delete()
+                        data = {"status": 0, "message": "Unable to complete request.Try again."}
+                    return Response(data, status=status.HTTP_200_OK)
+
+                except Exception as e:
+                    data = {"status":0, "message":"Unable to complete request"}
+                    return Response(data, status=status.HTTP_200_OK)
+            data = {"status":0,"message":response}
+            return Response(data, status=status.HTTP_200_OK)
+        data = {"status":0, "message":serializer.errors}
+        return Response(data, status=status.HTTP_200_OK)
 
 @api_view(['POST'])
 @authentication_classes([TokenAuthentication])

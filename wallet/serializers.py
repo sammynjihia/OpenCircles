@@ -90,3 +90,11 @@ class WalletToBankSerializer(serializers.Serializer):
 
     class Meta():
         fields = ["amount", "pin", "bank_name", "paybill_number", "account_number"]
+
+class PurchaseAirtimeSerializer(serializers.Serializer):
+    """
+    Serializer for purchase airtime endpoint
+    """
+    phone_number = serializers.CharField()
+    amount = serializers.IntegerField()
+    pin = serializers.CharField()

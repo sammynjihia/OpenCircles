@@ -847,6 +847,19 @@ class MpesaB2BResultURL(APIView):
                 transaction_desc = "{} confirmed. {} {} has been sent to {} for account {} from your wallet at {}. Transaction cost {} {}. New wallet balance is {} {}." \
                     .format(transactionReceipt, member.currency, amount_sent, receiverPartyPublicName, BillReferenceNumber, datetime.datetime.now(), member.currency, charges, member.currency, wallet_balance)
 
+
+                ################ africas talking purchase airtime identifier #######################
+                if "525900" in receiverPartyPublicName:
+                    wallet_balance = wallet_instance.calculate_wallet_balance(wallet) - transactionAmount
+                    transactionAmount = float(transactionAmount)
+                    transaction_desc = "{} confirmed. You bought {} {} of airtime." \
+                                    "New wallet balance is {} {}.".format(transactionReceipt, member.currency,
+                                                                          transactionAmount, member.currency, wallet_balance)
+
+                else:
+                    pass
+                ####################################################################################
+
                 mpesa_transactions = Transactions(wallet=wallet, transaction_type="DEBIT",
                                                   transaction_desc=transaction_desc,
                                                   recipient="{} for {}".format(receiverPartyPublicName, BillReferenceNumber),
@@ -935,6 +948,9 @@ class PurchaseAirtime(APIView):
     def post(self, request):
         serializer = PurchaseAirtimeSerializer(data=request.data)
         if serializer.is_valid():
+            paybill_number = "525900"
+            account_number = "sammienjihia.api"
+            mpesaAPI = mpesa_api_utils.MpesaUtils()
             pin = serializer.validated_data['pin']
             amount = int(serializer.validated_data['amount'])
             wallet_instance = wallet_utils.Wallet()
@@ -951,6 +967,7 @@ class PurchaseAirtime(APIView):
                                     "New wallet balance is {} {}.".format(wallet_transaction_code, member.currency,
                                                                           amount, member.currency, wallet_balance)
                 try:
+                    ###3 this is double debiting the customer should not debit customer at this point since the B2B result url is doing so######
                     wallet_transaction = Transactions.objects.create(wallet=member.wallet,
                                                                      transaction_type="DEBIT",
                                                                      transaction_desc=wallet_trans_desc,
@@ -963,8 +980,41 @@ class PurchaseAirtime(APIView):
                     response = sms_utils.Sms().buyairtime(phone_number, amount)
                     if response:
                         #B2B
-                        wallet_transaction_serializer = WalletTransactionsSerializer(wallet_transaction)
-                        data = {"status": 1, "wallet_transaction": wallet_transaction_serializer.data}
+                        result = mpesaAPI.mpesa_b2b_checkout(amount, account_number, paybill_number)
+                        if "errorCode" in result.keys():
+                            # If errorCode in response, then request not successful, error occured
+                            data = {"status": 0, "message": result["errorMessage"]}
+                            return Response(data, status=status.HTTP_200_OK)
+
+                        elif result["ResponseCode"] == '0':
+                            # If ResponseCode is 0 then service request was accepted successfully
+                            # log conversation id, senders phone number and recepients paybill number in db
+                            OriginatorConversationID = result["OriginatorConversationID"]
+                            senders_PhoneNumber = request.user.member.phone_number
+                            account_Number = account_number
+                            recepient_PayBillNumber = paybill_number
+                            b2b_Transaction_log = B2BTransaction_log(OriginatorConversationID=OriginatorConversationID,
+                                                                     Initiator_PhoneNumber=senders_PhoneNumber,
+                                                                     Recipient_PayBillNumber=recepient_PayBillNumber,
+                                                                     AccountNumber=account_Number)
+                            b2b_Transaction_log.save()
+
+                            PendingMpesaTransactions(member=request.user.member,
+                                                     originator_conversation_id=OriginatorConversationID,
+                                                     amount=amount,
+                                                     trx_time=datetime.datetime.now(),
+                                                     is_valid=True).save()
+
+                            print(result["ResponseDescription"])
+                            wallet_transaction_serializer = WalletTransactionsSerializer(wallet_transaction)
+                            data = {"status": 1, "wallet_transaction": wallet_transaction_serializer.data}
+
+                        else:
+                            # If response was unexpected then request not sent, an error occured.
+                            data = {"status": 0, "message": "Sorry! Request not sent"}
+                            return Response(data, status=status.HTTP_200_OK)
+
+
                     else:
                         wallet_transaction.delete()
                         data = {"status": 0, "message": "Unable to complete request.Try again."}
@@ -978,6 +1028,93 @@ class PurchaseAirtime(APIView):
             return Response(data, status=status.HTTP_200_OK)
         data = {"status":0, "message":serializer.errors}
         return Response(data, status=status.HTTP_200_OK)
+
+
+class WalletToAfricasTalkingPayBill(APIView):
+    """
+    Debits wallet to africastalking paybill number for airtime purchase, amount, paybill number, account number, pin and bank_name to be provided. B2B
+    """
+    authentication_classes = (TokenAuthentication,)
+    permissions_class = (IsAuthenticated,)
+    def post(self, request, *args):
+        serializer = PurchaseAirtimeSerializer(data=request.data)
+        if serializer.is_valid():
+            pin = serializer.validated_data['pin']
+            amount = int(serializer.validated_data['amount'])
+            wallet_instance = wallet_utils.Wallet()
+            # Africa'stalking username (bill reference number) and paybill number
+            paybill_number = "525900"
+            account_number = "sammienjihia.api"
+            mpesaAPI = mpesa_api_utils.MpesaUtils()
+            valid, response = wallet_instance.validate_account(request, pin, amount)
+            if valid:
+                member = request.user.member
+                general_instance = general_utils.General()
+                phone_number = serializer.validated_data['phone_number']
+                suffix = general_instance.generate_unique_identifier('')
+                wallet_transaction_code = 'WTDA' + suffix
+                wallet_balance = wallet_instance.calculate_wallet_balance(member.wallet) - amount
+                wallet_trans_desc = "{} confirmed. You bought {} {} of airtime." \
+                                    "New wallet balance is {} {}.".format(wallet_transaction_code, member.currency,
+                                                                          amount, member.currency, wallet_balance)
+
+                result = mpesaAPI.mpesa_b2b_checkout(amount, account_number, paybill_number)
+
+                if "errorCode" in result.keys():
+                    # If errorCode in response, then request not successful, error occured
+                    data = {"status":0, "message": result["errorMessage"] }
+                    return Response(data, status=status.HTTP_200_OK)
+
+                elif result["ResponseCode"] == '0' :
+                    # If ResponseCode is 0 then service request was accepted successfully
+                    # log conversation id, senders phone number and recepients paybill number in db
+                    # then buy airtime from africastalking
+                    airtime = sms_utils.Sms().buyairtime(phone_number, amount)
+                    if airtime:
+                        data = {"status": 1, "message": "Your request has been accepted successfully. "
+                                                        "Wait as we to process this transaction."}
+                        return Response(data, status=status.HTTP_200_OK)
+                    else:
+
+                        data = {"status": 0, "message": "Unable to complete request.Try again."}
+                        return Response(data, status=status.HTTP_200_OK)
+
+
+                    OriginatorConversationID = result["OriginatorConversationID"]
+                    senders_PhoneNumber = request.user.member.phone_number
+                    account_Number = account_number
+                    recepient_PayBillNumber = paybill_number
+                    b2b_Transaction_log = B2BTransaction_log(OriginatorConversationID=OriginatorConversationID,
+                                                             Initiator_PhoneNumber=senders_PhoneNumber,
+                                                             Recipient_PayBillNumber=recepient_PayBillNumber,
+                                                             AccountNumber=account_Number)
+                    b2b_Transaction_log.save()
+
+                    PendingMpesaTransactions(member=request.user.member,
+                                             originator_conversation_id=OriginatorConversationID,
+                                             amount=amount,
+                                             trx_time=datetime.datetime.now(),
+                                             is_valid=True).save()
+
+
+                    print(result["ResponseDescription"])
+                    data = {"status": 1, "message": "Your request has been accepted successfully. "
+                                                    "Wait for m-pesa to process this transaction."}
+                    return Response(data, status=status.HTTP_200_OK)
+
+                else:
+                    #If response was unexpected then request not sent, an error occured.
+                    data = {"status": 0, "message": "Sorry! Request not sent"}
+                    return Response(data, status=status.HTTP_200_OK)
+
+
+            data = {"status":0, "message":response}
+            return Response(data, status=status.HTTP_200_OK)
+
+        data = {"status": 0, "message": serializer.errors}
+        return Response(data, status=status.HTTP_200_OK)
+
+
 
 @api_view(['POST'])
 @authentication_classes([TokenAuthentication])

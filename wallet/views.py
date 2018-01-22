@@ -942,6 +942,7 @@ class PurchaseAirtime(APIView):
             if valid:
                 member = request.user.member
                 general_instance = general_utils.General()
+                created_objects = []
                 phone_number = serializer.validated_data['phone_number']
                 suffix = general_instance.generate_unique_identifier('')
                 wallet_transaction_code = 'WTDA' + suffix
@@ -958,6 +959,7 @@ class PurchaseAirtime(APIView):
                                                                      transaction_time=datetime.datetime.now(),
                                                                      transaction_code=wallet_transaction_code,
                                                                      source="MPESA B2B")
+                    created_objects.append(wallet_transaction)
                     response = sms_utils.Sms().buyairtime(phone_number, amount)
                     if response:
                         #B2B
@@ -969,6 +971,7 @@ class PurchaseAirtime(APIView):
                     return Response(data, status=status.HTTP_200_OK)
 
                 except Exception as e:
+                    general_instance.delete_created_objects(created_objects)
                     data = {"status":0, "message":"Unable to complete request"}
                     return Response(data, status=status.HTTP_200_OK)
             data = {"status":0,"message":response}

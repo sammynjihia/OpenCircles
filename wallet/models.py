@@ -101,3 +101,14 @@ class ReferralFee(models.Model):
 
     class Meta:
         db_table = 'ReferralFee'
+
+class AirtimePurchaseLog(models.Model):
+    member = models.ForeignKey(Member, blank=False, null=False)
+    recipient = models.CharField(max_length=20)
+    originator_conversation_id = models.CharField(max_length=100, unique=True, blank=False)
+    time_of_transaction = models.DateTimeField(auto_now_add=True)
+    is_purchased = models.BooleanField(default=False)
+    extra_info = models.TextField()
+
+    class Meta:
+        db_table = 'AirtimePurchaseLog'

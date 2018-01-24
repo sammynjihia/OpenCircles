@@ -20,6 +20,7 @@ class Sms:
 
     def format_amount(self, amount):
         initial = "KES "
+        amount = int(amount)
         amount = initial + str(amount)
         return amount
 

@@ -1,7 +1,7 @@
 from __future__ import division
 
 import math,uuid,threading
-from datetime import datetime
+from datetime import datetime, timedelta
 from datetime import date
 from dateutil.relativedelta import relativedelta
 from django.conf import settings
@@ -497,7 +497,7 @@ class Loan():
             loan = guarantor.loan
             guarantor_available_shares = circle_instance.get_guarantor_available_shares(circle, guarantor_member)
             estimated_earning = guarantor.estimated_earning
-            rating = self.calculate_circle_member_loan_rating(member)
+            rating = self.calculate_circle_member_loan_rating(member, circle)
             fcm_instance = app_utility.fcm_utils.Fcm()
             # t1 = threading.Thread(target=fcm_instance.data_push, args=("multiple",registration_ids,fcm_data))
             # t1.start()
@@ -522,6 +522,11 @@ class Loan():
         # for t in threads:
         #     t.join()
 
+
+    def get_circle_member_loan_guaranteed_amount(self, ratings, available_shares, total_shares, actual_available_shares):
+        accepted_guaranteed_amount = (available_shares/total_shares) * actual_available_shares * ratings
+        return accepted_guaranteed_amount
+
     def calculate_loan_limit(self, circle, member):
         circle_instance = app_utility.circle_utils.Circle()
         available_shares = circle_instance.get_available_circle_member_shares(circle, member)
@@ -535,7 +540,7 @@ class Loan():
                 except AllowedGuarantorRequest.DoesNotExist:
                     members.append(req.member.id)
             if len(members):
-                total_shares = circle_instance.get_available_restricted_circle_shares(circle, members)
+                total_shares = circle_instance.get_available_unrestricted_circle_shares(circle, members)
             else:
                 total_shares = circle_instance.get_available_circle_shares(circle)
         else:
@@ -546,7 +551,12 @@ class Loan():
         print("{} {}".format(member.user.first_name, member.user.last_name))
         actual_available_shares = total_shares - available_shares
         if total_shares > 0 and actual_available_shares > 0:
-            loan_limit = int(math.floor(available_shares + ((available_shares/total_shares)*actual_available_shares)))
+            ratings = self.get_member_loan_rating(member)
+            if ratings == -1 or ratings == 1:
+                ratings = 1
+            guaranteed_amount = self.get_circle_member_loan_guaranteed_amount(ratings, available_shares,
+                                                                              total_shares, actual_available_shares)
+            loan_limit = int(math.floor(available_shares + guaranteed_amount))
             if loan_limit >= settings.MAXIMUM_CIRCLE_SHARES:
                 return settings.MAXIMUM_CIRCLE_SHARES
             print("loan_limit")
@@ -599,13 +609,29 @@ class Loan():
         else:
             return 0
 
-    def calculate_circle_member_loan_rating(self,member):
-        loans = LoanApplication.objects.filter(circle_member__member=member,
+    def calculate_circle_member_loan_rating(self, member, circle):
+        circle_member = CircleMember.objects.get(circle=circle, member=member)
+        loans = LoanApplication.objects.filter(circle_member=circle_member,
                                                is_disbursed=True,is_approved=True).exclude(time_of_last_payment=None)
         if loans.exists():
-            loans = loans.exclude(loan_amortization__loan_repayment__rating=None)
+            loans = loans.exclude(loan_amortization__loan_repayment=None, loan_amortization__loan_repayment__rating=None)
             rating = loans.aggregate(total=Sum('loan_amortization__loan_repayment__rating'))
             repayment_count = loans.values_list('loan_amortization__loan_repayment__rating').count()
             avg_rating = rating['total']/repayment_count
+            return round(avg_rating, 2)
+        return -1
+
+    def get_member_loan_rating(self, member):
+        loans = LoanApplication.objects.filter(circle_member__member=member,
+                                               is_disbursed=True, is_approved=True).exclude(time_of_last_payment=None)
+        if loans.exists():
+            total_ratings = 0
+            total_ratings_count = 0
+            for loan in loans:
+                loan_amortization = loan.loan_amortization.exclude(loan_repayment__rating=None,
+                                                                   loan_repayment__time_of_repayment__date__lte=loan.time_disbursed.date() + timedelta(weeks=3))
+                total_ratings_count += len(loan_amortization)
+                total_ratings += loan_amortization.aggregate(total=Sum('loan_repayment__rating'))['total']
+            avg_rating = total_ratings / total_ratings_count
             return round(avg_rating, 2)
         return -1

@@ -107,7 +107,7 @@ class Circle():
         total_shares = (total_deposits-total_transfers-total_withdraws)
         return total_shares
 
-    def get_available_restricted_circle_shares(self, circle, members):
+    def get_available_unrestricted_circle_shares(self, circle, members):
         transactions = IntraCircleShareTransaction.objects.filter(
                                                                 shares__circle_member__circle=circle).exclude(
                                                                                                         shares__circle_member__member__id__in=members)

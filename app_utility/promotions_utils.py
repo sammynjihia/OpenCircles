@@ -38,7 +38,7 @@ class Promotions():
                         recipient_desc = "{} confirmed.You have received {} {} from opencircles referral programme." \
                                          "New wallet balance is {} {}. {} has joined {}." \
                                          "When you invite a friend to join your circle on Opencircles," \
-                                         " your wallet is credited with {} {}".format(recipient_transaction_code,
+                                         " your wallet is credited with {} {}.".format(recipient_transaction_code,
                                                                                       recipient.currency, amount,
                                                                                       recipient.currency,
                                                                                       recipient_wallet_balance,
@@ -94,9 +94,6 @@ class Promotions():
                     referral_fee.save()
             except Exception as e:
                 print(str(e))
-                referral_fee.extra_info = "Unable to create referral fee object"
-                referral_fee.is_disbursed=False
-                referral_fee.save()
         except Member.DoesNotExist:
             print(str(e))
             print("Member does not exist")

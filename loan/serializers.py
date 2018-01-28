@@ -204,7 +204,7 @@ class UnprocessedGuarantorRequestSerializer(serializers.ModelSerializer):
             return 0
 
     def get_rating(self, guarantor):
-        return loan_utils.Loan().calculate_circle_member_loan_rating(guarantor.loan.circle_member.member)
+        return loan_utils.Loan().calculate_circle_member_loan_rating(guarantor.loan.circle_member.member, guarantor.loan.circle_member.circle)
 
 class LoanAmountSerializer(serializers.Serializer):
     """

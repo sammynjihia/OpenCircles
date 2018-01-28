@@ -391,7 +391,7 @@ class JoinCircle(APIView):
     """
     authentication_classes = (TokenAuthentication,)
     permission_classes = (IsAuthenticated,)
-    def post(self,request):
+    def post(self, request):
         serializer = JoinCircleSerializer(data=request.data)
         if serializer.is_valid():
             acc_number, amount, pin = serializer.validated_data['circle_acc_number'], serializer.validated_data['amount'], serializer.validated_data['pin']
@@ -410,7 +410,7 @@ class JoinCircle(APIView):
                         loan_instance = loan_utils.Loan()
                         general_instance = general_utils.General()
                         member = request.user.member
-                        existing_circle_member = CircleMember.objects.filter(member=member)
+                        existing_circle_member = CircleMember.objects.filter(member=member).count()
                         wallet_transaction_code = general_instance.generate_unique_identifier('WTD')
                         shares_transaction_code = general_instance.generate_unique_identifier('STD')
                         wallet_balance = wallet_instance.calculate_wallet_balance(member.wallet) - amount
@@ -467,7 +467,7 @@ class JoinCircle(APIView):
                         registration_ids = fcm_instance.get_circle_members_token(circle, member)
                         fcm_instance.data_push("mutiple", registration_ids, fcm_data)
                         print(fcm_data)
-                        if existing_circle_member.exists():
+                        if existing_circle_member == 0:
                             try:
                                 is_invited = CircleInvitation.objects.get(phone_number=member.phone_number,
                                                                           invited_by__circle=circle)
@@ -483,6 +483,8 @@ class JoinCircle(APIView):
                                                             circle=circle,
                                                             is_disbursed=False,
                                                             extra_info="user has been invited by more than one circle member")
+                        CircleInvitation.objects.filter(phone_number=member.phone_number,
+                                                            invited_by__circle=circle).delete()
                         data = {"status":1,
                                 "wallet_transaction":wallet_serializer.data,
                                 "shares_transaction":shares_serializer.data,

@@ -834,11 +834,18 @@ class MpesaB2BResultURL(APIView):
                 try:
                     wallet_instance = wallet_utils.Wallet()
                     wallet = member.wallet
+                    a = AirtimePurchaseLog.objects.filter(member=member).lastest('id')
+                    f = open('a_test.txt','a')
+                    f.write(a.originator_conversation_id)
+                    f.write(initiatorPhoneNumber)
+                    f.write(member.phone_number)
                     try:
                         AirtimePurchaseLog.objects.get(originator_conversation_id=OriginatorConversationID, member=member)
                         is_airtime_purchase = True
                     except AirtimePurchaseLog.DoesNotExist:
                         is_airtime_purchase = False
+                    f.write(is_airtime_purchase)
+                    f.close()
 
                     ################ africas talking purchase airtime identifier #######################
                     if is_airtime_purchase:

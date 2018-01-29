@@ -117,7 +117,7 @@ class InvitedCircleSerializer(serializers.ModelSerializer):
     initiated_by = serializers.SerializerMethodField()
     member_count = serializers.SerializerMethodField()
     date_created = serializers.SerializerMethodField()
-    members = serializers.SerializerMethodField()
+    # members = serializers.SerializerMethodField()
     is_member = serializers.SerializerMethodField()
     is_invited = serializers.SerializerMethodField()
     invited_by = serializers.SerializerMethodField()
@@ -138,11 +138,11 @@ class InvitedCircleSerializer(serializers.ModelSerializer):
         date =  circle.time_initiated
         return date.strftime("%Y-%m-%d %H:%M:%S")
 
-    def get_members(self, circle):
-        members_ids = CircleMember.objects.filter(circle_id=circle.id).values_list('member', flat=True)
-        members = Member.objects.filter(id__in=members_ids).select_related('user')
-        serializer = UnloggedCircleMemberSerializer(members, many=True, context={"circle":circle})
-        return serializer.data
+    # def get_members(self, circle):
+    #     members_ids = CircleMember.objects.filter(circle=circle).values_list('member', flat=True)
+    #     members = Member.objects.filter(id__in=members_ids).select_related('user')
+    #     serializer = UnloggedCircleMemberSerializer(members, many=True, context={"circle":circle})
+    #     return serializer.data
 
     def get_is_member(self, circle):
         return False
@@ -160,8 +160,6 @@ class InvitedCircleSerializer(serializers.ModelSerializer):
             return loan_tariff_serializer.data
         return []
 
-
-
 class CircleInvitationSerializer(serializers.Serializer):
     """
     Serializer for circle invitation response
@@ -175,9 +173,7 @@ class AllowedGuaranteeSerializer(serializers.Serializer):
     guarantee = serializers.CharField()
     circle_acc_number = serializers.CharField()
 
-
 class AllowedGuaranteeRequestSerializer(serializers.Serializer):
-
     """
     Serializer for allowed guarantor setting
     """
@@ -186,7 +182,6 @@ class AllowedGuaranteeRequestSerializer(serializers.Serializer):
 
     class Meta:
         fields = ['allow_public_guarantees', 'circle_acc_number']
-
 
 class JoinCircleSerializer(serializers.Serializer):
     """
@@ -384,3 +379,10 @@ class CircleNameSerializer(serializers.ModelSerializer):
     class Meta:
         model = Circle
         fields = ['circle_name']
+
+class CircleAccNumberSerializer(serializers.Serializer):
+    """
+    Serializer for circle acc number endpoint
+    """
+    circle_acc_number = serializers.CharField()
+

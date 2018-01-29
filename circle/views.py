@@ -512,7 +512,6 @@ class JoinCircle(APIView):
         data = {"status":0, "message":serializer.errors}
         return Response(data, status.HTTP_200_OK)
 
-
 class CircleInvite(APIView):
     """
     Sends Invites to contacts provided
@@ -600,4 +599,23 @@ def check_circle_name(request):
         return Response(data, status=status.HTTP_200_OK)
     message = "".join(serializer.errors["circle_name"])
     data = {"status":0, "message":message}
+    return Response(data, status=status.HTTP_200_OK)
+
+@api_view(['POST'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
+def get_circle_members(request):
+    serializer = CircleAccNumberSerializer(data=request)
+    if serializer.is_valid():
+        try:
+            circle = Circle.objects.get(circle_acc_number=serializer.validated_data['circle_acc_number'])
+            members_ids = CircleMember.objects.filter(circle=circle).values_list('member', flat=True)
+            members = Member.objects.filter(id__in=members_ids).select_related('user')
+            serializer = UnloggedCircleMemberSerializer(members, many=True, context={"circle":circle})
+            data = {"status":1, "members":serializer.data}
+            return Response(data, status=status.HTTP_200_OK)
+        except Circle.DoesNotExists:
+            data = {"status":0 , "message":"Circle with acc_number does not exists."}
+            return Response(data, status=status.HTTP_200_OK)
+    data = {"status":0, "message":serializer.errors}
     return Response(data, status=status.HTTP_200_OK)

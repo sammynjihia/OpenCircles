@@ -15,5 +15,7 @@ urlpatterns = [
     url(r'^join_circle/$', JoinCircle.as_view(), name='join-circle'),
     url(r'^get_circle_member_details/$', CircleMemberDetails.as_view(), name='circle-member-details'),
     url(r'^get_allowed_guarantee_requests/$', CircleMemberGuaranteeList.as_view(), name='allowed-guarantee-requests'),
-    url(r'^circle_name_verification/$', check_circle_name, name='circle_name_verification')
+    url(r'^circle_name_verification/$', check_circle_name, name='circle_name_verification'),
+    url(r'^get_circle_members/$', get_circle_members, name='get_circle_members')
+
 ]

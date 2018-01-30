@@ -640,6 +640,6 @@ class Loan():
             print(total_ratings_count)
             print("total_ratings")
             print(total_ratings)
-            avg_rating = total_ratings / total_ratings_count
+            avg_rating = total_ratings / (total_ratings_count*5)
             return round(avg_rating, 2)
         return -1

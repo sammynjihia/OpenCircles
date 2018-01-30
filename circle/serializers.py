@@ -125,7 +125,7 @@ class InvitedCircleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Circle
         fields = ['circle_name', 'circle_type', 'circle_acc_number', 'is_active', 'is_member', 'is_invited',
-                  'invited_by', 'members', 'initiated_by', 'date_created', 'minimum_share',
+                  'invited_by', 'initiated_by', 'date_created', 'minimum_share',
                   'loan_tariff', 'member_count']
 
     def get_member_count(self, circle):

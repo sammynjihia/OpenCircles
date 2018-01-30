@@ -554,8 +554,12 @@ class Loan():
             ratings = self.get_member_loan_rating(member)
             if ratings == -1 or ratings == 1:
                 ratings = 1
+            print("rating")
+            print(ratings)
             guaranteed_amount = self.get_circle_member_loan_guaranteed_amount(ratings, available_shares,
                                                                               total_shares, actual_available_shares)
+            print("guaranteed amount")
+            print(guaranteed_amount)
             loan_limit = int(math.floor(available_shares + guaranteed_amount))
             if loan_limit >= settings.MAXIMUM_CIRCLE_SHARES:
                 return settings.MAXIMUM_CIRCLE_SHARES
@@ -632,6 +636,10 @@ class Loan():
                                                                    loan_repayment__time_of_repayment__date__lte=loan.time_disbursed.date() + timedelta(weeks=3))
                 total_ratings_count += len(loan_amortization)
                 total_ratings += loan_amortization.aggregate(total=Sum('loan_repayment__rating'))['total']
+            print("total_ratings_count")
+            print(total_ratings_count)
+            print("total_ratings")
+            print(total_ratings)
             avg_rating = total_ratings / total_ratings_count
             return round(avg_rating, 2)
         return -1

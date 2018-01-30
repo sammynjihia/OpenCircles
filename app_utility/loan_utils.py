@@ -497,6 +497,8 @@ class Loan():
             loan = guarantor.loan
             guarantor_available_shares = circle_instance.get_guarantor_available_shares(circle, guarantor_member)
             estimated_earning = guarantor.estimated_earning
+            print('estimated_earning')
+            print(estimated_earning)
             rating = self.calculate_circle_member_loan_rating(member, circle)
             fcm_instance = app_utility.fcm_utils.Fcm()
             # t1 = threading.Thread(target=fcm_instance.data_push, args=("multiple",registration_ids,fcm_data))

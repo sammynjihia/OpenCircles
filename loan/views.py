@@ -202,8 +202,7 @@ class LoanApplication(APIView):
                             try:
                                 general_instance = general_utils.General()
                                 wallet_instance = wallet_utils.Wallet()
-                                self_guarantor = GuarantorRequest.objects.create(
-                                                                                 loan=loan,
+                                self_guarantor = GuarantorRequest.objects.create(loan=loan,
                                                                                  circle_member=circle_member,
                                                                                  num_of_shares=loan_amount,
                                                                                  time_requested=datetime.datetime.today(),
@@ -212,6 +211,7 @@ class LoanApplication(APIView):
                                                                                                                         loan_amount,
                                                                                                                         loan_amount)
                                                                                  )
+                                loan_instance.get_estimated_earning(loan)
                                 created_objects.append(self_guarantor)
                                 shares_transaction = IntraCircleShareTransaction.objects.create(
                                                                                                 shares=shares,

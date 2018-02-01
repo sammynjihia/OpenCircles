@@ -457,7 +457,9 @@ class Loan():
         if loan is None:
             guarantors = GuarantorRequest.objects.filter(estimated_earning=0)
         else:
-            guarantors = GuarantorRequest.objects.filter(estimated_earning=0, loan=loan)
+            guarantors = GuarantorRequest.objects.filter(loan=loan)
+        print("guarantors")
+        print(guarantors)
         if guarantors.exists():
             for guarantor in guarantors:
                 loan = guarantor.loan
@@ -483,6 +485,8 @@ class Loan():
                     estimated_earning = float(new_amount)
                 guarantor.estimated_earning = estimated_earning
                 guarantor.save()
+                print("guarantor.estimated_earning")
+                print(guarantor.estimated_earning)
 
     def send_guarantee_requests(self, loan_guarantors, member):
         for loan_guarantor in loan_guarantors:
@@ -492,6 +496,7 @@ class Loan():
         loan_tariff = loan.loan_tariff
         circle_instance = app_utility.circle_utils.Circle()
         threads = []
+        loan_guarantors = GuarantorRequest.objects.filter(loan=loan).exclude(circle_member=loan.circle_member)
         for guarantor in loan_guarantors:
             guarantor_member, circle = guarantor.circle_member.member, guarantor.circle_member.circle
             loan = guarantor.loan

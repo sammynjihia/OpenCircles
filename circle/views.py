@@ -53,6 +53,12 @@ class CircleCreation(APIView):
                                                                                                 settings.MININIMUM_CIRCLE_SHARES)}
                 return Response(data, status=status.HTTP_200_OK)
             valid, response = wallet_instance.validate_account(request, serializer.validated_data['pin'], minimum_share)
+            has_defaulted = CircleMember.objects.filter(member=request.user.member, is_active=False)
+            if has_defaulted.exists():
+                data = {"status": 0,
+                        "message": "Unable to create circle.One of your accounts is currently deactivated due"
+                                   " to delayed loan repayment. Kindly repay your loan to be able to create a circle."}
+                return Response(data, status=status.HTTP_200_OK)
             if valid:
                 created_objects=[]
                 try:
@@ -397,11 +403,16 @@ class JoinCircle(APIView):
             acc_number, amount, pin = serializer.validated_data['circle_acc_number'], serializer.validated_data['amount'], serializer.validated_data['pin']
             circle = Circle.objects.get(circle_acc_number=acc_number)
             circle_members_count = CircleMember.objects.filter(circle=circle).count()
+            has_defaulted = CircleMember.objects.filter(member=request.user.member, is_active=False)
+            if has_defaulted.exists():
+                data = {"status": 0, "message": "Unable to join circle.One of your accounts is currently deactivated due"
+                                                " to delayed loan repayment. Kindly repay your loan to be able to join this circle."}
+                return Response(data, status=status.HTTP_200_OK)
             if circle_members_count <= settings.MAX_CIRCLE_MEMBER:
                 if amount < circle.minimum_share:
                     data = {"status":0, "message":"The allowed minimum initial deposit for circle " \
                                                   "{} is KES {}".format(circle.circle_name, circle.minimum_share)}
-                    return Response(data,status=status.HTTP_200_OK)
+                    return Response(data, status=status.HTTP_200_OK)
                 wallet_instance = wallet_utils.Wallet()
                 valid,response = wallet_instance.validate_account(request,pin,amount)
                 if valid:

@@ -672,6 +672,12 @@ class WalletToPayBill(APIView):
             wallet_amount = amount + charges
             validty = wallet_utils.Wallet()
             valid, message = validty.validate_account(request, pin, wallet_amount)
+            has_defaulted = CircleMember.objects.filter(member=request.user.member, is_active=False)
+            if has_defaulted.exists():
+                data = {"status": 0,
+                        "message": "Unable to transfer money.One of your accounts is currently deactivated due"
+                                   " to delayed loan repayment. Kindly repay your loan."}
+                return Response(data, status=status.HTTP_200_OK)
             if valid:
                 if amount >= min_trx_amount and amount <= max_trx_amount:
                     result = mpesaAPI.mpesa_b2b_checkout(amount, account_number, paybill_number)
@@ -739,6 +745,12 @@ class WalletToBankPayBill(APIView):
             wallet_amount = amount + charges
             validty = wallet_utils.Wallet()
             valid, message = validty.validate_account(request, pin, wallet_amount)
+            has_defaulted = CircleMember.objects.filter(member=request.user.member, is_active=False)
+            if has_defaulted.exists():
+                data = {"status": 0,
+                        "message": "Unable to transfer money.One of your accounts is currently deactivated due"
+                                   " to delayed loan repayment. Kindly repay your loan."}
+                return Response(data, status=status.HTTP_200_OK)
             if valid:
                 if amount >= min_trx_amount and amount <= max_trx_amount:
                     result = mpesaAPI.mpesa_b2b_checkout(amount, account_number, paybill_number)
@@ -1008,6 +1020,12 @@ class PurchaseAirtime(APIView):
             wallet_instance, general_instance = wallet_utils.Wallet(), general_utils.General()
             valid, response = wallet_instance.validate_account(request, pin, amount)
             member = request.user.member
+            has_defaulted = CircleMember.objects.filter(member=member, is_active=False)
+            if has_defaulted.exists():
+                data = {"status": 0,
+                        "message": "Unable to buy airtime.One of your accounts is currently deactivated due"
+                                   " to delayed loan repayment. Kindly repay your loan to be able to buy airtime."}
+                return Response(data, status=status.HTTP_200_OK)
             if valid:
                 try:
                     recipient = serializer.validated_data['phone_number']

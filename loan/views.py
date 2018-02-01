@@ -245,6 +245,11 @@ class LoanApplication(APIView):
                                                                                  transaction_code=wallet_transaction_code,
                                                                                  source="loan")
                                 created_objects.append(wallet_transaction)
+                                revenue = RevenueStreams.objects.create(stream_amount=processing_fee,
+                                                              stream_type="LOAN INTEREST",
+                                                              stream_code=loan.loan_code,
+                                                              time_of_transaction=time_processed)
+                                created_objects.append(revenue)
                                 loan.is_approved = True
                                 loan.is_disbursed = True
                                 loan.time_disbursed = time_processed
@@ -604,6 +609,11 @@ class LoanGuarantorResponse(APIView):
                                                                                  transaction_code=wallet_transaction_code,
                                                                                  source="loan")
                                 created_objects.append(wallet_transaction)
+                                revenue = RevenueStreams.objects.create(stream_amount=processing_fee,
+                                                              stream_type="LOAN INTEREST",
+                                                              stream_code=loan.loan_code,
+                                                              time_of_transaction=time_processed)
+                                created_objects.append(revenue)
                                 loan.is_approved = True
                                 loan.is_disbursed = True
                                 loan.time_disbursed = time_processed

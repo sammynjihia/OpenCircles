@@ -846,7 +846,7 @@ class MpesaB2BResultURL(APIView):
                 try:
                     wallet_instance = wallet_utils.Wallet()
                     wallet = member.wallet
-                    a = AirtimePurchaseLog.objects.filter(member=member).lastest('id')
+                    a = AirtimePurchaseLog.objects.filter(member=member).latest('id')
                     f = open('a_test.txt','a')
                     f.write(a.originator_conversation_id)
                     f.write(initiatorPhoneNumber)

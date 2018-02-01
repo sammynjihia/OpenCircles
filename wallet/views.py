@@ -851,8 +851,6 @@ class MpesaB2BResultURL(APIView):
                         is_airtime_purchase = True
                     except AirtimePurchaseLog.DoesNotExist:
                         is_airtime_purchase = False
-                    f.write(is_airtime_purchase)
-                    f.close()
 
                     ################ africas talking purchase airtime identifier #######################
                     if is_airtime_purchase:

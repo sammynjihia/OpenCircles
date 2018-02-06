@@ -333,9 +333,13 @@ def mpesa_transactions(request, offset=0):
     for obj in mpesa_trx_obj:
         amount = 0
         try:
-            res_json = json.loads(obj.Response.strip())
+            if not obj.is_manually_committed:
+                res_json = json.loads(obj.Response.strip())
             if obj.TransactionType.strip() == 'C2B':
-                amount = res_json['TransAmount']
+                if obj.is_manually_committed:
+                    amount = Transactions.objects.get(transaction_code=obj.TransactioID).transaction_amount
+                else:
+                    amount = res_json['TransAmount']
             elif obj.TransactionType.strip() == 'B2C' or obj.TransactionType.strip() == 'B2B':
                 res_params = res_json['Result']['ResultParameters']['ResultParameter']
                 for param in res_params:
@@ -774,81 +778,93 @@ def get_revenue_streams(request):
 
 
 @login_required(login_url='app_admin:login_page')
-def commit_mpesa_transaction(request):
-    sms_instance = sms_utils.Sms()
-    admins = ['+254712388212', '+254795891656', '+254714642293']
-    admin_phone_number = sms_instance.format_phone_number(request.post.get('admin_phone_number'))
-    if admin_phone_number not in admins:
-        return_data = {"STATUS":0, "MESSAGE":"Unauthorized access."}
-        return HttpResponse(json.dumps(return_data), content_type="application/json")
+def commit_c2b_mpesa_transaction(request):
+    if request.method != 'POST':
+        # context = {
+        #     'circles': circles_utils.CircleUtils.get_all_circles(),
+        #     'members': members_utils.MemberUtils.get_all_members()
+        # }
+        return render(request, 'app_admin/c2b_transaction.html')
 
-    pin = request.post.get('pin')
-    user = authenticate(username=admin_phone_number, password=pin)
-    if user is not None:
-        code = request.post.get('code')
-        amount = int(request.post.get('amount'))
-        recipient_phone_number = sms_instance.format_phone_number(request.post.get('recipient_phone_number'))
-        try:
-            member = Member.objects.get(phone_number=recipient_phone_number)
-        except Member.DoesNotExist:
-            return_data = {"STATUS": 0, "MESSAGE":"Member with phone number does not exist"}
-            return HttpResponse(json.dumps(return_data), content_type="application/json")
+    else:
+        print(request.POST)
+        sms_instance = sms_utils.Sms()
+        admins = ['+254712388212', '+254795891656', '+254714642293']
+        admin_phone_number = sms_instance.format_phone_number(request.POST.get('admin_phone_number'))
+        if admin_phone_number not in admins:
+            return_data = {'status':0, 'message':'Unauthorized access.'}
+            print(return_data)
+            return HttpResponse(json.dumps(return_data))
 
-        transacted_by = request.post.get('sender_phone_number')
-        if len(transacted_by):
-            transacted_by = sms_instance.format_phone_number(transacted_by)
-        else:
-            transacted_by = recipient_phone_number
-        created_objects = []
-        try:
-            response_data = "Mpesa transaction was manually committed by {} {} {}".format(user.first_name,
-                                                                                         user.last_name,
-                                                                                         admin_phone_number)
-            admin_mpesa_transaction = AdminMpesaTransaction_logs.objects.create(TransactioID=code,
-                                                                                TransactionType='C2B',
-                                                                                Response=response_data, is_committed=False)
-            created_objects.append(admin_mpesa_transaction)
-            wallet_instance = wallet_utils.Wallet()
-            wallet = member.wallet
-            wallet_balance = wallet_instance.calculate_wallet_balance(wallet) + amount
-            transaction_desc = "{} confirmed.You have received {} {} from {} via mpesa. " \
-            "New wallet balance is {} {}".format(code, member.currency, amount,
-                                                 transacted_by, member.currency, wallet_balance)
-            mpesa_transactions = Transactions.objects.create(wallet=wallet, transaction_type="CREDIT",
-                                                             transaction_desc=transaction_desc,
-                                                             transacted_by=transacted_by,
-                                                             transaction_amount=amount,
-                                                             transaction_code=code,
-                                                             source="MPESA C2B")
-            created_objects.append(mpesa_transactions)
-            admin_mpesa_transaction.is_committed = True
-            admin_mpesa_transaction.save()
-            message = "{} {} {} has successfully committed mpesa transaction {} of {} {}.".format(user.first_name,
-                                                                                                  user.last_name,
-                                                                                                  admin_phone_number,
-                                                                                                  code,
-                                                                                                  member.currency,
-                                                                                                  amount)
+        pin = request.POST.get('pin')
+        user = authenticate(username=admin_phone_number, password=pin)
+        if user is not None:
+            code = request.POST.get('transaction_code')
+            amount = int(request.POST.get('amount'))
+            recipient_phone_number = sms_instance.format_phone_number(request.POST.get('recipient_phone_number'))
             try:
-                sms_instance.sendmultiplesms(admins, message)
+                member = Member.objects.get(phone_number=recipient_phone_number)
+            except Member.DoesNotExist:
+                return_data = {'status': 0, 'message':'Member with phone number does not exist'}
+                return HttpResponse(json.dumps(return_data))
+
+            transacted_by = request.POST.get('sender_phone_number')
+            if len(transacted_by):
+                transacted_by = sms_instance.format_phone_number(transacted_by)
+            else:
+                transacted_by = recipient_phone_number
+            created_objects = []
+            try:
+                response_data = "Mpesa transaction was manually committed by {} {} {}".format(user.first_name,
+                                                                                             user.last_name,
+                                                                                             admin_phone_number)
+                admin_mpesa_transaction = AdminMpesaTransaction_logs.objects.create(TransactioID=code,
+                                                                                    TransactionType='C2B',
+                                                                                    Response=response_data, is_committed=False)
+                created_objects.append(admin_mpesa_transaction)
+                wallet_instance = wallet_utils.Wallet()
+                wallet = member.wallet
+                wallet_balance = wallet_instance.calculate_wallet_balance(wallet) + amount
+                transaction_desc = "{} confirmed.You have received {} {} from {} via mpesa. " \
+                "New wallet balance is {} {}".format(code, member.currency, amount,
+                                                     transacted_by, member.currency, wallet_balance)
+                mpesa_transactions = Transactions.objects.create(wallet=wallet, transaction_type="CREDIT",
+                                                                 transaction_desc=transaction_desc,
+                                                                 transacted_by=transacted_by,
+                                                                 transaction_amount=amount,
+                                                                 transaction_code=code,
+                                                                 source="MPESA C2B")
+                created_objects.append(mpesa_transactions)
+                admin_mpesa_transaction.is_committed = True
+                admin_mpesa_transaction.is_manually_committed = True
+                admin_mpesa_transaction.save()
+                message = "{} {} {} has successfully committed {} mpesa transaction {} of {} {}.".format(user.first_name,
+                                                                                                      user.last_name,
+                                                                                                      admin_phone_number,
+                                                                                                      recipient_phone_number,
+                                                                                                      code,
+                                                                                                      member.currency,
+                                                                                                      amount)
+                try:
+                    sms_instance.sendsms("0755564433", message)
+                except Exception as e:
+                    print(str(e))
+                    return_data = {'status': 0, 'message':'Transaction unsuccessful.Unable to notify admins.'}
+                    return HttpResponse(json.dumps(return_data))
             except Exception as e:
                 print(str(e))
-                return_data = {"STATUS": 0, "MESSAGE":"Transaction unsuccessful.Unable to notify admins."}
-                return HttpResponse(json.dumps(return_data), content_type="application/json")
-        except Exception as e:
-            print(str(e))
-            general_utils.General().delete_created_objects(created_objects)
-            return_data = {"STATUS": 0, "MESSAGE":"Unable to commit transaction"}
-            return HttpResponse(json.dumps(return_data), content_type="application/json")
-        serializer = WalletTransactionsSerializer(mpesa_transactions)
-        instance = fcm_utils.Fcm()
-        registration_id = member.device_token
-        fcm_data = {"request_type": "MPESA_TO_WALLET_TRANSACTION",
-                    "transaction": serializer.data}
-        instance.data_push("single", registration_id, fcm_data)
-        return_data = {"STATUS": 0, "MESSAGE": "Transaction successfully committed."}
-        return HttpResponse(json.dumps(return_data), content_type="application/json")
-    else:
-        return_data = {"STATUS": 0, "MESSAGE":"Invalid admin credentials"}
-        return HttpResponse(json.dumps(return_data), content_type="application/json")
+                general_utils.General().delete_created_objects(created_objects)
+                return_data = {'status': 0, 'message':'Unable to commit transaction'}
+                return HttpResponse(json.dumps(return_data))
+            serializer = WalletTransactionsSerializer(mpesa_transactions)
+            instance = fcm_utils.Fcm()
+            registration_id = member.device_token
+            fcm_data = {"request_type": "MPESA_TO_WALLET_TRANSACTION",
+                        "transaction": serializer.data}
+            instance.data_push("single", registration_id, fcm_data)
+            return_data = {'status': 0, 'message': 'Transaction successfully committed.'}
+            return HttpResponse(json.dumps(return_data))
+        else:
+            return_data = {'status': 0, 'message':'Invalid admin credentials'}
+            return HttpResponse(json.dumps(return_data))
 

@@ -109,9 +109,13 @@ class TransactionUtils:
         transaction_obj = AdminMpesaTransaction_logs.objects.get(TransactioID=transaction_code.strip())
         amount = 0
         try:
-            res_json = json.loads(transaction_obj.Response.strip())
+            if not transaction_obj.is_manually_committed:
+                res_json = json.loads(transaction_obj.Response.strip())
             if transaction_obj.TransactionType.strip() == 'C2B':
-                amount = res_json['TransAmount']
+                if transaction_obj.is_manually_committed:
+                    amount = Transactions.objects.get(transaction_code=transaction_obj.TransactioID).transaction_amount
+                else:
+                    amount = res_json['TransAmount']
             elif transaction_obj.TransactionType.strip() == 'B2C' or transaction_obj.TransactionType.strip() == 'B2B':
                 res_params = res_json['Result']['ResultParameters']['ResultParameter']
                 for param in res_params:
@@ -223,7 +227,7 @@ class TransactionUtils:
             if amount >= 100 and amount <= 1000:
                 charges = 16
             elif amount >= 1001 and amount <= 70000:
-                charges = 23
+                charges = 30
 
             try:
                 wallet_utils = WalletUtils()

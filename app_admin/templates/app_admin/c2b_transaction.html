@@ -1,0 +1,145 @@
+{% extends 'app_admin/base_dashboard.html' %}
+{% load static %}
+{% load humanize %}
+{% block main_container %}
+    <div class="col-sm-9 col-sm-offset-4 col-lg-8 col-lg-offset-4 main">
+        <br>
+        <br>
+        <div class="row">
+            <div class="col-lg-8 col-md-8 col-sm-8">
+                <div class="w3-card-4">
+                    <div class="w3-container w3-center w3-text-dark-grey border-bottom">
+                         <h4>C2B Transaction</h4>
+                    </div>
+                    <form class="w3-form" method="post" id="c2b-form">
+                        {% csrf_token %}
+                        <div class="alert alert-success alert-dismissable fade in" id="message-alert">
+                            <a class="close" data-dismiss="alert" aria-label="close">×</a>
+                            <strong id="message-sent-response"><span></span></strong>
+                        </div>
+                        <div>
+                            <p>
+                                <label class="w3-text-blue-gray">Admin phone number</label>
+                                <input class="w3-input w3-text-blue"
+                                    type="text"
+                                    name="admin phonenumber"
+                                    id="admin_phone_number"
+                                    placeholder="admin phonenumber" required>
+                            </p>
+                             <p>
+                                <label class="w3-text-blue-gray">Pin</label>
+                                <input class="w3-input w3-text-blue"
+                                    type="password"
+                                    name="pin"
+                                    id="pin"
+                                    placeholder="Opencircle's pin" required>
+                            </p>
+                             <p>
+                                <label class="w3-text-blue-gray">Transaction code</label>
+                                <input class="w3-input w3-text-blue"
+                                    type="text"
+                                    name="code"
+                                    id="code"
+                                    placeholder="transaction code" required>
+                            </p>
+                             <p>
+                                <label class="w3-text-blue-gray">Transaction amount</label>
+                                <input class="w3-input w3-text-blue"
+                                    type="text"
+                                    name="amount"
+                                    id="amount"
+                                    placeholder="transaction amount" required>
+                            </p>
+                            <p>
+                                <label class="w3-text-blue-gray">Member account number</label>
+                                <input class="w3-input w3-text-blue"
+                                    type="text"
+                                    name="member phonenumber"
+                                    id="member_phone_number"
+                                    placeholder="Member account number" required>
+                            </p>
+                            <p>
+                                <label class="w3-text-blue-gray">Initiator phone number</label>
+                                <input class="w3-input w3-text-blue"
+                                    type="text"
+                                    name="sender phonenumber"
+                                    id="sender_phone_number"
+                                    placeholder="Initiator phone number">
+                            </p>
+
+                        </div>
+                        <div class="w3-padding-bottom w3-row">
+                            <a class="w3-btn w3-col l4 s4 m4 w3-btn w3-blue-gray pull-right" id="btn-commit-trans">
+                                commit
+                            </a>
+                          </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+{% block other_js %}
+    <script>
+        $(document).ready(function() {
+            $('#message-alert').hide();
+        });
+        $(document).on('click', '#btn-commit-trans', function (e){
+            e.preventDefault();
+            var transaction_code = $('#code').val();
+            var amount = $('#amount').val();
+            var admin_phone_number = $('#admin_phone_number').val()
+            var recipient_phone_number = $('#member_phone_number').val()
+            var pin = $('#pin').val();
+            var sender_phone_number = $('#sender_phone_number').val();
+            var message = 'Are you sure you want to commit transaction ' + transaction_code + ' of KES ' + amount;
+            var res = confirm(message);
+            if (res == true){
+                var data = {
+                    pin:pin,
+                    admin_phone_number:admin_phone_number,
+                    sender_phone_number:sender_phone_number,
+                    recipient_phone_number:recipient_phone_number,
+                    transaction_code:transaction_code,
+                    amount:amount,
+                    csrfmiddlewaretoken: '{{ csrf_token }}'
+                };
+
+                var srv_req = $.ajax({
+                    url: "{% url 'app_admin:commit_c2b_mpesa_transaction' %}",
+                    data: data,
+                    type: 'post',
+                    datatype: 'json',
+                    before_send: function(){
+                        $('#btn-commit-trans').html('<i class="fa fa-circle-o-notch fa-spin"></i> Commiting...');
+                    }
+                });
+
+                srv_req.done(function(response){
+                    console.log(response)
+                    try{
+                        var responseObj = $.parseJSON(response);
+
+                        if(responseObj['status'] == 1){
+                            $('#message-alert').show();
+                            $('#message-sent-response').html(responseObj['message']);
+                            $('#c2b-form').trigger('reset');
+                        }else{
+                            $('#message-alert').show();
+                            $('#message-sent-response').html(responseObj['message']);
+                        }
+                    }catch(exp){
+                        console.log(exp)
+                    }
+                });
+
+                srv_req.fail(function(xJHQR, errThrown, errMsg){
+                     $('#message-alert').show();
+                     $('#message-sent-response').html(errorMessage);
+                });
+            }else{
+                $('#c2b-form').trigger('reset');
+            }
+        });
+    </script>
+{% endblock %}

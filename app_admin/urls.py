@@ -50,4 +50,5 @@ urlpatterns = [
     url(r'^member_shares_trx/(?P<circle_member_id>[0-9]+)/$', views.get_member_shares_trx, name='member_shares_trx'),
     url(r'^get_revenue_streams$', views.get_revenue_streams,  name='get_revenue_streams'),
     url(r'^search_revenue_stream_by_date$',  views.search_revenue_stream_by_date, name='search_revenue_stream_by_date'),
+    url(r'^commit_c2b_mpesa_transaction$', views.commit_c2b_mpesa_transaction, name='commit_c2b_mpesa_transaction'),
 ]

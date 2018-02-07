@@ -51,4 +51,7 @@ urlpatterns = [
     url(r'^get_revenue_streams$', views.get_revenue_streams,  name='get_revenue_streams'),
     url(r'^search_revenue_stream_by_date$',  views.search_revenue_stream_by_date, name='search_revenue_stream_by_date'),
     url(r'^commit_c2b_mpesa_transaction$', views.commit_c2b_mpesa_transaction, name='commit_c2b_mpesa_transaction'),
+    url(r'^get_circle_invites_referrals$', views.view_circle_invites_referrals, name='view_circle_invites_referrals'),
+    url(r'^get_airtime_logs$', views.get_airtime_logs, name='get_airtime_logs'),
+
 ]

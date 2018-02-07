@@ -12,7 +12,7 @@ from . import members_utils, circles_utils, loan_utils, revenue_streams_utils, s
 from . import chat_utils
 from circle.models import Circle
 from member.models import Member
-from wallet.models import Transactions, AdminMpesaTransaction_logs
+from wallet.models import Transactions, AdminMpesaTransaction_logs,  ReferralFee, AirtimePurchaseLog
 
 from wallet.serializers import WalletTransactionsSerializer
 
@@ -24,14 +24,11 @@ from app_utility import sms_utils, wallet_utils, fcm_utils, general_utils
 def create_admin(request):
     pass
 
-
 def lock_admin_acc(request):
     pass
 
-
 def login_page(request):
     return render(request, 'app_admin/login_page.html', {})
-
 
 def login_admin(request):
     password = request.POST.get('password')
@@ -58,7 +55,6 @@ def login_admin(request):
         content_type="application/json"
     )
 
-
 @login_required(login_url='app_admin:login_page')
 def logout_admin(request):
     logout(request)
@@ -66,7 +62,6 @@ def logout_admin(request):
         json.dumps({'status': 1, 'URL': 'login_page'}),
         content_type="application/json"
     )
-
 
 @login_required(login_url='app_admin:login_page')
 def home_page(request):
@@ -144,7 +139,6 @@ def home_page(request):
     }
     return render(request, 'app_admin/base_dashboard.html', context)
 
-
 @login_required(login_url='app_admin:login_page')
 def contact_list(request, offset=0):
     offset = int(offset)
@@ -176,7 +170,6 @@ def contact_list(request, offset=0):
     }
     return render(request, 'app_admin/contacts_list.html', context)
 
-
 @login_required(login_url='app_admin:login_page')
 def members_page(request, offset=0):
     members_list = members_utils.MemberUtils.get_all_members()
@@ -203,7 +196,6 @@ def members_page(request, offset=0):
     }
     return render(request, 'app_admin/members.html', context)
 
-
 @login_required(login_url='app_admin:login_page')
 def search_for_member(request):
     search_val = request.POST.get('search_val')
@@ -223,7 +215,6 @@ def search_for_member(request):
         )
     return HttpResponse(json.dumps(members_list))
 
-
 @login_required(login_url='app_admin:login_page')
 def members_reg_analysis(request):
     start_date = None
@@ -233,7 +224,6 @@ def members_reg_analysis(request):
         end_date = datetime.datetime.strptime(request.POST.get('end_date_val'), '%Y-%m-%d')
     context = members_utils.MemberUtils.get_daily_registrations_count(start_date, end_date)
     return render(request, 'app_admin/member_reg_analysis.html', context)
-
 
 @login_required(login_url='app_admin:login_page')
 def view_member_details(request, member_id):
@@ -255,7 +245,6 @@ def view_member_details(request, member_id):
         'loans': loan_utils.LoanUtils.get_loans_by_member(member)
     }
     return render(request, 'app_admin/member_details.html', context)
-
 
 @login_required(login_url='app_admin:login_page')
 def wallet_transactions(request, offset=0):
@@ -282,7 +271,6 @@ def wallet_transactions(request, offset=0):
         'is_at_end': is_at_end,
     }
     return render(request, 'app_admin/wallet_transactions_list.html', context)
-
 
 @login_required(login_url='app_admin:login_page')
 def search_for_transaction(request):
@@ -313,7 +301,6 @@ def search_for_transaction(request):
         })
     return HttpResponse(json.dumps(transactions))
 
-
 @login_required(login_url='app_admin:login_page')
 def view_transaction_details(request, transaction_id):
     request.session['transaction_id'] = transaction_id
@@ -323,7 +310,6 @@ def view_transaction_details(request, transaction_id):
         'current_balance': transactions_utils.TransactionUtils.get_wallet_balance_wallet_id(trx.wallet.id)
     }
     return render(request, 'app_admin/wallet_transaction.html', context)
-
 
 @login_required(login_url='app_admin:login_page')
 def mpesa_transactions(request, offset=0):
@@ -387,7 +373,6 @@ def mpesa_transactions(request, offset=0):
     }
     return render(request, 'app_admin/mpesa_transactions.html', context)
 
-
 @login_required(login_url='app_admin:login_page')
 def view_mpesa_transaction(request, transaction_code):
     context = {
@@ -395,7 +380,6 @@ def view_mpesa_transaction(request, transaction_code):
         'transaction': transactions_utils.TransactionUtils.get_transaction_by_transaction_code(transaction_code)
     }
     return render(request, 'app_admin/mpesa_transaction.html', context)
-
 
 @login_required(login_url='app_admin:login_page')
 def commit_mpesa_transaction(request):
@@ -408,7 +392,6 @@ def commit_mpesa_transaction(request):
         'transaction': transactions_utils.TransactionUtils.get_transaction_by_transaction_code(transaction_code)
     }
     return render(request, 'app_admin/mpesa_transaction.html', context)
-
 
 @login_required(login_url='app_admin:login_page')
 def search_for_mpesa_transaction(request):
@@ -474,7 +457,6 @@ def search_for_mpesa_transaction(request):
     }
     return render(request, 'app_admin/mpesa_transactions.html', context)
 
-
 @login_required(login_url='app_admin:login_page')
 def transactions_days_analytics(request):
     source = ''
@@ -487,7 +469,6 @@ def transactions_days_analytics(request):
     trx = transactions_utils.TransactionUtils.get_transactions_by_day_and_source(date, source)
     return render(request, 'app_admin/wallet_transactions_analytics.html', trx)
 
-
 @login_required(login_url='app_admin:login_page')
 def financial_stmt(request):
     context = {
@@ -495,7 +476,6 @@ def financial_stmt(request):
         'available_shares': shares_utils.SharesUtils.get_total_available_shares()
     }
     return render(request, 'app_admin/financial_stmt.html', context)
-
 
 @login_required(login_url='app_admin:login_page')
 def cash_flow(request):
@@ -509,18 +489,15 @@ def revenue(request):
     context = {}
     return render(request, 'app_admin/revenue.html')
 
-
 @login_required(login_url='app_admin:login_page')
 def expenditure(request):
     context = {}
     return render(request, 'app_admin/expenditure.html')
 
-
 @login_required(login_url='app_admin:login_page')
 def balance_sheet(request):
     context = {}
     return render(request, 'app_admin/balance_sheet.html', context)
-
 
 @login_required(login_url='app_admin:login_page')
 def loan_applications(request, offset=0):
@@ -548,7 +525,6 @@ def loan_applications(request, offset=0):
     template = 'app_admin/loan_applications_list.html'
     return render(request, template, context)
 
-
 @login_required(login_url='app_admin:login_page')
 def search_for_loan_applications(request):
     loans_list = []
@@ -574,7 +550,6 @@ def search_for_loan_applications(request):
             'is_fully_repaid': 'YES' if obj.is_fully_repaid else 'NO'
         })
     return HttpResponse(json.dumps(loans_list))
-
 
 @login_required(login_url='app_admin:login_page')
 def view_loan_application_details(request, loan_code):
@@ -624,7 +599,6 @@ def chats_list(request):
     }
     return render(request, 'app_admin/chats.html', context)
 
-
 @login_required(login_url='app_admin:login_page')
 def reply_to_chat(request):
     chat_id = request.POST.get('chat_id')
@@ -635,7 +609,6 @@ def reply_to_chat(request):
         'message': 'Sent' if reply_chat else 'Failed',
     }
     return HttpResponse(json.dumps(response))
-
 
 @login_required(login_url='app_admin:login_page')
 def cancel_chat(request):
@@ -678,7 +651,6 @@ def new_chat(request):
             else:
                 return HttpResponse(json.dumps({'status': 0, 'message': 'An error occurred.'}))
 
-
 @login_required(login_url='app_admin:login_page')
 def search_for_chats(request):
     search_val = request.POST.get('search_val')
@@ -695,7 +667,6 @@ def search_for_chats(request):
         })
 
     return HttpResponse(json.dumps(chats_list))
-
 
 @login_required(login_url='app_admin:login_page')
 def circles_list(request):
@@ -717,7 +688,6 @@ def circles_list(request):
             'available_shares': shares_utils.SharesUtils.get_circles_available_shares(obj),
         })
     return render(request, 'app_admin/circles_list.html', {'circles': lis_of_cirlces})
-
 
 @login_required(login_url='app_admin:login_page')
 def view_circle_details(request, circle_id):
@@ -867,4 +837,16 @@ def commit_c2b_mpesa_transaction(request):
         else:
             return_data = {'status': 0, 'message':'Invalid admin credentials'}
             return HttpResponse(json.dumps(return_data))
+
+
+@login_required(login_url='app_admin:login_page')
+def view_circle_invites_referrals(request):
+    referrals = ReferralFee.objects.all()
+    return render(request, 'app_admin/referrals_list.html', {'referrals':referrals})
+
+@login_required(login_url='app_admin:login_page')
+def get_airtime_logs(request):
+    airtime_logs = AirtimePurchaseLog.objects.all()
+    return render(request, 'app_admin/airtime_logs.html', {'airtime_logs':airtime_logs})
+
 

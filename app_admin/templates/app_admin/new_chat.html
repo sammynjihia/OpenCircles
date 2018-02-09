@@ -147,8 +147,8 @@
             if (value === 1){
                 channel="FCM"}else{channel="SMS"}
 
-            var message = "Are you sure you want to send message to " + recipient_type + " " + recipient + " via " + channel;
-            response = confirm(message);
+            var msg = "Are you sure you want to send message to " + recipient_type + " " + recipient + " via " + channel;
+            response = confirm(msg);
             if (response == true){
                 var data = {
                     recipient_type: recipient_type,

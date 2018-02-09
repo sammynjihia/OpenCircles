@@ -324,8 +324,11 @@ class TransactionUtils:
     @staticmethod
     def get_airtime_amount(originator_conversation_id):
         try:
-            return PendingMpesaTransactions.objects.get(originator_conversation_id=originator_conversation_id).amount
+            oci = str(originator_conversation_id).replace('"','')
+            trx = PendingMpesaTransactions.objects.get(originator_conversation_id=oci)
+            return trx.amount
         except PendingMpesaTransactions.DoesNotExist:
+            print('failed')
             return 0
 
 

@@ -12,7 +12,7 @@ from . import members_utils, circles_utils, loan_utils, revenue_streams_utils, s
 from . import chat_utils
 from circle.models import Circle
 from member.models import Member
-from wallet.models import Transactions, AdminMpesaTransaction_logs,  ReferralFee, AirtimePurchaseLog
+from wallet.models import Transactions, AdminMpesaTransaction_logs,  ReferralFee, AirtimePurchaseLog, PendingMpesaTransactions
 
 from wallet.serializers import WalletTransactionsSerializer
 
@@ -849,11 +849,14 @@ def view_circle_invites_referrals(request):
 def get_airtime_logs(request):
     airtime_logs = AirtimePurchaseLog.objects.all().order_by('-id')
     logs = []
+    print(airtime_logs)
     for obj in airtime_logs:
         if obj.amount == 0:
-            amount = transactions_utils.TransactionUtils().get_airtime_amount(obj.originator_conversation_id)
+            amount = int(transactions_utils.TransactionUtils.get_airtime_amount(obj.originator_conversation_id))
+            print(amount)
         else:
             amount = obj.amount
+        print(amount)
         logs.append({
             "member": obj.member,
             "recipient": obj.recipient,
@@ -862,6 +865,7 @@ def get_airtime_logs(request):
             "time_of_transaction": obj.time_of_transaction,
             "extra_info": obj.extra_info
         })
+    print(logs)
     return render(request, 'app_admin/airtime_logs.html', {'airtime_logs':logs})
 
 

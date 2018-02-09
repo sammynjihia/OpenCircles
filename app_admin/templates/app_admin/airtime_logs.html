@@ -39,11 +39,6 @@
                     {% for obj in airtime_logs %}
                         <tr>
                             <td>{{ forloop.counter }}</td>
-                            <!--<td>-->
-                                <!--<a href="{% url 'app_admin:view_circle_details' circle_id=obj.id %}">-->
-                                    <!--{{ obj.circle_name }} <span class="small"> ({{ obj.circle_acc_number }})</span>-->
-                                <!--</a>-->
-                            <!--</td>-->
                             <td>
                                 {{ obj.member.user.first_name }} {{ obj.member.user.last_name }}
                                 ({{ obj.member.phone_number }})

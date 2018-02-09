@@ -1,7 +1,7 @@
 import datetime
 import json
 from member.models import Member
-from wallet.models import Wallet, Transactions, AdminMpesaTransaction_logs, B2CTransaction_log
+from wallet.models import Wallet, Transactions, AdminMpesaTransaction_logs, B2CTransaction_log, PendingMpesaTransactions
 from wallet.serializers import WalletTransactionsSerializer
 from django.db.models import Sum
 from django.db.models import Q
@@ -321,6 +321,12 @@ class TransactionUtils:
         debit = debit_obj['total'] if debit_obj['total'] is not None else 0
         return credit - debit
 
+    @staticmethod
+    def get_airtime_amount(originator_conversation_id):
+        try:
+            return PendingMpesaTransactions.objects.get(originator_conversation_id=originator_conversation_id).amount
+        except PendingMpesaTransactions.DoesNotExist:
+            return 0
 
 
 

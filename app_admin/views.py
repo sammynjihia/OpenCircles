@@ -633,20 +633,21 @@ def new_chat(request):
         message = request.POST.get('message')
         recipient_type = request.POST.get('recipient_type')
         recipient = request.POST.get('recipient')
+        message_channel = int(request.POST.get('message_channel'))
         if recipient_type == 'circle':
             circle = Circle.objects.get(circle_name__icontains=recipient)
-            if chat_utils.ChatUtils.send_chat_to_circle_members(message, circle):
+            if chat_utils.ChatUtils.send_chat_to_circle_members(message, circle, message_channel):
                 return HttpResponse(json.dumps({'status': 1, 'message': 'Message sent successfully'}))
             else:
                 return HttpResponse(json.dumps({'status': 0, 'message': 'An error occurred.'}))
         elif recipient_type == 'member':
             member = Member.objects.get(phone_number=recipient)
-            if chat_utils.ChatUtils.send_single_chat(message, member):
+            if chat_utils.ChatUtils.send_single_chat(message, member, message_channel):
                 return HttpResponse(json.dumps({'status': 1, 'message': 'Message sent successfully'}))
             else:
                 return HttpResponse(json.dumps({'status': 0, 'message': 'An error occurred.'}))
         elif recipient_type == 'all':
-            if chat_utils.ChatUtils.send_chat_to_all_members(message):
+            if chat_utils.ChatUtils.send_chat_to_all_members(message,message_channel):
                 return HttpResponse(json.dumps({'status': 1, 'message': 'Message sent successfully'}))
             else:
                 return HttpResponse(json.dumps({'status': 0, 'message': 'An error occurred.'}))
@@ -841,12 +842,26 @@ def commit_c2b_mpesa_transaction(request):
 
 @login_required(login_url='app_admin:login_page')
 def view_circle_invites_referrals(request):
-    referrals = ReferralFee.objects.all()
+    referrals = ReferralFee.objects.all().order_by('-id')
     return render(request, 'app_admin/referrals_list.html', {'referrals':referrals})
 
 @login_required(login_url='app_admin:login_page')
 def get_airtime_logs(request):
-    airtime_logs = AirtimePurchaseLog.objects.all()
-    return render(request, 'app_admin/airtime_logs.html', {'airtime_logs':airtime_logs})
+    airtime_logs = AirtimePurchaseLog.objects.all().order_by('-id')
+    logs = []
+    for obj in airtime_logs:
+        if obj.amount == 0:
+            amount = transactions_utils.TransactionUtils().get_airtime_amount(obj.originator_conversation_id)
+        else:
+            amount = obj.amount
+        logs.append({
+            "member": obj.member,
+            "recipient": obj.recipient,
+            "amount": amount,
+            "is_purchased": obj.is_purchased,
+            "time_of_transaction": obj.time_of_transaction,
+            "extra_info": obj.extra_info
+        })
+    return render(request, 'app_admin/airtime_logs.html', {'airtime_logs':logs})
 
 

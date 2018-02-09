@@ -110,6 +110,7 @@ class AirtimePurchaseLog(models.Model):
     time_of_transaction = models.DateTimeField(auto_now_add=True)
     is_purchased = models.BooleanField(default=False)
     extra_info = models.TextField()
+    amount = models.IntegerField(default=0)
 
     class Meta:
         db_table = 'AirtimePurchaseLog'

@@ -499,7 +499,7 @@ class MpesaB2CResultURL(APIView):
                 member = Member.objects.get(phone_number=initiatorPhoneNumber)
                 registration_id, title = member.device_token, "Wallet to Mpesa transaction unsuccessful"
                 message = " We cannot process your request at the moment. Try again later. " \
-                          "If the problem persists kindly call our customer care service on (254) 795891656," \
+                          "If the problem persists kindly call our customer care service on +254755564433," \
                           " use M-pesa transaction code {} for reference".format(TransactionID)
                 #instance.notification_push("single", registration_id, title, message)
                 date_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -528,7 +528,7 @@ class MpesaB2CResultURL(APIView):
                 member = Member.objects.get(phone_number=initiatorPhoneNumber)
                 registration_id, title = member.device_token, "Wallet to Mpesa transaction unsuccessful"
                 message = " We cannot process your request at the moment. Try again later. " \
-                          "If the problem persists kindly call our customer care service on (254) 795891656, " \
+                          "If the problem persists kindly call our customer care service on +254755564433, " \
                           "use M-pesa transaction code {} for reference".format(TransactionID)
                 #instance.notification_push("single", registration_id, title, message)
                 date_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -1024,11 +1024,12 @@ class PurchaseAirtime(APIView):
                     recipient = serializer.validated_data['phone_number']
                     init_airtime_unique_id = general_instance.generate_unique_identifier('FAT')
                     airtime_log = AirtimePurchaseLog.objects.create(member=member, recipient=recipient,
-                                                                    originator_conversation_id=init_airtime_unique_id)
+                                                                    originator_conversation_id=init_airtime_unique_id,
+                                                                    amount=amount)
                     result = mpesaAPI.mpesa_b2b_checkout(amount, account_number, paybill_number)
                     if "errorCode" in result.keys():
                         # If errorCode in response, then request not successful, error occured
-                        airtime_log.extra_info("B2B returned error code")
+                        airtime_log.extra_info = "B2B returned error code"
                         airtime_log.save()
                         data = {"status": 0, "message": "Unable to process request.Please try Again"}
                         return Response(data, status=status.HTTP_200_OK)
@@ -1058,7 +1059,7 @@ class PurchaseAirtime(APIView):
 
                     else:
                         # If response was unexpected then request not sent, an error occured.
-                        airtime_log.extra_info("B2B returned error code")
+                        airtime_log.extra_info = "B2B returned error code"
                         airtime_log.save()
                         data = {"status": 0, "message": "Unable to process request.Please try Again"}
                         return Response(data, status=status.HTTP_200_OK)

@@ -70,9 +70,12 @@
                                 <span class="w3-text-red" id="message-response"></span>
                             </p>
                           </div>
-                          <div class="w3-padding-bottom w3-row">
-                            <a class="w3-btn w3-col l4 s4 m4 w3-btn w3-blue-gray pull-right" id="btn-send-chat">
-                                Send
+                          <div class="w3-padding-bottom  w3-row">
+                            <a class="w3-btn w3-col l4 s4 m4 w3-btn w3-blue-gray pull-left" id="btn-fcm-send-chat">
+                                FCM
+                            </a>
+                            <a class="w3-btn w3-col l4 s4 m4 w3-btn w3-blue-gray pull-right" id="btn-sms-send-chat">
+                                SMS
                             </a>
                           </div>
                     </form>
@@ -112,8 +115,19 @@
             }
         });
 
-        $(document).on('click', '#btn-send-chat', function (e) {
-            e.preventDefault();
+        $(document).on('click', '#btn-fcm-send-chat', function (e) {
+             e.preventDefault();
+             var value = 1;
+             sendMessage(value);
+        });
+        $(document).on('click', '#btn-sms-send-chat', function (e) {
+             e.preventDefault();
+             var value = 0;
+             sendMessage(value);
+        });
+
+        function sendMessage(value) {
+            <!--e.preventDefault();-->
             var message = $('#message').val();
             var recipient_type = $('input[name=recipient]:checked', '#chat-form').val();
             var recipient = '';
@@ -130,49 +144,55 @@
                  default:
                      break;
             }
+            if (value === 1){
+                channel="FCM"}else{channel="SMS"}
 
-            var data = {
-                recipient_type: recipient_type,
-                recipient: recipient,
-                message: message,
-                csrfmiddlewaretoken: '{{ csrf_token }}'
-            };
+            var message = "Are you sure you want to send message to " + recipient_type + " " + recipient + " via " + channel;
+            response = confirm(message);
+            if (response == true){
+                var data = {
+                    recipient_type: recipient_type,
+                    recipient: recipient,
+                    message: message,
+                    message_channel: value,
+                    csrfmiddlewaretoken: '{{ csrf_token }}'
+                };
 
-            var srvRqst = $.ajax({
-                url: "{% url 'app_admin:new_chat' %}",
-                data: data,
-                type: 'post',
-                datatype: 'json',
-                beforeSend: function(){
-                    $('#btn-send-chat').html('<i class="fa fa-circle-o-notch fa-spin"></i> Sending...');
-                }
-            });
-
-
-            srvRqst.done(function(response){
-                try{
-                    var responseObj = $.parseJSON(response);
-
-                    if(responseObj['status'] == 1){
-                        $('#message-alert').show();
-                        $('#message-sent-response').html(responseObj['message']);
-                        $('#chat-form').trigger('reset');
-                        $('#individual-recipient-input, #circle-recipient-input').hide();
-                    }else{
-                        $('#message-response').html(responseObj['message']);
+                var srvRqst = $.ajax({
+                    url: "{% url 'app_admin:new_chat' %}",
+                    data: data,
+                    type: 'post',
+                    datatype: 'json',
+                    beforeSend: function(){
+                        $('#btn-send-chat').html('<i class="fa fa-circle-o-notch fa-spin"></i> Sending...');
                     }
+                });
 
-                }catch(exp){
-                    $('#message-response').html(exp);
-                }finally{
-                     $('#btn-send-chat').html('Send chat').prop('disabled', false);
-                }
-            });
-            srvRqst.fail(function(xJHQR, errThrown, errMsg){
-                $('#message-response').html(errorMessage);
-                $('#btn-send-chat').html('Send chat').prop('disabled', false);
-            });
-        });
 
+                srvRqst.done(function(response){
+                    try{
+                        var responseObj = $.parseJSON(response);
+
+                        if(responseObj['status'] == 1){
+                            $('#message-alert').show();
+                            $('#message-sent-response').html(responseObj['message']);
+                            $('#chat-form').trigger('reset');
+                            $('#individual-recipient-input, #circle-recipient-input').hide();
+                        }else{
+                            $('#message-response').html(responseObj['message']);
+                        }
+
+                    }catch(exp){
+                        $('#message-response').html(exp);
+                    }finally{
+                         $('#btn-send-chat').html('Send chat').prop('disabled', false);
+                    }
+                });
+                srvRqst.fail(function(xJHQR, errThrown, errMsg){
+                    $('#message-response').html(errorMessage);
+                    $('#btn-send-chat').html('Send chat').prop('disabled', false);
+                });
+            }
+        }
     </script>
 {% endblock %}

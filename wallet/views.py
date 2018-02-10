@@ -957,7 +957,8 @@ class MpesaB2BResultURL(APIView):
             try:
                 member = Member.objects.get(phone_number=initiatorPhoneNumber)
                 registration_id, title = member.device_token, "Wallet transaction unsuccessful"
-                message = " We cannot process your request at the moment. Try again later."
+                message = " We cannot process your request at the moment. Try again later." \
+                          " If the problem persists kindly call our customer care service on (254) 755564433"
                 date_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 fcm_data = {"request_type": "SYSTEM_WARNING_MSG", "title": title,
                             "message": message, "time": date_time}

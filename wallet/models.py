@@ -71,6 +71,7 @@ class AdminMpesaTransaction_logs(models.Model):
     Response = models.TextField(max_length=1000)
     transaction_time = models.DateTimeField(auto_now_add=True)
     is_committed = models.NullBooleanField(default=None)
+    is_manually_committed = models.BooleanField(default=False)
 
 class PendingMpesaTransactions(models.Model):
     member = models.ForeignKey(Member, blank=False, null=False)
@@ -109,6 +110,7 @@ class AirtimePurchaseLog(models.Model):
     time_of_transaction = models.DateTimeField(auto_now_add=True)
     is_purchased = models.BooleanField(default=False)
     extra_info = models.TextField()
+    amount = models.IntegerField(default=0)
 
     class Meta:
         db_table = 'AirtimePurchaseLog'

@@ -132,6 +132,11 @@
           </a>
         </li>
         <li>
+          <a class="w3-text-black" href="{% url 'app_admin:commit_c2b_mpesa_transaction' %}">
+              <i class="fa fa-edit"></i>&nbsp; Commit C2B
+          </a>
+        </li>
+        <li>
           <a class="w3-text-black" href="{% url 'app_admin:transactions_days_analytics' %}">
               <i class="fa fa-line-chart"></i>&nbsp;&nbsp;Analytics
           </a>
@@ -185,6 +190,20 @@
           </a>
         </li>
       </ul>
+    </li>
+    <li role="presentation" class="divider"></li>
+    <li>
+      <a href="{% url 'app_admin:view_circle_invites_referrals' %}" class="w3-text-black">
+        <i class="fa fa-users"></i>
+         Referrals
+      </a>
+    </li>
+    <li role="presentation" class="divider"></li>
+    <li>
+      <a href="{% url 'app_admin:get_airtime_logs' %}" class="w3-text-black">
+        <i class="fa fa-mobile-phone"></i>
+         Airtime
+      </a>
     </li>
   </ul>
   </div>

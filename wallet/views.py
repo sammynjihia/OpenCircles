@@ -499,7 +499,7 @@ class MpesaB2CResultURL(APIView):
                 member = Member.objects.get(phone_number=initiatorPhoneNumber)
                 registration_id, title = member.device_token, "Wallet to Mpesa transaction unsuccessful"
                 message = " We cannot process your request at the moment. Try again later. " \
-                          "If the problem persists kindly call our customer care service on (254) 795891656," \
+                          "If the problem persists kindly call our customer care service on +254755564433," \
                           " use M-pesa transaction code {} for reference".format(TransactionID)
                 #instance.notification_push("single", registration_id, title, message)
                 date_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -528,7 +528,7 @@ class MpesaB2CResultURL(APIView):
                 member = Member.objects.get(phone_number=initiatorPhoneNumber)
                 registration_id, title = member.device_token, "Wallet to Mpesa transaction unsuccessful"
                 message = " We cannot process your request at the moment. Try again later. " \
-                          "If the problem persists kindly call our customer care service on (254) 795891656, " \
+                          "If the problem persists kindly call our customer care service on +254755564433, " \
                           "use M-pesa transaction code {} for reference".format(TransactionID)
                 #instance.notification_push("single", registration_id, title, message)
                 date_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -672,6 +672,12 @@ class WalletToPayBill(APIView):
             wallet_amount = amount + charges
             validty = wallet_utils.Wallet()
             valid, message = validty.validate_account(request, pin, wallet_amount)
+            has_defaulted = CircleMember.objects.filter(member=request.user.member, is_active=False)
+            if has_defaulted.exists():
+                data = {"status": 0,
+                        "message": "Unable to transfer money.One of your accounts is currently deactivated due"
+                                   " to delayed loan repayment. Kindly repay your loan."}
+                return Response(data, status=status.HTTP_200_OK)
             if valid:
                 if amount >= min_trx_amount and amount <= max_trx_amount:
                     result = mpesaAPI.mpesa_b2b_checkout(amount, account_number, paybill_number)
@@ -739,6 +745,12 @@ class WalletToBankPayBill(APIView):
             wallet_amount = amount + charges
             validty = wallet_utils.Wallet()
             valid, message = validty.validate_account(request, pin, wallet_amount)
+            has_defaulted = CircleMember.objects.filter(member=request.user.member, is_active=False)
+            if has_defaulted.exists():
+                data = {"status": 0,
+                        "message": "Unable to transfer money.One of your accounts is currently deactivated due"
+                                   " to delayed loan repayment. Kindly repay your loan."}
+                return Response(data, status=status.HTTP_200_OK)
             if valid:
                 if amount >= min_trx_amount and amount <= max_trx_amount:
                     result = mpesaAPI.mpesa_b2b_checkout(amount, account_number, paybill_number)
@@ -834,18 +846,11 @@ class MpesaB2BResultURL(APIView):
                 try:
                     wallet_instance = wallet_utils.Wallet()
                     wallet = member.wallet
-                    a = AirtimePurchaseLog.objects.filter(member=member).lastest('id')
-                    f = open('a_test.txt','a')
-                    f.write(a.originator_conversation_id)
-                    f.write(initiatorPhoneNumber)
-                    f.write(member.phone_number)
                     try:
                         AirtimePurchaseLog.objects.get(originator_conversation_id=OriginatorConversationID, member=member)
                         is_airtime_purchase = True
                     except AirtimePurchaseLog.DoesNotExist:
                         is_airtime_purchase = False
-                    f.write(is_airtime_purchase)
-                    f.close()
 
                     ################ africas talking purchase airtime identifier #######################
                     if is_airtime_purchase:
@@ -1009,16 +1014,23 @@ class PurchaseAirtime(APIView):
             wallet_instance, general_instance = wallet_utils.Wallet(), general_utils.General()
             valid, response = wallet_instance.validate_account(request, pin, amount)
             member = request.user.member
+            has_defaulted = CircleMember.objects.filter(member=member, is_active=False)
+            if has_defaulted.exists():
+                data = {"status": 0,
+                        "message": "Unable to buy airtime.One of your accounts is currently deactivated due"
+                                   " to delayed loan repayment. Kindly repay your loan to be able to buy airtime."}
+                return Response(data, status=status.HTTP_200_OK)
             if valid:
                 try:
                     recipient = serializer.validated_data['phone_number']
                     init_airtime_unique_id = general_instance.generate_unique_identifier('FAT')
                     airtime_log = AirtimePurchaseLog.objects.create(member=member, recipient=recipient,
-                                                                    originator_conversation_id=init_airtime_unique_id)
+                                                                    originator_conversation_id=init_airtime_unique_id,
+                                                                    amount=amount)
                     result = mpesaAPI.mpesa_b2b_checkout(amount, account_number, paybill_number)
                     if "errorCode" in result.keys():
                         # If errorCode in response, then request not successful, error occured
-                        airtime_log.extra_info("B2B returned error code")
+                        airtime_log.extra_info = "B2B returned error code"
                         airtime_log.save()
                         data = {"status": 0, "message": "Unable to process request.Please try Again"}
                         return Response(data, status=status.HTTP_200_OK)
@@ -1048,7 +1060,7 @@ class PurchaseAirtime(APIView):
 
                     else:
                         # If response was unexpected then request not sent, an error occured.
-                        airtime_log.extra_info("B2B returned error code")
+                        airtime_log.extra_info = "B2B returned error code"
                         airtime_log.save()
                         data = {"status": 0, "message": "Unable to process request.Please try Again"}
                         return Response(data, status=status.HTTP_200_OK)

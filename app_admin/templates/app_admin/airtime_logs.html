@@ -1,0 +1,67 @@
+{% extends 'app_admin/base_dashboard.html' %}
+{% load static %}
+{% load humanize%}
+{% block current_page %}
+    <i class="fa fa-circle-o-notch"></i> Circles list
+{% endblock %}
+{% block main_container %}
+     <div class="col-sm-9 col-sm-offset-3 col-lg-10 col-lg-offset-2 main">
+        <br>
+        <form class="form-horizontal">
+          <div class="form-group">
+            <div class="col-lg-4 col-md-4 col-sm-4">
+              <input type="text"
+                class="w3-input w3-text-blue pull-right"
+                id="member-search-val"
+                name="member_search_val"
+                placeholder="Search for member">
+            </div>
+            <div class="col-lg-2 col-md-2 col-sm-2">
+              <a class="w3-btn w3-blue-gray pull-left" id="btn-search-member">
+                <i class="fa fa-search"></i>
+              </a>
+            </div>
+          </div>
+        </form>
+        <br>
+        <div class="w3-container">
+            <table class="w3-table w3-striped">
+                <thead class="w3-grey w3-text-white">
+                    <td>#</td>
+                    <td>Member</td>
+                    <td>Recipient</td>
+                    <td>Amount</td>
+                    <td>Is purchased</td>
+                    <td>Transaction time</td>
+                    <td>Info</td>
+                </thead>
+                <tbody id="circles-table">
+                    {% for obj in airtime_logs %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td>
+                                {{ obj.member.user.first_name }} {{ obj.member.user.last_name }}
+                                ({{ obj.member.phone_number }})
+                            </td>
+                            <td>
+                                {{ obj.recipient }}
+                            </td>
+                            <td>{{ obj.amount }}</td>
+                            {% if obj.is_purchased == True %}
+                                <td class="w3-text-green">{{ obj.is_purchased }}</td>
+                            {% elif obj.is_purchased == False %}
+                                <td class="w3-text-red">
+                                    <a href="" class="w3-text-red">{{ obj.is_purchased }}</a>
+                                </td>
+                            {% endif %}
+                            <td>{{ obj.time_of_transaction }}</td>
+                            <td>{{ obj.extra_info }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+     </div>
+{% endblock %}
+
+

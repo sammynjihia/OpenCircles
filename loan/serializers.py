@@ -1,6 +1,9 @@
 from rest_framework import serializers
 from loan.models import LoanApplication, LoanTariff, LoanRepayment, LoanAmortizationSchedule, GuarantorRequest, LoanProcessingFee
 from app_utility import loan_utils
+import datetime
+from dateutil.relativedelta import relativedelta
+
 
 
 class LoanApplicationSerializer(serializers.Serializer):
@@ -58,6 +61,74 @@ class LoansSerializer(serializers.ModelSerializer):
             return ln[0].shares_transaction.num_of_shares
         except:
             return 0
+
+class CircleLoansSerializer(serializers.ModelSerializer):
+    """
+    Serializer for circle loan listing endpoint
+    """
+    time_of_application = serializers.SerializerMethodField()
+    time_approved = serializers.SerializerMethodField()
+    time_disbursed = serializers.SerializerMethodField()
+    time_of_last_payment = serializers.SerializerMethodField()
+    locked_shares = serializers.SerializerMethodField()
+    is_defaulted = serializers.SerializerMethodField()
+    member = serializers.SerializerMethodField()
+    class Meta:
+        model = LoanApplication
+        fields = ['amount', 'loan_code', 'locked_shares', 'num_of_repayment_cycles', 'time_of_application',
+                  'is_approved', 'time_approved', 'is_disbursed', 'time_disbursed', 'is_fully_repaid',
+                  'time_of_last_payment', 'is_defaulted', 'member']
+
+    def get_time_of_application(self, loan):
+        return loan.time_of_application.strftime("%Y-%m-%d %H:%M:%S")
+
+    def get_time_approved(self, loan):
+        if loan.time_approved is None:
+            return loan.time_approved
+        return loan.time_approved.strftime("%Y-%m-%d %H:%M:%S")
+
+    def get_time_disbursed(self, loan):
+        if loan.time_disbursed is None:
+            return loan.time_disbursed
+        return loan.time_disbursed.strftime("%Y-%m-%d %H:%M:%S")
+
+    def get_time_of_last_payment(self, loan):
+        if loan.time_of_last_payment is None:
+            return loan.time_of_last_payment
+        return loan.time_of_last_payment.strftime("%Y-%m-%d %H:%M:%S")
+
+    def get_locked_shares(self, loan):
+        try:
+            ln = loan.locked.filter(shares_transaction__shares=loan.circle_member.shares.get())
+            return ln[0].shares_transaction.num_of_shares
+        except:
+            return 0
+
+    def get_is_defaulted(self, loan):
+        payment_duration = loan.loan_tariff.num_of_months
+        time_disbursed = loan.time_disbursed
+        current_time = datetime.datetime.now().date()
+        time_of_payment = time_disbursed + relativedelta(months=payment_duration)
+        time_of_payment = time_of_payment.date()
+        time_paid = loan.time_of_last_payment
+
+
+        if loan.is_fully_repaid == False:
+
+            if current_time > time_of_payment:
+                return True
+            return False
+        else:
+            if time_paid.date() > time_of_payment:
+                return True
+            return False
+
+    def get_member(self, loan):
+        return loan.circle_member.id
+
+
+
+
 
 class CircleAccNoSerializer(serializers.Serializer):
     """

@@ -741,6 +741,30 @@ class Loans(APIView):
         data = {"status": 0, "message": serializers.errors}
         return Response(data, status=status.HTTP_200_OK)
 
+class CircleLoans(APIView):
+    """
+    lists all loans in a particular circle
+    """
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = (IsAuthenticated,)
+
+    def post(self, request):
+        serializers = CircleAccNoSerializer(data=request.data)
+        if serializers.is_valid():
+            circle_acc_number = serializers.validated_data['circle_acc_number']
+            circle = Circle.objects.get(circle_acc_number=circle_acc_number)
+            loans = loanapplication.objects.filter(circle_member__circle=circle)
+            if loans.exists():
+                loans = CircleLoansSerializer(loans, many=True)
+                data = {"status": 1, "loans":loans.data}
+                return Response(data, status=status.HTTP_200_OK)
+            message = "This circle has no loans "
+            data = {"status": 0, "message": message}
+            return Response(data, status=status.HTTP_200_OK)
+        data = {"status": 0, "message": serializers.errors}
+        return Response(data, status=status.HTTP_200_OK)
+
+
 class LoanGuarantors(APIView):
     """
     Retrieves all guarantors for the loan

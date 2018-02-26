@@ -478,6 +478,7 @@ class JoinCircle(APIView):
                         registration_ids = fcm_instance.get_circle_members_token(circle, member)
                         fcm_instance.data_push("mutiple", registration_ids, fcm_data)
                         print(fcm_data)
+                        ref = False
                         if existing_circle_member == 0:
                             try:
                                 is_invited = CircleInvitation.objects.get(phone_number=member.phone_number,
@@ -486,6 +487,7 @@ class JoinCircle(APIView):
                                 today = datetime.date.today()
                                 if is_invited.time_invited.date() == today and today.weekday() == 4:
                                     referral_fee = settings.FRIDAY_REFERRAL_FEE
+                                ref = True
                                 referral_programme_promotion.delay(is_invited.id, referral_fee)
                             except CircleInvitation.DoesNotExist:
                                 print("object does not exist")
@@ -494,7 +496,8 @@ class JoinCircle(APIView):
                                                             circle=circle,
                                                             is_disbursed=False,
                                                             extra_info="user has been invited by more than one circle member")
-                        CircleInvitation.objects.filter(phone_number=member.phone_number,
+                        if not ref:
+                            CircleInvitation.objects.filter(phone_number=member.phone_number,
                                                             invited_by__circle=circle).delete()
                         data = {"status":1,
                                 "wallet_transaction":wallet_serializer.data,

@@ -96,17 +96,29 @@ class LoginIn(APIView):
                 username = sms_utils.Sms().format_phone_number(username)
             user = authenticate(username=username, password=serializer.validated_data.get("pin"))
             if user is not None:
-                if imei_number == user.member.imei_number:
+                imei_exists = Member.objects.filter(imei_number=user.member.imei_number).exists()
+                if imei_exists:
+                    if imei_number == user.member.imei_number:
+                        login(request, user)
+                        user.member.device_token = serializer.validated_data['app_token']
+                        user.member.save()
+                        token, created = Token.objects.get_or_create(user=user)
+                        serializer = MemberSerializer(request.user.member)
+                        data = {"status":1, "token":token.key, "member":serializer.data}
+                        return Response(data, status=status.HTTP_200_OK)
+                    else:
+                        data = {"status":0,"message":"Accessing your account from other devices is not permitted."}
+                        return Response(data, status=status.HTTP_200_OK)
+                else:
                     login(request, user)
                     user.member.device_token = serializer.validated_data['app_token']
+                    user.member.imei_number = imei_number
                     user.member.save()
                     token, created = Token.objects.get_or_create(user=user)
                     serializer = MemberSerializer(request.user.member)
-                    data = {"status":1, "token":token.key, "member":serializer.data}
+                    data = {"status": 1, "token": token.key, "member": serializer.data}
                     return Response(data, status=status.HTTP_200_OK)
-                else:
-                    data = {"status":0,"message":"Accessing your account from other devices is not permitted."}
-                    return Response(data, status=status.HTTP_200_OK)
+
             data = {"status":0, "message":"Invalid credentials"}
             return Response(data, status=status.HTTP_200_OK)
         data = {"status":0, "message":serializer.errors}

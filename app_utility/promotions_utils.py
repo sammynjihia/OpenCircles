@@ -69,7 +69,7 @@ class Promotions():
                                 fcm_instance = fcm_utils.Fcm()
                                 sender_fcm_data = {"request_type":"WALLET_TO_WALLET_TRANSACTION",
                                                    "wallet_transaction":sender_wallet_transaction.data}
-                                recipient_fcm_data =  {"request_type":"WALLET_TO_WALLET_TRANSACTION",
+                                recipient_fcm_data = {"request_type":"WALLET_TO_WALLET_TRANSACTION",
                                                        "wallet_transaction":recipient_wallet_transaction.data}
                                 is_invited.delete()
                                 try:

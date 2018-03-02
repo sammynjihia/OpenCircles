@@ -633,3 +633,33 @@ def get_circle_members(request):
             return Response(data, status=status.HTTP_200_OK)
     data = {"status":0, "message":serializer.errors}
     return Response(data, status=status.HTTP_200_OK)
+
+
+
+class CircleTransactions(APIView):
+    """
+    Retrieves circle transactions
+    """
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = (IsAuthenticated,)
+
+    def post(self,request):
+        serializer = CircleMemberDetailsSerializer(data=request.data)
+        if serializer.is_valid():
+            instance = sms_utils.Sms()
+            circle = Circle.objects.get(circle_acc_number=serializer.validated_data['circle_acc_number'])
+            member = Member.objects.get(phone_number=instance.format_phone_number(
+                                                                serializer.validated_data['phone_number']))
+            try:
+                circle_member = CircleMember.objects.get(circle=circle, member=member)
+            except CircleMember.DoesNotExist:
+                data = {"status":0, "message":"Circle member does not exist"}
+                return Response(data, status=status.HTTP_200_OK)
+            shares = Shares.objects.filter(circle_member= circle_member)
+            transaction = IntraCircleShareTransaction.objects.filter(shares=shares)
+            print (shares)
+            circle_transaction_serializer = SharesTransactionSerializer(transaction, many=True)
+            data = {"status":1, "transactions":circle_transaction_serializer.data}
+            return Response(data, status=status.HTTP_200_OK)
+
+

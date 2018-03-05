@@ -16,7 +16,9 @@ from .serializers import *
 from .models import Transactions, Wallet, B2CTransaction_log, B2BTransaction_log, MpesaTransaction_logs, \
                     AdminMpesaTransaction_logs, RevenueStreams, PendingMpesaTransactions, AirtimePurchaseLog
 from member.models import Member
-from circle.models import CircleMember
+from circle.models import CircleMember, Circle
+
+from shares.models import InitiativeCircleShareTransaction
 
 from app_utility import wallet_utils, general_utils, fcm_utils, mpesa_api_utils, sms_utils, brain_tree_utils
 
@@ -577,7 +579,7 @@ class MpesaC2BConfirmationURL(APIView):
         transaction_id = result["TransID"].encode()
         transaction_time = result["TransTime"].encode()
         amount = result["TransAmount"].encode()
-        phone_number = result["BillRefNumber"].encode()
+        bill_reference = result["BillRefNumber"].encode()
         transacted_by_msisdn = result["MSISDN"].encode()
         transacted_by_firstname = result["FirstName"].encode()
         transacted_by_middlename = result["MiddleName"].encode()
@@ -591,14 +593,46 @@ class MpesaC2BConfirmationURL(APIView):
         # Format phone number and convert amount from string to integer
         transaction_amount = float(amount)
         phonenumber = sms_utils.Sms()
-        wallet_account = phonenumber.format_phone_number(phone_number)
         member = None
         mpesa_transactions = None
         #Check for existence of member with that wallet account
         try:
+            wallet_account = phonenumber.format_phone_number(bill_reference)
             member = Member.objects.get(phone_number=wallet_account)
         except Member.DoesNotExist:
             data = {"status": 0, "message":"Member with phone number does not exist"}
+            print ("Error member does not exist")
+            try:
+                # check if circle exists
+                circle_accNumber = bill_reference
+                circle = Circle.objects.get(circle_acc_number=circle_accNumber)
+
+            except Circle.DoesNotExist:
+                data = {"status": 0, "message": "Circle with that circle account number does not exist"}
+                print("Error Circle does not exist ")
+                return Response(data, status=status.HTTP_200_OK)
+
+            transaction_desc = "Initiative transaction description"
+            initiative_mpesa_transactions = InitiativeCircleShareTransaction.objects.create(transaction_type="CREDIT",
+                                                             transaction_desc=transaction_desc,
+                                                             circle_accNumber=bill_reference,
+                                                             transacted_by_msisdn=transacted_by,
+                                                             num_of_shares=transaction_amount,
+                                                             transaction_code=transaction_id)
+            admin_mpesa_transaction.is_committed = True
+            admin_mpesa_transaction.save()
+            message = "{} confirmed. You have successfully deposited {} into circle {} with account {}" \
+                      " on OPENCIRCLES ".format(transaction_id, transaction_amount,
+                                                           circle.circle_name, circle.circle_acc_number)
+            phonenumber.sendsms(transacted_by_msisdn, message)
+            serializer = InitiativeSharesTransactionSerializer(initiative_mpesa_transactions)
+            # instance = fcm_utils.Fcm()
+            # registration_id = member.device_token # This should be the registration id of the circle admin(s)
+            # fcm_data = {"request_type": "CONTRIBUTION",
+            #             "transaction": serializer.data}
+            # instance.data_push("single", registration_id, fcm_data)
+            data = {"status": 1, "wallet_transaction": serializer.data}
+
             return Response(data, status=status.HTTP_200_OK)
 
         general_instance,wallet_instance = general_utils.General(), wallet_utils.Wallet()

@@ -23,6 +23,20 @@ class IntraCircleShareTransaction(models.Model):
     class Meta:
         db_table = 'IntraCircleShareTransaction'
 
+class InitiativeCircleShareTransaction(models.Model):
+    TRANSACTION_TYPE = [('deposit','DEPOSIT'),
+                        ('withdraw','WITHDRAW')]
+    transaction_type = models.CharField(choices=TRANSACTION_TYPE, max_length=8)
+    circle_accNumber = models.CharField(max_length=100)
+    transacted_by_msisdn = models.CharField(max_length=100, blank=False)
+    num_of_shares = models.IntegerField(blank=False, null=False, default=0)
+    transaction_desc = models.TextField(max_length=10000, blank=False)
+    transaction_time = models.DateTimeField(null=False, auto_now_add=True)
+    transaction_code = models.CharField(max_length=100, unique=True)
+
+    class Meta:
+        db_table = 'InitiativeCircleShareTransaction'
+
 class LockedShares(models.Model):
     shares_transaction = models.ForeignKey(IntraCircleShareTransaction, null=False, related_name="locked")
     loan = models.ForeignKey('loan.LoanApplication', null=False, related_name="locked")

@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
 from .models import Wallet,Transactions
+from shares.models import InitiativeCircleShareTransaction
 
 import datetime
 
@@ -28,6 +29,27 @@ class WalletTransactionsSerializer(serializers.ModelSerializer):
 
     def get_transaction_time(self, transaction):
         return transaction.transaction_time.strftime("%Y-%m-%d %H:%M:%S")
+
+class InitiativeSharesTransactionSerializer(serializers.ModelSerializer):
+    """
+    Serializer for shares transaction endpoint
+    """
+    time_of_transaction = serializers.SerializerMethodField()
+    type_of_transaction = serializers.CharField(source='transaction_type')
+    amount = serializers.IntegerField(source='num_of_shares')
+    circle_acc_number = serializers.SerializerMethodField()
+
+    class Meta:
+        model = InitiativeCircleShareTransaction
+        fields = ['type_of_transaction', 'amount', 'time_of_transaction',
+                  'circle_acc_number', 'transaction_desc']
+
+    def get_time_of_transaction(self, transaction):
+        time = transaction.transaction_time.strftime("%Y-%m-%d %H:%M:%S")
+        return time
+
+    def get_circle_acc_number(self, transaction):
+        return transaction.circle_accNumber
 
 class WalletTransactionSerializer(serializers.Serializer):
     """

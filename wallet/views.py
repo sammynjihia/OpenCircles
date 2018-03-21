@@ -704,20 +704,44 @@ class WalletToPayBill(APIView):
             mpesaAPI = mpesa_api_utils.MpesaUtils()
             charges = 1
             wallet_amount = amount + charges
-            validty = wallet_utils.Wallet()
-            valid, message = validty.validate_account(request, pin, wallet_amount)
+            validty, general_instance = wallet_utils.Wallet(), general_utils.General()
             has_defaulted = CircleMember.objects.filter(member=request.user.member, is_active=False)
             if has_defaulted.exists():
                 data = {"status": 0,
                         "message": "Unable to transfer money.One of your accounts is currently deactivated due"
                                    " to delayed loan repayment. Kindly repay your loan."}
                 return Response(data, status=status.HTTP_200_OK)
+            pending_trans = PendingMpesaTransactions.objects.filter(type='B2B', purpose="paybill", is_valid=True,
+                                                                    trx_time__date=datetime.date.today(),
+                                                                    amount=amount, member=request.user.member)
+            if pending_trans.exists():
+                data = {"status": 0,
+                        "message": "Unable to process request.You have a similar pending request in process."}
+                return Response(data, status=status.HTTP_200_OK)
+            valid, message = validty.validate_account(request, pin, wallet_amount)
             if valid:
                 if amount >= min_trx_amount and amount <= max_trx_amount:
+                    senders_PhoneNumber = request.user.member.phone_number
+                    account_Number = account_number
+                    recepient_PayBillNumber = paybill_number
+                    init_paybill_unique_id = general_instance.generate_unique_identifier('FPT')
+                    b2b_Transaction_log = B2BTransaction_log(OriginatorConversationID=init_paybill_unique_id,
+                                                             Initiator_PhoneNumber=senders_PhoneNumber,
+                                                             Recipient_PayBillNumber=recepient_PayBillNumber,
+                                                             AccountNumber=account_Number).save()
+                    pending_mpesa_transaction = PendingMpesaTransactions(member=request.user.member,
+                                                                         originator_conversation_id=init_paybill_unique_id,
+                                                                         amount=amount,
+                                                                         charges=charges,
+                                                                         trx_time=datetime.datetime.now(),
+                                                                         is_valid=True,
+                                                                         type='B2B',
+                                                                         purpose='paybill').save()
                     result = mpesaAPI.mpesa_b2b_checkout(amount, account_number, paybill_number)
-
                     if "errorCode" in result.keys():
                         # If errorCode in response, then request not successful, error occured
+                        b2b_Transaction_log.delete()
+                        pending_mpesa_transaction.delete()
                         data = {"status":0, "message": result["errorMessage"] }
                         return Response(data, status=status.HTTP_200_OK)
 
@@ -725,28 +749,19 @@ class WalletToPayBill(APIView):
                         # If ResponseCode is 0 then service request was accepted successfully
                         # log conversation id, senders phone number and recepients paybill number in db
                         OriginatorConversationID = result["OriginatorConversationID"]
-                        senders_PhoneNumber = request.user.member.phone_number
-                        account_Number = account_number
-                        recepient_PayBillNumber = paybill_number
-                        b2b_Transaction_log = B2BTransaction_log(OriginatorConversationID=OriginatorConversationID,
-                                                                 Initiator_PhoneNumber=senders_PhoneNumber,
-                                                                 Recipient_PayBillNumber=recepient_PayBillNumber,
-                                                                 AccountNumber=account_Number)
+                        b2b_Transaction_log.OriginatorConversationID=OriginatorConversationID
                         b2b_Transaction_log.save()
-
-                        PendingMpesaTransactions(member=request.user.member,
-                                                 originator_conversation_id=OriginatorConversationID,
-                                                 amount=wallet_amount,
-                                                 trx_time=datetime.datetime.now(),
-                                                 is_valid=True).save()
-
-
+                        pending_mpesa_transaction.originator_conversation_id=OriginatorConversationID
+                        pending_mpesa_transaction.save()
                         print(result["ResponseDescription"])
-                        data = {"status": 1, "message": "Your request has been accepted successfully. Wait for m-pesa to process this transaction."}
+                        data = {"status": 1, "message": "Your request has been accepted successfully. "
+                                                        "Wait for m-pesa to process this transaction."}
                         return Response(data, status=status.HTTP_200_OK)
 
                     else:
                         #If response was unexpected then request not sent, an error occured.
+                        b2b_Transaction_log.delete()
+                        pending_mpesa_transaction.delete()
                         data = {"status": 0, "message": "Sorry! Request not sent"}
                         return Response(data, status=status.HTTP_200_OK)
 
@@ -764,7 +779,7 @@ class WalletToBankPayBill(APIView):
     """
     authentication_classes = (TokenAuthentication,)
     permissions_class = (IsAuthenticated,)
-    def post(self, request, *args):
+    def post(self, request):
         min_trx_amount = 1
         max_trx_amount = 70000
         serializers = WalletToBankSerializer(data=request.data)
@@ -777,20 +792,44 @@ class WalletToBankPayBill(APIView):
             mpesaAPI = mpesa_api_utils.MpesaUtils()
             charges = 1
             wallet_amount = amount + charges
-            validty = wallet_utils.Wallet()
-            valid, message = validty.validate_account(request, pin, wallet_amount)
+            validty, general_instance = wallet_utils.Wallet(), general_utils.General()
             has_defaulted = CircleMember.objects.filter(member=request.user.member, is_active=False)
             if has_defaulted.exists():
                 data = {"status": 0,
                         "message": "Unable to transfer money.One of your accounts is currently deactivated due"
                                    " to delayed loan repayment. Kindly repay your loan."}
                 return Response(data, status=status.HTTP_200_OK)
+            pending_trans = PendingMpesaTransactions.objects.filter(type='B2B', purpose="bank", is_valid=True,
+                                                                    trx_time__date=datetime.date.today(),
+                                                                    amount=amount, member=request.user.member)
+            if pending_trans.exists():
+                data = {"status": 0,
+                        "message": "Unable to process request.You have a similar pending request in process."}
+                return Response(data, status=status.HTTP_200_OK)
+            valid, message = validty.validate_account(request, pin, wallet_amount)
             if valid:
                 if amount >= min_trx_amount and amount <= max_trx_amount:
+                    senders_PhoneNumber = request.user.member.phone_number
+                    account_Number = account_number
+                    recepient_PayBillNumber = paybill_number
+                    init_bank_unique_id = general_instance.generate_unique_identifier('FBT')
+                    b2b_Transaction_log = B2BTransaction_log.objects.create(OriginatorConversationID=init_bank_unique_id,
+                                                             Initiator_PhoneNumber=senders_PhoneNumber,
+                                                             Recipient_PayBillNumber=recepient_PayBillNumber,
+                                                             AccountNumber=account_Number)
+                    pending_mpesa_transaction = PendingMpesaTransactions.objects.create(member=request.user.member,
+                                                                                        originator_conversation_id=init_bank_unique_id,
+                                                                                        amount=amount,
+                                                                                        charges=charges,
+                                                                                        trx_time=datetime.datetime.now(),
+                                                                                        is_valid=True,
+                                                                                        type='B2B',
+                                                                                        purpose='bank')
                     result = mpesaAPI.mpesa_b2b_checkout(amount, account_number, paybill_number)
-
                     if "errorCode" in result.keys():
                         # If errorCode in response, then request not successful, error occured
+                        b2b_Transaction_log.delete()
+                        pending_mpesa_transaction.delete()
                         data = {"status":0, "message": result["errorMessage"] }
                         return Response(data, status=status.HTTP_200_OK)
 
@@ -798,22 +837,10 @@ class WalletToBankPayBill(APIView):
                         # If ResponseCode is 0 then service request was accepted successfully
                         # log conversation id, senders phone number and recepients paybill number in db
                         OriginatorConversationID = result["OriginatorConversationID"]
-                        senders_PhoneNumber = request.user.member.phone_number
-                        account_Number = account_number
-                        recepient_PayBillNumber = paybill_number
-                        b2b_Transaction_log = B2BTransaction_log(OriginatorConversationID=OriginatorConversationID,
-                                                                 Initiator_PhoneNumber=senders_PhoneNumber,
-                                                                 Recipient_PayBillNumber=recepient_PayBillNumber,
-                                                                 AccountNumber=account_Number)
+                        b2b_Transaction_log.OriginatorConversationID=OriginatorConversationID,
                         b2b_Transaction_log.save()
-
-                        PendingMpesaTransactions(member=request.user.member,
-                                                 originator_conversation_id=OriginatorConversationID,
-                                                 amount=wallet_amount,
-                                                 trx_time=datetime.datetime.now(),
-                                                 is_valid=True).save()
-
-
+                        pending_mpesa_transaction.originator_conversation_id=OriginatorConversationID
+                        pending_mpesa_transaction.save()
                         print(result["ResponseDescription"])
                         data = {"status": 1, "message": "Your request has been accepted successfully. "
                                                         "Wait for m-pesa to process this transaction."}
@@ -821,6 +848,8 @@ class WalletToBankPayBill(APIView):
 
                     else:
                         #If response was unexpected then request not sent, an error occured.
+                        b2b_Transaction_log.delete()
+                        pending_mpesa_transaction.delete()
                         data = {"status": 0, "message": "Sorry! Request not sent"}
                         return Response(data, status=status.HTTP_200_OK)
 
@@ -856,9 +885,13 @@ class MpesaB2BResultURL(APIView):
                                                              Response=data, is_committed=False)
         admin_mpesa_transaction.save()
 
+        mpesa_transaction = MpesaTransaction_logs(OriginatorConversationID=OriginatorConversationID, ResultCode=ResultCode,
+                                                  ResultDesc=ResultDesc)
+        mpesa_transaction.save()
         b2b_trx_log = B2BTransaction_log.objects.get(OriginatorConversationID=OriginatorConversationID)
         initiatorPhoneNumber = b2b_trx_log.Initiator_PhoneNumber
-        mpesa_transaction = MpesaTransaction_logs(OriginatorConversationID=OriginatorConversationID, ResultCode=ResultCode,
+        mpesa_transaction = MpesaTransaction_logs(OriginatorConversationID=OriginatorConversationID,
+                                                  ResultCode=ResultCode,
                                                   ResultDesc=ResultDesc)
         mpesa_transaction.save()
 
@@ -876,12 +909,13 @@ class MpesaB2BResultURL(APIView):
             charges = 1
             created_objects = []
             try:
-                member=Member.objects.get(phone_number=initiatorPhoneNumber)
+                member = Member.objects.get(phone_number=initiatorPhoneNumber)
                 try:
                     wallet_instance = wallet_utils.Wallet()
                     wallet = member.wallet
                     try:
-                        AirtimePurchaseLog.objects.get(originator_conversation_id=OriginatorConversationID, member=member)
+                        AirtimePurchaseLog.objects.get(originator_conversation_id=OriginatorConversationID,
+                                                       member=member)
                         is_airtime_purchase = True
                     except AirtimePurchaseLog.DoesNotExist:
                         is_airtime_purchase = False
@@ -1054,18 +1088,39 @@ class PurchaseAirtime(APIView):
                         "message": "Unable to buy airtime.One of your accounts is currently deactivated due"
                                    " to delayed loan repayment. Kindly repay your loan to be able to buy airtime."}
                 return Response(data, status=status.HTTP_200_OK)
+            sender_phone_number = member.phone_number
             if valid:
+                pending_trans = PendingMpesaTransactions.objects.filter(type='B2B', purpose="buy airtime", is_valid=True,
+                                                                        trx_time__date=datetime.date.today(),
+                                                                        amount=amount, member=member)
+                if pending_trans.exists():
+                    data = {"status": 0,
+                            "message": "Unable to process request.You have a similar pending request is in process."}
+                    return Response(data, status=status.HTTP_200_OK)
                 try:
                     recipient = serializer.validated_data['phone_number']
                     init_airtime_unique_id = general_instance.generate_unique_identifier('FAT')
                     airtime_log = AirtimePurchaseLog.objects.create(member=member, recipient=recipient,
                                                                     originator_conversation_id=init_airtime_unique_id,
                                                                     amount=amount)
+                    b2b_transaction_log = B2BTransaction_log.objects.create(OriginatorConversationID=init_airtime_unique_id,
+                                                                            Initiator_PhoneNumber=sender_phone_number,
+                                                                            Recipient_PayBillNumber=paybill_number,
+                                                                            AccountNumber=account_number)
+                    pending_mpesa_transaction = PendingMpesaTransactions.objects.create(member=member,
+                                                                                        originator_conversation_id=init_airtime_unique_id,
+                                                                                        amount=amount,
+                                                                                        trx_time=datetime.datetime.now(),
+                                                                                        is_valid=True,
+                                                                                        type='B2B',
+                                                                                        purpose="buy airtime")
                     result = mpesaAPI.mpesa_b2b_checkout(amount, account_number, paybill_number)
                     if "errorCode" in result.keys():
                         # If errorCode in response, then request not successful, error occured
                         airtime_log.extra_info = "B2B returned error code"
                         airtime_log.save()
+                        pending_mpesa_transaction.delete()
+                        b2b_transaction_log.delete()
                         data = {"status": 0, "message": "Unable to process request.Please try Again"}
                         return Response(data, status=status.HTTP_200_OK)
 
@@ -1075,18 +1130,10 @@ class PurchaseAirtime(APIView):
                         originator_conversation_id = result["OriginatorConversationID"]
                         airtime_log.originator_conversation_id = originator_conversation_id
                         airtime_log.save()
-                        sender_phone_number = member.phone_number
-                        b2b_transaction_log = B2BTransaction_log(OriginatorConversationID=originator_conversation_id,
-                                                                 Initiator_PhoneNumber=sender_phone_number,
-                                                                 Recipient_PayBillNumber=paybill_number,
-                                                                 AccountNumber=account_number)
+                        b2b_transaction_log.OriginatorConversationID = originator_conversation_id
                         b2b_transaction_log.save()
-
-                        PendingMpesaTransactions(member=member,
-                                                 originator_conversation_id=originator_conversation_id,
-                                                 amount=amount,
-                                                 trx_time=datetime.datetime.now(),
-                                                 is_valid=True).save()
+                        pending_mpesa_transaction.originator_conversation_id = originator_conversation_id
+                        pending_mpesa_transaction.save()
                         print(result["ResponseDescription"])
                         data = {"status": 1, "message": "Your request has been successfully received. "
                                                         "Wait for transaction to be processed."}
@@ -1096,6 +1143,8 @@ class PurchaseAirtime(APIView):
                         # If response was unexpected then request not sent, an error occured.
                         airtime_log.extra_info = "B2B returned error code"
                         airtime_log.save()
+                        pending_mpesa_transaction.delete()
+                        b2b_transaction_log.delete()
                         data = {"status": 0, "message": "Unable to process request.Please try Again"}
                         return Response(data, status=status.HTTP_200_OK)
 

@@ -30,8 +30,9 @@ class Wallet():
         return False,"Incorrect pin"
 
     def get_pending_mpesa_amount(self, member):
-        pending_total = PendingMpesaTransactions.objects.filter(is_valid=True, member=member).aggregate(total=Sum('amount'))
-        return pending_total['total'] if pending_total['total'] is not None else 0
+        pending_trans = PendingMpesaTransactions.objects.filter(is_valid=True, member=member).aggregate(total_pending=Sum('amount')+Sum('charges'))
+        pending_total = pending_trans['total_pending'] if pending_trans['total_pending'] is not None else 0
+        return pending_total
 
     def calculate_wallet_balance(self,wallet):
         credit = Transactions.objects.filter(wallet=wallet,transaction_type="CREDIT").aggregate(total=Sum("transaction_amount"))

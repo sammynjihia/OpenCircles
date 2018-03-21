@@ -890,10 +890,6 @@ class MpesaB2BResultURL(APIView):
         mpesa_transaction.save()
         b2b_trx_log = B2BTransaction_log.objects.get(OriginatorConversationID=OriginatorConversationID)
         initiatorPhoneNumber = b2b_trx_log.Initiator_PhoneNumber
-        mpesa_transaction = MpesaTransaction_logs(OriginatorConversationID=OriginatorConversationID,
-                                                  ResultCode=ResultCode,
-                                                  ResultDesc=ResultDesc)
-        mpesa_transaction.save()
 
         if ResultCode == 0:
             # do something

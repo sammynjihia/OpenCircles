@@ -114,6 +114,7 @@ class AirtimePurchaseLog(models.Model):
     is_purchased = models.BooleanField(default=False)
     extra_info = models.TextField()
     amount = models.IntegerField(default=0)
+    is_committed = models.BooleanField(default=False)
 
     class Meta:
         db_table = 'AirtimePurchaseLog'

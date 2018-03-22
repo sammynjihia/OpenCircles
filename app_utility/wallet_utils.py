@@ -1,5 +1,5 @@
 from django.db.models import Sum
-from wallet.models import Transactions, PendingMpesaTransactions
+from wallet.models import Transactions, PendingMpesaTransactions, AirtimePurchaseLog
 import datetime
 
 class Wallet():
@@ -66,3 +66,10 @@ class Wallet():
             transaction.transaction_code = code + "01"
         transaction.save()
         return transaction
+
+    def update_airtime_trx(self):
+        a_t = AirtimePurchaseLog.objects.all()
+        for t in a_t:
+            t.is_committed = t.is_purchased
+            print(t.is_committed)
+            t.save()

@@ -32,6 +32,7 @@
                     <td>Recipient</td>
                     <td>Amount</td>
                     <td>Is purchased</td>
+                    <td>Is committed</td>
                     <td>Transaction time</td>
                     <td>Info</td>
                 </thead>
@@ -52,6 +53,13 @@
                             {% elif obj.is_purchased == False %}
                                 <td class="w3-text-red">
                                     <a href="" class="w3-text-red">{{ obj.is_purchased }}</a>
+                                </td>
+                            {% endif %}
+                            {% if obj.is_committed == True %}
+                                <td class="w3-text-green">{{ obj.is_committed }}</td>
+                            {% elif obj.is_committed == False %}
+                                <td class="w3-text-red">
+                                    <a href="" class="w3-text-red">{{ obj.is_committed }}</a>
                                 </td>
                             {% endif %}
                             <td>{{ obj.time_of_transaction }}</td>

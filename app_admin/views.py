@@ -862,6 +862,7 @@ def get_airtime_logs(request):
             "recipient": obj.recipient,
             "amount": amount,
             "is_purchased": obj.is_purchased,
+            "is_committed": obj.is_committed,
             "time_of_transaction": obj.time_of_transaction,
             "extra_info": obj.extra_info
         })

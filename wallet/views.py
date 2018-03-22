@@ -910,22 +910,25 @@ class MpesaB2BResultURL(APIView):
                     wallet_instance = wallet_utils.Wallet()
                     wallet = member.wallet
                     try:
-                        AirtimePurchaseLog.objects.get(originator_conversation_id=OriginatorConversationID,
-                                                       member=member)
+                        a_p = AirtimePurchaseLog.objects.get(originator_conversation_id=OriginatorConversationID,
+                                                             member=member)
                         is_airtime_purchase = True
                     except AirtimePurchaseLog.DoesNotExist:
                         is_airtime_purchase = False
 
                     ################ africas talking purchase airtime identifier #######################
+                    commit_trx = True
                     if is_airtime_purchase:
-                        wallet_balance = wallet_instance.calculate_wallet_balance(wallet) - transactionAmount
-                        transaction_desc = "{} confirmed. You bought {} {} of airtime." \
-                                           "New wallet balance is {} {}.".format(transactionReceipt,
-                                                                                 member.currency,
-                                                                                 transactionAmount,
-                                                                                 member.currency,
-                                                                                 wallet_balance)
-
+                        if a_p.is_purchased:
+                            commit_trx = False
+                        else:
+                            wallet_balance = wallet_instance.calculate_wallet_balance(wallet) - transactionAmount
+                            transaction_desc = "{} confirmed. You bought {} {} of airtime." \
+                                               "New wallet balance is {} {}.".format(transactionReceipt,
+                                                                                     member.currency,
+                                                                                     transactionAmount,
+                                                                                     member.currency,
+                                                                                     wallet_balance)
                     else:
                         transactionAmount += charges
                         wallet_balance = wallet_instance.calculate_wallet_balance(wallet) - transactionAmount
@@ -947,14 +950,27 @@ class MpesaB2BResultURL(APIView):
                                                       time_of_transaction=datetime.datetime.now())
                     ####################################################################################
 
-                    mpesa_transactions = Transactions(wallet=wallet, transaction_type="DEBIT",
-                                                      transaction_desc=transaction_desc,
-                                                      recipient="{} for {}".format(receiverPartyPublicName,
-                                                                                   BillReferenceNumber),
-                                                      transacted_by=wallet.acc_no,
-                                                      transaction_amount=transactionAmount,
-                                                      transaction_code=transactionReceipt, source="MPESA B2B")
-                    mpesa_transactions.save()
+                    if commit_trx:
+                        mpesa_transactions = Transactions(wallet=wallet, transaction_type="DEBIT",
+                                                          transaction_desc=transaction_desc,
+                                                          recipient="{} for {}".format(receiverPartyPublicName,
+                                                                                       BillReferenceNumber),
+                                                          transacted_by=wallet.acc_no,
+                                                          transaction_amount=transactionAmount,
+                                                          transaction_code=transactionReceipt, source="MPESA B2B")
+                        mpesa_transactions.save()
+                    else:
+                        try:
+                            trx = Transactions.objects.get(transaction_code=OriginatorConversationID)
+                            trx.transaction_code = transactionReceipt
+                            trx.save()
+                        except Transactions.DoesNotExist:
+                            with open('purchase_airtime_update_trx_error_log.txt', 'a') as post_file:
+                                message = "Unable fetch airtime trx with originator id {} {}".format(OriginatorConversationID,
+                                                                                                     datetime.datetime.now())
+                                post_file.write(message)
+                                post_file.close()
+
                     admin_mpesa_transaction.is_committed = True
                     admin_mpesa_transaction.save()
 
@@ -967,6 +983,10 @@ class MpesaB2BResultURL(APIView):
                         try:
                             airtime_log = AirtimePurchaseLog.objects.get(
                                 originator_conversation_id=OriginatorConversationID)
+                            if airtime_log.is_purchased:
+                                airtime_log.is_committed = True
+                                airtime_log.save()
+                                return Response("", status=status.HTTP_200_OK)
                             response = sms_utils.Sms().buyairtime(airtime_log.recipient, transactionAmount)
                             is_purchased = True
                             if not response:
@@ -974,6 +994,7 @@ class MpesaB2BResultURL(APIView):
                                                          "Customer's wallet has been debited"
                                 is_purchased = False
                             airtime_log.is_purchased = is_purchased
+                            airtime_log.is_committed = True
                             airtime_log.save()
                         except AirtimePurchaseLog.DoesNotExist:
                             with open('purchase_airtime_error_log.txt', 'a') as post_file:
@@ -1099,6 +1120,33 @@ class PurchaseAirtime(APIView):
                     airtime_log = AirtimePurchaseLog.objects.create(member=member, recipient=recipient,
                                                                     originator_conversation_id=init_airtime_unique_id,
                                                                     amount=amount)
+                    response = sms_utils.Sms().buyairtime(airtime_log.recipient, amount)
+                    if response:
+                        airtime_log.is_purchased = True
+                        airtime_log.save()
+                        wallet = member.wallet
+                        wallet_balance = wallet_instance.calculate_wallet_balance(wallet) - amount
+                        trx_id = init_airtime_unique_id[1:]
+                        transaction_desc = "{} confirmed. You bought {} {} of airtime." \
+                                           "New wallet balance is {} {}.".format(trx_id,
+                                                                                 member.currency,
+                                                                                 amount,
+                                                                                 member.currency,
+                                                                                 wallet_balance)
+                        wallet_trx = Transactions(wallet=wallet, transaction_type="DEBIT",
+                                                          transaction_desc=transaction_desc,
+                                                          recipient="{} for {}".format(paybill_number,
+                                                                                       account_number),
+                                                          transacted_by=wallet.acc_no,
+                                                          transaction_amount=amount,
+                                                          transaction_code=trx_id, source="MPESA B2B")
+                        wallet_trx.save()
+                        serializer = WalletTransactionsSerializer(wallet_trx)
+                        instance = fcm_utils.Fcm()
+                        registration_id = member.device_token
+                        fcm_data = {"request_type": "WALLET_TO_PAYBILL_TRANSACTION",
+                                    "transaction": serializer.data}
+                        instance.data_push("single", registration_id, fcm_data)
                     b2b_transaction_log = B2BTransaction_log.objects.create(OriginatorConversationID=init_airtime_unique_id,
                                                                             Initiator_PhoneNumber=sender_phone_number,
                                                                             Recipient_PayBillNumber=paybill_number,
@@ -1130,6 +1178,9 @@ class PurchaseAirtime(APIView):
                         b2b_transaction_log.save()
                         pending_mpesa_transaction.originator_conversation_id = originator_conversation_id
                         pending_mpesa_transaction.save()
+                        if response:
+                            wallet_trx.transaction_code = originator_conversation_id
+                            wallet_trx.save()
                         print(result["ResponseDescription"])
                         data = {"status": 1, "message": "Your request has been successfully received. "
                                                         "Wait for transaction to be processed."}

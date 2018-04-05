@@ -3,6 +3,7 @@ from __future__ import absolute_import, unicode_literals
 from celery import shared_task
 from member.models import Contacts
 from app_utility import sms_utils, loan_utils, circle_utils
+from circle import delete_circle
 
 
 @shared_task
@@ -49,4 +50,6 @@ def send_frequent_invitations():
 
     circle_member = circle_utils.Circle()
     circle_member.deactivate_circle_member()
+    circle_to_delete = delete_circle.Delete_inactive_circles()
+    circle_to_delete.delete_circles()
     return "Sent messages successfully"

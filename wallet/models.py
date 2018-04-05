@@ -77,8 +77,11 @@ class PendingMpesaTransactions(models.Model):
     member = models.ForeignKey(Member, blank=False, null=False)
     originator_conversation_id = models.CharField(max_length=100, unique=True, blank=False)
     amount = models.FloatField()
+    charges = models.FloatField(default=0)
     trx_time = models.DateTimeField(auto_now_add=True)
     is_valid = models.BooleanField(default=True)
+    type = models.CharField(max_length=5, default='N/A')
+    purpose = models.CharField(max_length=30, default='N/A')
 
     class Meta:
         db_table = 'PendingMpesaTransactions'
@@ -111,6 +114,7 @@ class AirtimePurchaseLog(models.Model):
     is_purchased = models.BooleanField(default=False)
     extra_info = models.TextField()
     amount = models.IntegerField(default=0)
+    is_committed = models.BooleanField(default=False)
 
     class Meta:
         db_table = 'AirtimePurchaseLog'

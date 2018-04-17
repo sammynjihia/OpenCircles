@@ -1,5 +1,6 @@
 from django.db.models import Sum
-from wallet.models import Transactions, PendingMpesaTransactions, AirtimePurchaseLog
+from wallet.models import Transactions, PendingMpesaTransactions, AirtimePurchaseLog, B2BTransaction_log
+from django.db.models import Q
 import datetime
 
 class Wallet():
@@ -73,3 +74,13 @@ class Wallet():
             t.is_committed = t.is_purchased
             print(t.is_committed)
             t.save()
+
+    def update_pending_trx(self):
+        bank_paybills = ["880100", "400200", "247247", "222111", "5225222"]
+        b2b_trxs = B2BTransaction_log.objects.filter(~Q(Recipient_PayBillNumber="564433"))
+        airtime_trx_ids = b2b_trxs.filter(Recipient_PayBillNumber="525900").values_list('OriginatorConversationID')
+        PendingMpesaTransactions.objects.filter(originator_conversation_id__in=airtime_trx_ids).update(type='B2B', purpose="buy airtime")
+        bank_trx_ids = b2b_trxs.filter(Recipient_PayBillNumber__in=bank_paybills).values_list('OriginatorConversationID')
+        PendingMpesaTransactions.objects.filter(originator_conversation_id__in=bank_trx_ids).update(type='B2B', purpose="bank")
+        paybill_trx_ids = b2b_trxs.filter(~Q(OriginatorConversationID__in=airtime_trx_ids|bank_trx_ids)).values_list('OriginatorConversationID')
+        PendingMpesaTransactions.objects.filter(originator_conversation_id__in=paybill_trx_ids).update(type='B2B', purpose="paybill")

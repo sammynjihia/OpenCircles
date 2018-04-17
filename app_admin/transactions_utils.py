@@ -1,10 +1,12 @@
 import datetime
 import json
 from member.models import Member
-from wallet.models import Wallet, Transactions, AdminMpesaTransaction_logs, B2CTransaction_log, PendingMpesaTransactions
+from wallet.models import Wallet, Transactions, AdminMpesaTransaction_logs, B2CTransaction_log, \
+PendingMpesaTransactions, B2BTransaction_log, AirtimePurchaseLog, RevenueStreams
 from wallet.serializers import WalletTransactionsSerializer
 from django.db.models import Sum
 from django.db.models import Q
+from django.db.models import query
 from app_utility.sms_utils import Sms
 from app_utility.wallet_utils import Wallet as WalletUtils
 from app_utility import fcm_utils
@@ -145,6 +147,8 @@ class TransactionUtils:
             return TransactionUtils.commit_mpesa_c2b_transaction(mpesa_transaction)
         elif mpesa_transaction['type'] == 'B2C':
             return TransactionUtils.commit_mpesa_b2c_transaction(mpesa_transaction)
+        elif mpesa_transaction['type'] == 'B2B':
+            return TransactionUtils.commit_mpesa_b2b_transaction(mpesa_transaction)
 
     @staticmethod
     def commit_mpesa_c2b_transaction(mpesa_transaction):
@@ -195,6 +199,165 @@ class TransactionUtils:
                 return False
         else:
             return False
+
+    @staticmethod
+    def commit_mpesa_b2b_transaction(mpesa_transaction):
+        trx_code = mpesa_transaction['transaction_code']
+        amount = mpesa_transaction['amount']
+        transaction_time = mpesa_transaction['time']
+        response_json = json.loads(mpesa_transaction['response'])
+        result = response_json['Result']
+        originator_conversation_id = result['OriginatorConversationID']
+        result_code = int(result['ResultCode'])
+        ResultParameters = result["ResultParameters"]["ResultParameter"]
+        paybill_dict = {n['Key']: n['Value'] for n in ResultParameters for key, value in n.iteritems() if value ==
+                      "ReceiverPartyPublicName"}
+        ReferenceData = result['ReferenceData']['ReferenceItem']
+
+        acc_no_dict = {n['Key']: n['Value'] for n in ReferenceData for key, value in n.iteritems() if
+                  value == "BillReferenceNumber"}
+        paybill = paybill_dict["ReceiverPartyPublicName"].split(" ")[0]
+        acc_no = acc_no_dict['BillReferenceNumber']
+        mpesa_trx_obj = AdminMpesaTransaction_logs.objects.get(TransactioID=trx_code)
+        try:
+            pending_trx = PendingMpesaTransactions.objects.get(originator_conversation_id=originator_conversation_id)
+            print("Normal")
+            print(pending_trx.originator_conversation_id)
+        except PendingMpesaTransactions.DoesNotExist:
+            pending_trx_ids = PendingMpesaTransactions.objects.filter(is_valid=True,
+                                                                      trx_time__date=transaction_time.date(),
+                                                                      type="B2B",
+                                                                      amount=amount).values_list('originator_conversation_id', flat=True)
+            print(pending_trx_ids)
+            print(paybill_dict["ReceiverPartyPublicName"])
+            print(acc_no)
+            b2b_trx = B2BTransaction_log.objects.filter(OriginatorConversationID__in=pending_trx_ids,
+                                                        Recipient_PayBillNumber=paybill,
+                                                        AccountNumber=acc_no)
+            print(b2b_trx)
+            if b2b_trx.exists():
+                b2b_trx_id = b2b_trx[0].OriginatorConversationID
+                pending_trx = PendingMpesaTransactions.objects.get(originator_conversation_id=b2b_trx_id)
+            else:
+                return False
+            print("Not normal")
+            print(pending_trx.originator_conversation_id)
+        b2b_trx = B2BTransaction_log.objects.get(OriginatorConversationID=pending_trx.originator_conversation_id)
+        member = pending_trx.member
+        if paybill == "525900" and  acc_no == "sammienjihia.api":
+            is_buyairtime = False
+            if pending_trx.purpose in ["buy airtime", "N/A"]:
+                is_buyairtime = True
+            trx = pending_trx
+            wallet = member.wallet
+            wallet_balance = WalletUtils().calculate_wallet_balance(wallet) - amount
+            trx_committed = False
+            if is_buyairtime:
+                airtime_log = AirtimePurchaseLog.objects.get(originator_conversation_id=trx.originator_conversation_id)
+                if not airtime_log.is_purchased:
+                    sms_instance = Sms()
+                    recipient = airtime_log.recipient
+                    response = sms_instance.buyairtime(recipient, amount)
+                    if response:
+                        trx_desc = "{} confirmed. You bought airtime worth {} {} for {}. " \
+                                   "New wallet balance is {} {}".format(trx_code, member.currency,
+                                                                        amount, recipient, member.currency,
+                                                                        wallet_balance)
+                        trx_committed = True
+                        airtime_log.is_purchased = True
+                        airtime_log.save()
+                    else:
+                        return False
+            else:
+                charges = trx.charges
+                if charges == 0:
+                    charges = 1
+                wallet_balance = wallet_balance - charges
+                trx_desc = "{} confirmed. {} {} has been sent to {} for account {} " \
+                                   "from your wallet at {}.Transaction cost {} {}." \
+                                   " New wallet balance is {} {}.".format(trx_code,
+                                                                          member.currency,
+                                                                          amount,
+                                                                          paybill_dict["ReceiverPartyPublicName"],
+                                                                          acc_no,
+                                                                          datetime.datetime.now(),
+                                                                          member.currency,
+                                                                          charges,
+                                                                          member.currency,
+                                                                          wallet_balance)
+                amount = amount + charges
+                RevenueStreams.objects.create(stream_amount=charges, stream_type="SMS CHARGES",
+                                              stream_code=trx_code,
+                                              time_of_transaction=datetime.datetime.now())
+                trx_committed = True
+            if trx_committed:
+                wallet_trx = Transactions.objects.create(wallet=wallet,
+                                                     transaction_type="DEBIT",
+                                                     transaction_desc=trx_desc,
+                                                     recipient="{} for {}".format(b2b_trx.Recipient_PayBillNumber,
+                                                                                  b2b_trx.AccountNumber),
+                                                     transacted_by=wallet.acc_no,
+                                                     transaction_amount=amount,
+                                                     transaction_code=trx_code,
+                                                     source="MPESA B2B"
+                                                     )
+                fcm_instance = fcm_utils.Fcm()
+                registration_id = member.device_token
+                trx_serializer = WalletTransactionsSerializer(wallet_trx)
+                fcm_data = {"request_type": "WALLET_TO_PAYBILL_TRANSACTION",
+                            "transaction": trx_serializer.data}
+                print(fcm_data)
+                fcm_instance.data_push('single', registration_id, fcm_data)
+            if is_buyairtime:
+                airtime_log.originator_conversation_id = originator_conversation_id
+                airtime_log.is_committed = True
+                airtime_log.save()
+        else:
+            charges = pending_trx.charges
+            if charges == 0:
+                charges = 1
+            amount += charges
+            wallet = member.wallet
+            wallet_balance = WalletUtils().calculate_wallet_balance(wallet) - amount
+            amount_sent = amount - charges
+            trx_desc = "{} confirmed. {} {} has been sent to {} for account {} " \
+                               "from your wallet at {}.Transaction cost {} {}." \
+                               " New wallet balance is {} {}.".format(trx_code,
+                                                                      member.currency,
+                                                                      amount_sent,
+                                                                      paybill_dict["ReceiverPartyPublicName"],
+                                                                      acc_no,
+                                                                      datetime.datetime.now(),
+                                                                      member.currency,
+                                                                      charges,
+                                                                      member.currency,
+                                                                      wallet_balance)
+            RevenueStreams.objects.create(stream_amount=1, stream_type="SMS CHARGES",
+                                          stream_code=trx_code,
+                                          time_of_transaction=datetime.datetime.now())
+            wallet_trx = Transactions.objects.create(wallet=wallet,
+                                                     transaction_type="DEBIT",
+                                                     transaction_desc=trx_desc,
+                                                     recipient="{} for {}".format(b2b_trx.Recipient_PayBillNumber,
+                                                                                  b2b_trx.AccountNumber),
+                                                     transacted_by=wallet.acc_no,
+                                                     transaction_amount=amount,
+                                                     transaction_code=trx_code,
+                                                     source="MPESA B2B"
+                                                     )
+            fcm_instance = fcm_utils.Fcm()
+            registration_id = member.device_token
+            trx_serializer = WalletTransactionsSerializer(wallet_trx)
+            fcm_data = {"request_type": "WALLET_TO_PAYBILL_TRANSACTION",
+                        "transaction": trx_serializer.data}
+            fcm_instance.data_push('single', registration_id, fcm_data)
+        pending_trx.originator_conversation_id = originator_conversation_id
+        pending_trx.is_valid = False
+        pending_trx.save()
+        b2b_trx.OriginatorConversationID = originator_conversation_id
+        b2b_trx.save()
+        mpesa_trx_obj.is_committed = True
+        mpesa_trx_obj.save()
 
     @staticmethod
     def commit_mpesa_b2c_transaction(mpesa_transaction):

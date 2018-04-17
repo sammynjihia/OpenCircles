@@ -4,14 +4,14 @@ from django.conf import settings
 from member.models import Member
 from circle.models import Circle as CircleModel,CircleMember,CircleInvitation,DeclinedCircles
 from shares.models import Shares,IntraCircleShareTransaction
-from loan.models import LoanTariff,GuarantorRequest,LoanApplication
-from app_utility import fcm_utils,sms_utils
+from wallet.models import Transactions
+from loan.models import LoanTariff, GuarantorRequest, LoanApplication
+from app_utility import fcm_utils, sms_utils, wallet_utils
 from django.db.models import Q
 from circle.serializers import InvitedCircleSerializer
 from dateutil.relativedelta import relativedelta
-
-
-
+from wallet.serializers import WalletTransactionsSerializer
+import datetime
 import operator, re, datetime
 
 class Circle():
@@ -274,3 +274,54 @@ class Circle():
                                                                                        amortize_loan.total_repayment,
                                                                                        circle.circle_name)
                         sms_instance.sendsms(member.phone_number, message)
+
+    def delete_inactive_circles(self):
+        current_time = datetime.datetime.now().date()
+
+        initiated_time = current_time - relativedelta(days=60)
+
+        circles = CircleModel.objects.filter(~Q(time_initiated__range=[initiated_time, current_time]) & Q(is_active=False))
+
+        # for every circle to be deleted get the circle members
+        circle_members = CircleMember.objects.filter(circle__in=circles)
+
+        # for every circle member get their shares
+        member_shares = Shares.objects.filter(circle_member__in=circle_members)
+
+        # for every shares get the transaction association
+        circle_transactions = IntraCircleShareTransaction.objects.filter(shares__in=member_shares)
+
+        # loop through the transaction list
+        for circle_transaction in circle_transactions:
+            member = circle_transaction.shares.circle_member.member
+            print("{} {} {}".format(member.user.first_name, member.user.last_name, member.national_id))
+            wallet = member.wallet
+            amount = circle_transaction.num_of_shares
+            wallet_balance = wallet_utils.Wallet().calculate_wallet_balance(wallet) + amount
+            trxt_desc = "Circle {} has been deactivated due to inactivity. " \
+                        "Your savings of {} {} have been unlocked. " \
+                        "New wallet balance is {} {}".format(circle_transaction.shares.circle_member.circle.circle_name,
+                                                             member.currency,
+                                                             amount, member.currency,
+                                                             wallet_balance)
+            time_processed = datetime.datetime.now()
+            print(trxt_desc)
+            circle_transaction.transaction_type = "WITHDRAW"
+            circle_transaction.transaction_desc = trxt_desc
+            trxt_code = "RT" + circle_transaction.transaction_code
+            circle_transaction.save()
+            transaction = Transactions.objects.create(wallet=circle_transaction.shares.circle_member.member.wallet,
+                                                      transaction_type='CREDIT', transaction_time=time_processed,
+                                                      transaction_desc=trxt_desc,
+                                                      transaction_amount=amount,
+                                                      transaction_code=trxt_code,
+                                                      source="shares")
+            instance = fcm_utils.Fcm()
+            registration_id = circle_transaction.shares.circle_member.member.device_token
+            serializer = WalletTransactionsSerializer(transaction)
+            fcm_data = {"request_type": "WALLET_TO_MPESA_TRANSACTION", "transaction": serializer.data}
+            print(fcm_data)
+            instance.data_push("single", registration_id, fcm_data)
+
+        for circle in circles:
+            circle.delete()

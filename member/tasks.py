@@ -5,6 +5,7 @@ from member.models import Contacts
 from app_utility import sms_utils, loan_utils, circle_utils
 
 
+
 @shared_task
 def add(x, y):
     return x + y
@@ -47,6 +48,7 @@ def send_frequent_invitations():
     #Delete loans that have expired I.E have exceeded the 1 week time span without all the guarantors accepting
     loans.delete_expired_loan()
 
-    circle_member = circle_utils.Circle()
-    circle_member.deactivate_circle_member()
+    circle_instance = circle_utils.Circle()
+    circle_instance.deactivate_circle_member()
+    circle_instance.delete_inactive_circles()
     return "Sent messages successfully"

@@ -278,7 +278,7 @@ class Circle():
     def delete_inactive_circles(self):
         current_time = datetime.datetime.now().date()
 
-        initiated_time = current_time - relativedelta(days=60)
+        initiated_time = current_time - relativedelta(days=90)
 
         circles = CircleModel.objects.filter(~Q(time_initiated__range=[initiated_time, current_time]) & Q(is_active=False))
 

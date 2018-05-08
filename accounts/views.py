@@ -96,7 +96,7 @@ class LoginIn(APIView):
                 username = sms_utils.Sms().format_phone_number(username)
             user = authenticate(username=username, password=serializer.validated_data.get("pin"))
             if user is not None:
-                imei_exists = Member.objects.filter(imei_number=user.member.imei_number).exists()
+                imei_exists = Member.objects.filter(imei_number=imei_number).exists()
                 if imei_exists:
                     if imei_number == user.member.imei_number:
                         login(request, user)

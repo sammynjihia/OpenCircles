@@ -240,27 +240,36 @@ class Loan():
                 circle, member = loan.circle_member.circle, loan.circle_member.member
                 fcm_instance = app_utility.fcm_utils.Fcm()
                 if delta == 1:
-                    today = datetime.now()
-                    today = today.strftime("%Y-%m-%d %H:%M:%S")
-                    message = "Your loan of {} {} will be cancelled on {} due to few " \
-                              "loan guarantors.".format(member.currency,loan.amount, loan_expiry_date)
-                    fcm_data = {"request_type":"SYSTEM_WARNING_MSG",
-                                "title":"Loan Cancellation",
-                                "message":message,"time":today}
-                    registration_id = member.device_token
-                    fcm_instance.data_push("single", registration_id, fcm_data)
+                    shares = loan.circle_member.shares.get()
+                    try:
+                        LockedShares.objects.filter(loan=loan).get(shares_transaction__shares=shares)
+                        today = datetime.now()
+                        today = today.strftime("%Y-%m-%d %H:%M:%S")
+                        message = "Your loan of {} {} will be cancelled on {} due to few " \
+                                  "loan guarantors.".format(member.currency,loan.amount, loan_expiry_date)
+                        fcm_data = {"request_type":"SYSTEM_WARNING_MSG",
+                                    "title":"Loan Cancellation",
+                                    "message":message,"time":today}
+                        registration_id = member.device_token
+                        fcm_instance.data_push("single", registration_id, fcm_data)
+                    except LockedShares.DoesNotExist:
+                        pass
                 else:
                     created_objects = []
                     try:
                         circle_instance = app_utility.circle_utils.Circle()
                         general_instance = app_utility.general_utils.General()
                         amount = loan.amount
+                        try:
+                            locked_shares = LockedShares.objects.filter(loan=loan).get(shares_transaction__shares=shares)
+                        except LockedShares.DoesNotExist:
+                            loan.delete()
+                            return ''
                         guarantors = loan.guarantor.filter().exclude(circle_member=loan.circle_member)
                         shares_desc = " following cancellation of the loan."
                         if guarantors.exists():
                             self.unlock_guarantors_shares(guarantors, shares_desc)
                         shares = loan.circle_member.shares.get()
-                        locked_shares = LockedShares.objects.filter(loan=loan).get(shares_transaction__shares=shares)
                         num_of_shares = locked_shares.shares_transaction.num_of_shares
                         shares_transaction_code = general_instance.generate_unique_identifier('STU')
                         shares_desc = "{} confirmed.Shares worth {} {} that were locked to guarantee " \

@@ -236,7 +236,7 @@ class Loan():
             diff = loan_expiry_date - datetime.now().date()
             print(diff.days)
             delta = diff.days
-            if delta in expiry_days:
+            if delta in expiry_days or delta < 0:
                 circle, member = loan.circle_member.circle, loan.circle_member.member
                 fcm_instance = app_utility.fcm_utils.Fcm()
                 if delta == 1:

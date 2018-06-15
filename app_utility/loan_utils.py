@@ -260,6 +260,7 @@ class Loan():
                         circle_instance = app_utility.circle_utils.Circle()
                         general_instance = app_utility.general_utils.General()
                         amount = loan.amount
+                        shares = loan.circle_member.shares.get()
                         try:
                             locked_shares = LockedShares.objects.filter(loan=loan).get(shares_transaction__shares=shares)
                         except LockedShares.DoesNotExist:
@@ -269,7 +270,6 @@ class Loan():
                         shares_desc = " following cancellation of the loan."
                         if guarantors.exists():
                             self.unlock_guarantors_shares(guarantors, shares_desc)
-                        shares = loan.circle_member.shares.get()
                         num_of_shares = locked_shares.shares_transaction.num_of_shares
                         shares_transaction_code = general_instance.generate_unique_identifier('STU')
                         shares_desc = "{} confirmed.Shares worth {} {} that were locked to guarantee " \

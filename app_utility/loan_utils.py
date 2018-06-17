@@ -232,8 +232,11 @@ class Loan():
         loans = LoanApplication.objects.filter(is_approved=False, is_disbursed=False)
         expiry_days = [1, 0]
         for loan in loans:
+            print("loans candidate to delete")
+            print(loan.loan_code)
             loan_expiry_date = loan.time_of_application.date() + relativedelta(weeks=1)
             diff = loan_expiry_date - datetime.now().date()
+            print("loan delta")
             print(diff.days)
             delta = diff.days
             if delta in expiry_days or delta < 0:

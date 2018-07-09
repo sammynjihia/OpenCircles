@@ -61,7 +61,7 @@ class LoanApplication(APIView):
                 circle_member = CircleMember.objects.get(circle=circle, member=request.user.member)
                 if circle_member.is_active:
                     if request.user.check_password(pin):
-                        pending_loan = LoanApplication.objects.filter(circle_member=circle_member, is_fully_repaid=False)
+                        pending_loan = loanapplication.objects.filter(circle_member=circle_member, is_fully_repaid=False)
                         if pending_loan.exists():
                             data = {"status": 0,
                                     "message": "Unable to process loan.Your have an active loan in the circle."}

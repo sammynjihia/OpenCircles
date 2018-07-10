@@ -7,8 +7,9 @@ class Wallet():
     def validate_account_info(self, request, amount, pin, recipient_account):
         sender_wallet = request.user.member.wallet
         if request.user.check_password(pin):
-            if sender_wallet.acc_no == recipient_account:
-                return False,"Unacceptable transaction.The phone number provided is your own"
+            if recipient_account is not None:
+                if sender_wallet.acc_no == recipient_account:
+                    return False,"Unacceptable transaction.The phone number provided is your own"
             balance = self.calculate_wallet_balance(sender_wallet)
             balance -= float(self.get_pending_mpesa_amount(request.user.member))
             if balance >= amount:
@@ -16,7 +17,7 @@ class Wallet():
             return False,"Insufficient funds in your wallet"
         return False,"Incorrect pin"
 
-    def validate_account(self,request,pin,amount):
+    def validate_account(self, request, pin, amount):
         if request.user.check_password(pin):
             if amount > 0:
                 wallet = request.user.member.wallet

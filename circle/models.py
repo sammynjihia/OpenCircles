@@ -14,17 +14,57 @@ INVITE_STATUS = (
 
 
 class Circle(models.Model):
+    snl = 'Savings and Loans'
+    intv = 'Changa'
+    gl = 'Goals'
+    mgr = 'Merry Go Round'
+    CIRCLE_MODEL_TYPE = (
+        (snl, 'Savings and Loans'),
+        (intv, 'Changa'),
+        (gl, 'Goals'),
+        (mgr, 'Merry Go Round')
+    )
     circle_name = models.CharField(max_length=100, blank=False, unique=True)
-    circle_type = models.CharField(max_length=10, blank=False, choices=CIRCLE_TYPE)
+    circle_type = models.CharField(max_length=10, blank=False, choices=CIRCLE_TYPE, default='PRIVATE')
     circle_acc_number = models.CharField(max_length=10, blank=False, unique=True)
-    initiated_by = models.ForeignKey(Member,null=False, blank=False)
+    initiated_by = models.ForeignKey(Member, null=False, blank=False)
     time_initiated = models.DateTimeField(auto_now_add=True)
     is_active = models.BooleanField(default=False)
     annual_interest_rate = models.DecimalField(max_digits=5, decimal_places=3, default=0.000)
-    minimum_share = models.IntegerField(default=200)
+    minimum_share = models.IntegerField(default=0)
+    is_deactivated = models.BooleanField(default=False)
+    circle_model_type = models.CharField(max_length=20, blank=False, choices=CIRCLE_MODEL_TYPE, default=snl)
+    description = models.TextField(default="")
 
     class Meta:
         db_table = 'Circle'
+
+class MGRCircle(models.Model):
+    week = "WEEKLY"
+    month = "MONTHLY"
+    week_count = 7
+    month_count = 30
+    CYCLE_CHOICES = (
+        (week_count, week),
+        (month_count, month)
+    )
+    DAY_CHOICES = (
+        ('Sunday', 'Sunday'),
+        ('Monday', 'Monday'),
+        ('Tuesday', 'Tuesday'),
+        ('Wednesday', 'Wednesday'),
+        ('Thursday', 'Thursday'),
+        ('Friday', 'Friday'),
+        ('Saturday', 'Saturday')
+    )
+    circle = models.ForeignKey(Circle, null=False, blank=False, on_delete=models.CASCADE, related_name='mgr_circle')
+    schedule = models.CharField(choices=CYCLE_CHOICES, max_length=20)
+    amount = models.FloatField()
+    fine = models.FloatField()
+    day = models.CharField(choices=DAY_CHOICES, max_length=20)
+
+    class Meta:
+        db_table = 'MGRCircle'
 
 class CircleMember(models.Model):
     circle = models.ForeignKey(Circle, null=False, blank=False)
@@ -32,10 +72,32 @@ class CircleMember(models.Model):
     allow_public_guarantees_request = models.BooleanField(default=True)
     time_joined = models.DateTimeField(null=False, auto_now_add=True)
     is_active = models.BooleanField(default=True)
+    is_admin = models.BooleanField(default=False)
+    priority = models.IntegerField(default=0)
+    is_queueing = models.BooleanField(default=False)
 
     class Meta:
         db_table = 'CircleMember'
         unique_together = ("circle", "member")
+
+class MGRCircleCycle(models.Model):
+    cycle = models.FloatField()
+    circle_member = models.ForeignKey(CircleMember, null=False, blank=False, related_name='mgr_circle_cycle')
+    disbursal_date = models.DateField()
+    is_complete = models.BooleanField(default=False)
+    info = models.TextField()
+
+    class Meta:
+        db_table = 'MGRCircleCycle'
+        unique_together = ("cycle", "circle_member")
+
+class CirclePenalty(models.Model):
+    cycle = models.ForeignKey(MGRCircleCycle, null=False, blank=False)
+    circle_member = models.ForeignKey(CircleMember, null=False, blank=False)
+    amount = models.IntegerField()
+
+    class Meta:
+        db_table = 'CirclePenalty'
 
 class CircleInvitation(models.Model):
     invited_by = models.ForeignKey(CircleMember, null=False, blank=False)
@@ -44,6 +106,7 @@ class CircleInvitation(models.Model):
     time_invited = models.DateTimeField(auto_now=True)
     status = models.CharField(max_length=10, default='Pending', choices=INVITE_STATUS)
     is_sent = models.BooleanField(default=False)
+    priority = models.IntegerField(default=0)
 
     class Meta:
         db_table = 'CircleInvitation'

@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Shares,LockedShares,IntraCircleShareTransaction,SharesWithdrawalTariff
+from .models import Shares,LockedShares, IntraCircleShareTransaction, SharesWithdrawalTariff, MgrCircleTransaction
 from django.db.models import Sum
 
 class PurchaseSharesSerializer(serializers.Serializer):
@@ -61,6 +61,26 @@ class SharesTransactionSerializer(serializers.ModelSerializer):
     def get_circle_acc_number(self, transaction):
         return transaction.shares.circle_member.circle.circle_acc_number
 
+class ContributionsTransactionSerializer(serializers.ModelSerializer):
+    """
+    Serializer for mgr contribution endpoint
+    """
+    time_of_transaction = serializers.SerializerMethodField()
+    type_of_transaction = serializers.CharField(source='transaction_type')
+    circle_acc_number = serializers.SerializerMethodField()
+
+    class Meta:
+        model = MgrCircleTransaction
+        fields = ['type_of_transaction', 'amount', 'time_of_transaction',
+                  'circle_acc_number', 'transaction_desc']
+
+    def get_time_of_transaction(self, transaction):
+        time = transaction.transaction_time.strftime("%Y-%m-%d %H:%M:%S")
+        return time
+
+    def get_circle_acc_number(self, transaction):
+        return transaction.circle_member.circle.circle_acc_number
+
 class SharesWithdrawalSerializer(serializers.Serializer):
     """
     serializer for shares withdrawal endpoint
@@ -77,3 +97,15 @@ class SharesTariffSerializer(serializers.ModelSerializer):
     class Meta:
         model = SharesWithdrawalTariff
         fields = ['min_amount', 'max_amount', 'charges']
+
+    """
+    Serializer for circle member shares
+    """
+    circle_acc_number = serializers.CharField()
+    phone_number = serializers.CharField()
+
+class ContributionCircleAccSerializer(serializers.Serializer):
+    """
+    Serializer for contribution Disbursal endpoint
+    """
+    circle_acc_number = serializers.CharField()

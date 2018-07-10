@@ -104,8 +104,6 @@ class LoginIn(APIView):
                         user.member.save()
                         token, created = Token.objects.get_or_create(user=user)
                         serializer = MemberSerializer(request.user.member)
-                        data = {"status":1, "token":token.key, "member":serializer.data}
-                        return Response(data, status=status.HTTP_200_OK)
                     else:
                         data = {"status":0,"message":"Accessing your account from other devices is not permitted."}
                         return Response(data, status=status.HTTP_200_OK)
@@ -116,8 +114,8 @@ class LoginIn(APIView):
                     user.member.save()
                     token, created = Token.objects.get_or_create(user=user)
                     serializer = MemberSerializer(request.user.member)
-                    data = {"status": 1, "token": token.key, "member": serializer.data}
-                    return Response(data, status=status.HTTP_200_OK)
+                data = {"status": 1, "token": token.key, "member": serializer.data}
+                return Response(data, status=status.HTTP_200_OK)
 
             data = {"status":0, "message":"Invalid credentials"}
             return Response(data, status=status.HTTP_200_OK)

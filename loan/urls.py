@@ -16,5 +16,6 @@ urlpatterns = [
     url(r'^cancel_loan/$', views.LoanCancellation.as_view()),
     url(r'^get_loan_processing_fee/$', views.get_processing_fee, name= 'get_processing_fee'),
     url(r'^circle_loans/$', views.CircleLoans.as_view(), name= 'circle_loans'),
+    url(r'^get_circle_loans/$', views.get_circle_loans, name='get_circle_loans'),
 
 ]

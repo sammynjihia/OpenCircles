@@ -3,7 +3,7 @@ from django.conf import settings
 
 from member.models import Member
 from circle.models import Circle as CircleModel,CircleMember,CircleInvitation,DeclinedCircles
-from shares.models import Shares,IntraCircleShareTransaction
+from shares.models import Shares, IntraCircleShareTransaction, MgrCircleTransaction
 from wallet.models import Transactions
 from loan.models import LoanTariff, GuarantorRequest, LoanApplication
 from app_utility import fcm_utils, sms_utils, wallet_utils
@@ -11,7 +11,8 @@ from django.db.models import Q
 from circle.serializers import InvitedCircleSerializer
 from dateutil.relativedelta import relativedelta
 from wallet.serializers import WalletTransactionsSerializer
-import datetime
+from circle import tasks
+
 import operator, re, datetime
 
 class Circle():
@@ -42,9 +43,20 @@ class Circle():
 
     def check_update_circle_status(self, circle):
         if not circle.is_active:
-            if CircleMember.objects.filter(circle=circle).count() >= settings.MIN_NUM_CIRCLE_MEMBER:
+            is_mgr = False
+            if circle.circle_model_type == 'Merry Go Round':
+                min_num_circle_member = CircleInvitation.objects.filter(invited_by__circle=circle).count()
+                is_mgr = True
+            else:
+                min_num_circle_member = settings.MIN_NUM_CIRCLE_MEMBER
+
+            if CircleMember.objects.filter(circle=circle).count() >= min_num_circle_member:
                 circle.is_active=True
                 circle.save()
+                if is_mgr:
+                    circle_id = circle.id
+                    initial_time = datetime.datetime.now().date()
+                    tasks.create_circle_cycle.delay(circle_id, initial_time)
                 return True
             return False
         return True
@@ -76,18 +88,28 @@ class Circle():
             circle_member = CircleMember.objects.get(circle=circle, member=member)
         except CircleMember.DoesNotExist:
             return 0
-        shares = circle_member.shares.get()
-        if date is None:
-            transactions = IntraCircleShareTransaction.objects.filter(shares=shares)
+        if circle.circle_model_type == "Savings and Loans":
+            field = 'num_of_shares'
+            shares = circle_member.shares.get()
+            if date is None:
+                transactions = IntraCircleShareTransaction.objects.filter(shares=shares)
+            else:
+                transactions = IntraCircleShareTransaction.objects.filter(shares=shares, transaction_time__lt=date)
         else:
-            transactions = IntraCircleShareTransaction.objects.filter(shares=shares, transaction_time__lt=date)
-        deposits = transactions.filter(transaction_type="DEPOSIT").aggregate(total=Sum('num_of_shares'))
+            field = 'amount'
+            if date is None:
+                transactions = MgrCircleTransaction.objects.filter(circle_member=circle_member)
+            else:
+                transactions = MgrCircleTransaction.objects.filter(circle_member=circle_member,
+                                                                   transaction_time__lt=date)
+
+        deposits = transactions.filter(transaction_type="DEPOSIT").aggregate(total=Sum(field))
         total_deposits = 0 if deposits['total'] is None else deposits['total']
-        transfers = transactions.filter(transaction_type="TRANSFER").aggregate(total=Sum('num_of_shares'))
+        transfers = transactions.filter(transaction_type="TRANSFER").aggregate(total=Sum(field))
         total_transfers = 0 if transfers['total'] is None else transfers['total']
-        withdraws = transactions.filter(transaction_type="WITHDRAW").aggregate(total=Sum('num_of_shares'))
+        withdraws = transactions.filter(transaction_type="WITHDRAW").aggregate(total=Sum(field))
         total_withdraws = 0 if withdraws['total'] is None else withdraws['total']
-        total_shares = (total_deposits-total_transfers-total_withdraws)
+        total_shares = (total_deposits - total_transfers - total_withdraws)
         return total_shares
 
     def get_total_circle_shares(self, circle, date, member):
@@ -325,3 +347,53 @@ class Circle():
 
         for circle in circles:
             circle.delete()
+
+    def assert_admin(self):
+        circles = CircleModel.objects.filter(circle_type="PRIVATE")
+        for circle in circles:
+            circle_member = CircleMember.objects.get(circle=circle, member=circle.initiated_by)
+            circle_member.is_admin = True
+            circle_member.save()
+
+    def get_circle_model_serializers(self, circle_model_type):
+        return_data = {}
+        if circle_model_type == 'Savings and Loans':
+            return_data["circle_serializer"]= "CircleCreationSerializer(data=request_data)"
+            return_data["circle_deserializer"] = "CircleSerializer(circle, many=is_many, context=request_context)"
+            return_data["circle_member_deserializer"] = "CircleMemberSerializer(member, context=request_context)"
+            return_data["unlogged_circle_member_deserializer"] = "UnloggedCircleMemberSerializer(member, many=is_many, " \
+                                                                 "context=request_context)"
+            return_data["join_circle_serializer"] = "JoinCircleSerializer(data=request_data)"
+            return_data["invited_circle_member_deserializer"] = "InvitedCircleSerializer(circle, many=is_many, " \
+                                                                "context=request_context "
+            return_data["circle_model_code"] = 1
+            return return_data
+
+        elif circle_model_type == 'Merry Go Round':
+            return_data["circle_serializer"] = "CircleMGRCreationSerializer(data=request_data)"
+            return_data["circle_deserializer"] = "CircleMGRSerializer(circle, many=is_many, context=request_context)"
+            return_data["circle_member_deserializer"] = "CircleMGRMemberSerializer(member, context=request_context)"
+            return_data["unlogged_circle_member_deserializer"] = "UnloggedMGRCircleMemberSerializer(member, many=is_many, " \
+                                                                 "context=request_context)"
+            return_data['join_circle_serializer'] = "JoinMGRCircleSerializer(data=request_data)"
+            return_data['invited_circle_member_deserializer'] = "InvitedMGRCircleSerializer(circle, many=is_many, " \
+                                                                "context=request_context"
+            return_data["circle_model_code"] = 2
+            return return_data
+
+        elif circle_model_type == 'Changa':
+            return_data["circle_serializer"] = "CircleInitCreationSerializer(data=request_data)"
+            return_data["circle_deserializer"] = "CircleInitSerializer(circle, many=is_many, context=request_context)"
+            return_data["circle_member_deserializer"] = "CircleInitMemberSerializer(member, context=request_context)"
+            return_data["unlogged_circle_member_deserializer"] = "UnloggedInitCircleMemberSerializer(member, many=is_many, " \
+                                                                 "context=request_context)"
+            return_data["join_circle_serializer"] = "JoinInitCircleSerializer(data=request_data)"
+            return_data["circle_model_code"] = 3
+            return return_data
+        elif circle_model_type == 'Goals':
+            return_data["circle_model_code"] = 4
+            return return_data
+        else:
+            return -1
+
+

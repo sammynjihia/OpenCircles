@@ -61,7 +61,7 @@ class LoanApplication(APIView):
                 circle_member = CircleMember.objects.get(circle=circle, member=request.user.member)
                 if circle_member.is_active:
                     if request.user.check_password(pin):
-                        pending_loan = LoanApplication.objects.filter(circle_member=circle_member, is_fully_repaid=False)
+                        pending_loan = loanapplication.objects.filter(circle_member=circle_member, is_fully_repaid=False)
                         if pending_loan.exists():
                             data = {"status": 0,
                                     "message": "Unable to process loan.Your have an active loan in the circle."}
@@ -280,6 +280,17 @@ class LoanApplication(APIView):
                                                                                     loan_amount,
                                                                                     loan_tariff.num_of_months,
                                                                                     loan.time_approved.date()))
+                                admin_tokens = list(CircleMember.objects.filter(is_admin=True,
+                                                                                circle=circle).values_list(
+                                    'member__device_token',
+                                    flat=True))
+                                registration_ids = filter(None, admin_tokens)
+                                if len(registration_ids):
+                                    fcm_instance = fcm_utils.Fcm()
+                                    new_loan_serializer = CircleLoansSerializer(loan)
+                                    fcm_data = {"request_type": "NEW_LOAN",
+                                                "loan": new_loan_serializer.data}
+                                    fcm_instance.data_push("multiple", registration_ids, fcm_data)
                                 data = {"status":1,
                                         "loan":loan_serializer.data,
                                         "wallet_transaction":wallet_transaction_serializer.data,
@@ -459,6 +470,17 @@ class LoanRepayment(APIView):
                                     registration_ids = fcm_instance.get_circle_members_token(circle, None)
                                     fcm_instance.data_push("multiple", registration_ids, fcm_data)
                                 loan.save()
+                                admin_tokens = list(CircleMember.objects.filter(is_admin=True,
+                                                                                circle=circle).values_list('member__device_token',
+                                                                                                           flat=True))
+                                registration_ids = filter(None, admin_tokens)
+                                if len(registration_ids):
+                                    fcm_instance = fcm_utils.Fcm()
+                                    fcm_data = {"request_type": "LOAN_FULLY_PAID",
+                                                "circle_acc_number": circle.circle_acc_number,
+                                                "loan_code": loan.loan_code}
+                                    fcm_instance.data_push("multiple", registration_ids, fcm_data)
+
                             else:
                                 ending_balance = latest_loan_amortize.ending_balance - extra_principal
                                 print("Loan bado,balance to be amortized")
@@ -644,6 +666,16 @@ class LoanGuarantorResponse(APIView):
                                 remaining_num_of_months = num_of_months
                                 due_balance = loan_amortization_schedule.total_repayment * num_of_months
                                 loan_amortization_serializer = LoanAmortizationSerializer(loan_amortization_schedule)
+                                admin_tokens = list(CircleMember.objects.filter(is_admin=True,
+                                                                                circle=circle).values_list('member__device_token',
+                                                                                                           flat=True))
+                                registration_ids = filter(None, admin_tokens)
+                                if len(registration_ids):
+                                    fcm_instance = fcm_utils.Fcm()
+                                    new_loan_serializer = CircleLoansSerializer(loan)
+                                    fcm_data = {"request_type": "NEW_LOAN",
+                                                "loan": new_loan_serializer.data}
+                                    fcm_instance.data_push("multiple", registration_ids, fcm_data)
                                 registration_id = loan_member.device_token
                                 fcm_data = {"request_type":"PROCESS_APPROVED_LOAN",
                                             "wallet_transaction":wallet_transaction_serializer.data,
@@ -1062,6 +1094,30 @@ def get_processing_fee(request):
             data = {"status":0, "message":"Unable to fetch processing fee of the loan"}
             return Response(data, status=status.HTTP_200_OK)
         data = {"status":1, "processing_fee":processing_fee_serializer.data["processing_fee"]}
+        return Response(data, status=status.HTTP_200_OK)
+    data = {"status":0, "message":serializer.errors}
+    return Response(data, status=status.HTTP_200_OK)
+
+@api_view(['POST'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
+def get_circle_loans(request):
+    print("circle loans")
+    print(request.data)
+    serializer = CircleAccNoSerializer(data=request.data)
+    if serializer.is_valid():
+        circle_acc_number = serializer.validated_data['circle_acc_number']
+        circle = Circle.objects.get(circle_acc_number=circle_acc_number)
+        circle_member = CircleMember.objects.get(circle=circle, member=request.user.member)
+        if not circle_member.is_admin:
+            data = {"status":0, "message":"Authorized access."}
+            return Response(data, status=status.HTTP_200_OK)
+
+        loans = loanapplication.objects.filter(is_fully_repaid=False)
+        loan_serializer = CircleLoansSerializer(loans, many=True)
+        print("admin loans")
+        print(loan_serializer.data)
+        data = {"status":1, "loans":loan_serializer.data}
         return Response(data, status=status.HTTP_200_OK)
     data = {"status":0, "message":serializer.errors}
     return Response(data, status=status.HTTP_200_OK)

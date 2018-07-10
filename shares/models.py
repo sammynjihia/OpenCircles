@@ -1,9 +1,10 @@
 from __future__ import unicode_literals
 from django.db import models
-from circle.models import Circle, CircleMember
+from circle.models import Circle, CircleMember, MGRCircleCycle
 
 class Shares(models.Model):
     circle_member = models.ForeignKey(CircleMember, related_name='shares', null=False)
+
     class Meta:
         db_table = 'Shares'
 
@@ -11,7 +12,7 @@ class IntraCircleShareTransaction(models.Model):
     TRANSACTION_TYPE = [('deposit','DEPOSIT'), ('transfer','TRANSFER'),
                         ('locked','LOCKED'), ('unlocked','UNLOCKED'),
                         ('withdraw','WITHDRAW')]
-    shares = models.ForeignKey(Shares,related_name='shares_transaction')
+    shares = models.ForeignKey(Shares, related_name='shares_transaction')
     transaction_type = models.CharField(choices=TRANSACTION_TYPE, max_length=8)
     recipient = models.ForeignKey(CircleMember, null=True, related_name='recipient')
     sender = models.ForeignKey(CircleMember, null=True, related_name='sender')
@@ -36,6 +37,19 @@ class InitiativeCircleShareTransaction(models.Model):
 
     class Meta:
         db_table = 'InitiativeCircleShareTransaction'
+
+class MgrCircleTransaction(models.Model):
+    TRANSACTION_TYPE = [('deposit', 'DEPOSIT'), ('withdraw', 'WITHDRAW')]
+    circle_member = models.ForeignKey(CircleMember, null=False, related_name='mgr_trx')
+    transaction_type = models.CharField(choices=TRANSACTION_TYPE, max_length=8)
+    amount = models.IntegerField()
+    transaction_code = models.CharField(max_length=20, unique=True)
+    transaction_desc = models.TextField()
+    transaction_time = models.DateTimeField(null=False, auto_now_add=True)
+    cycle = models.ForeignKey(MGRCircleCycle, null=False, related_name='mgr_trx')
+
+    class Meta:
+        db_table = 'MgrCircleTransaction'
 
 class LockedShares(models.Model):
     shares_transaction = models.ForeignKey(IntraCircleShareTransaction, null=False, related_name="locked")

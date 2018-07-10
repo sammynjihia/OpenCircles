@@ -1,27 +1,29 @@
 from django.shortcuts import render
 from django.conf import settings
+from django.db.models import Sum
 
 from rest_framework.views import APIView
-from rest_framework.decorators import api_view,authentication_classes,permission_classes
+from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.authentication import TokenAuthentication
 
-from app_utility import wallet_utils,circle_utils,fcm_utils,general_utils,shares_utils,loan_utils
+from app_utility import wallet_utils, circle_utils, fcm_utils, general_utils, shares_utils, loan_utils, sms_utils, mgr_utils
 
 from .serializers import *
 from wallet.serializers import WalletTransactionsSerializer
 from shares.serializers import SharesTransactionSerializer
 
-from wallet.models import Transactions,RevenueStreams
-from shares.models import IntraCircleShareTransaction,Shares,SharesWithdrawalTariff
-from circle.models import Circle,CircleMember
+from wallet.models import Transactions, RevenueStreams
+from shares.models import IntraCircleShareTransaction, Shares, SharesWithdrawalTariff, MgrCircleTransaction
+from circle.models import Circle, CircleMember, MGRCircleCycle
+from member.models import Member
 
 from loan.tasks import updating_loan_limit
 
-import datetime,uuid
+import datetime, uuid
 
 # Create your views here.
 
@@ -38,7 +40,7 @@ class PurchaseShares(APIView):
     """
     authentication_classes = (TokenAuthentication,)
     permission_classes = (IsAuthenticated,)
-    def post(self, request, *args, **kwargs):
+    def post(self, request):
         serializer = PurchaseSharesSerializer(data=request.data)
         if serializer.is_valid():
             pin, amount = serializer.validated_data['pin'], serializer.validated_data['amount']
@@ -54,7 +56,7 @@ class PurchaseShares(APIView):
                     valid,response = shares_utils.Shares().validate_purchased_shares(amount, circle, member)
                     if valid:
                         wallet_instance = wallet_utils.Wallet()
-                        valid,response = wallet_instance.validate_account(request, pin, amount)
+                        valid, response = wallet_instance.validate_account(request, pin, amount)
                         created_objects = []
                         shares = None
                         if valid:
@@ -66,7 +68,7 @@ class PurchaseShares(APIView):
                                 wallet = member.wallet
                                 wallet_balance = wallet_instance.calculate_wallet_balance(wallet) - amount
                                 transaction_code = general_instance.generate_unique_identifier('WTD')
-                                wallet_desc = "{} confirmed.You have purchased shares worth {} {} in circle {}." \
+                                wallet_desc = "{} confirmed.You have saved {} {} to circle {}." \
                                               "New wallet balance is {} {}.".format(transaction_code, member.currency,
                                                                                     amount, circle.circle_name,
                                                                                     member.currency, wallet_balance)
@@ -81,8 +83,8 @@ class PurchaseShares(APIView):
                                 print("wallet transaction")
                                 print(wallet_transaction.transaction_amount)
                                 transaction_code = general_instance.generate_unique_identifier('STD')
-                                shares_desc = "{} confirmed.You have purchased shares worth {} {} " \
-                                              "in circle {}.".format(transaction_code, member.currency,
+                                shares_desc = "{} confirmed.You have saved {} {} " \
+                                              "to circle {}.".format(transaction_code, member.currency,
                                                                      amount, circle.circle_name)
                                 shares_transaction = IntraCircleShareTransaction.objects.create(shares=shares,
                                                                                                 transaction_type="DEPOSIT",
@@ -167,7 +169,11 @@ class MemberSharesTransactions(APIView):
         if serializer.is_valid():
             circle_acc = serializer.validated_data['circle_acc_number']
             circle = Circle.objects.get(circle_acc_number=circle_acc)
-            circle_member = CircleMember.objects.get(member=request.user.member, circle=circle)
+            try:
+                circle_member = CircleMember.objects.get(member=request.user.member, circle=circle)
+            except CircleMember.DoesNotExist():
+                data = {"status": 0, "message": "Unable to fetch shares transaction"}
+                return Response(data, status=status.HTTP_200_OK)
             shares = circle_member.shares.get()
             # if circle.circle_name == "umoja":
             #     print("umoja available shares")
@@ -315,4 +321,281 @@ def get_shares_withdrawal_tariff(request):
     tariff = SharesWithdrawalTariff.objects.all()
     tariff_serializer = SharesTariffSerializer(tariff, many=True)
     data = {"status":1, "shares_tariff":tariff_serializer.data}
+    return Response(data, status=status.HTTP_200_OK)
+
+@api_view(['POST'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
+def get_circle_member_shares_transactions(request):
+    serializer = CircleMemberTransactionSerializer(data=request.data)
+    if serializer.is_valid():
+        circle_acc_number = serializer.validated_data['circle_acc_number']
+        phone_number = sms_utils.Sms().format_phone_number(serializer.validated_data['phone_number'])
+        member = Member.objects.get(phone_number=phone_number)
+        circle = Circle.objects.get(circle_acc_number=circle_acc_number)
+        circle_member = CircleMember.objects.get(member=member, circle=circle)
+        shares = circle_member.shares.get()
+        transactions = shares.shares_transaction.all()
+        serializer = SharesTransactionSerializer(transactions, many=True)
+        print(serializer.data)
+        data = {"status": 1, "transactions": serializer.data}
+        return Response(data, status=status.HTTP_200_OK)
+    data = {"status":0, "message":serializer.errors}
+    return Response(data, status=status.HTTP_200_OK)
+
+class MgrContribution(APIView):
+    """
+    Endpoint for mgr contributions
+    """
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = (IsAuthenticated,)
+
+    def post(self, request):
+        serializer = PurchaseSharesSerializer(data=request.data)
+        if serializer.is_valid():
+            amount = serializer.validated_data['amount']
+            pin = serializer.validated_data['pin']
+            circle_acc_number = serializer.validated_data['circle_acc_number']
+            circle = Circle.objects.get(circle_acc_number=circle_acc_number)
+            extra_circle = circle.extra_circle.get()
+            if circle.is_active:
+                member = request.user.member
+                circle_member = CircleMember.objects.get(circle=circle, member=member)
+                if circle_member.is_active:
+                    try:
+                        circle_cycle = MGRCircleCycle.objects.get(circle_member__circle=circle, is_complete=False)
+                    except MGRCircleCycle.DoesNotExist():
+                        data = {"status":0, "message":"Unable to process transaction. The next contribution "
+                                                      "cycle for the circle {} has not commenced.".format(circle.circle_name)}
+                        return Response(data, status=status.HTTP_200_OK)
+                    try:
+                        MgrCircleTransaction.objects.get(circle_member=circle_member, cycle=circle_cycle)
+                        data = {"status": 0, "message": "Unable to process transaction. You have already made your contributions "
+                                                        "for the current round."}
+                        return Response(data, status=status.HTTP_200_OK)
+                    except MgrCircleTransaction.DoesNotExist:
+                        print("Does not exist")
+                    wallet_instance = wallet_utils.Wallet()
+                    valid, response = wallet_instance.validate_account_info(request, amount, pin, None)
+                    if valid:
+                        if amount == extra_circle.amount:
+                            general_instance = general_utils.General()
+                            created_objects = []
+                            try:
+                                wallet = member.wallet
+                                wallet_balance = wallet_instance.calculate_wallet_balance(wallet) - amount
+                                transaction_code = general_instance.generate_unique_identifier('WTD')
+                                wallet_desc = "{} confirmed. You have contributed {} {} to circle {}." \
+                                              "New wallet balance is {} {}.".format(transaction_code, member.currency,
+                                                                                    amount, circle.circle_name,
+                                                                                    member.currency, wallet_balance)
+                                wallet_transaction = Transactions.objects.create(wallet=wallet, transaction_type="DEBIT",
+                                                                                 transaction_time=datetime.datetime.now(),
+                                                                                 transaction_desc=wallet_desc,
+                                                                                 transaction_amount=amount,
+                                                                                 recipient=circle_acc_number,
+                                                                                 transaction_code=transaction_code,
+                                                                                 source="wallet")
+                                created_objects.append(wallet_transaction)
+                                transaction_code = transaction_code.replace('WTD', 'CTD')
+                                transaction_desc = "{} confirmed. You have contributed {} {}.".format(transaction_code,
+                                                                                                      member.currency,
+                                                                                                      amount)
+                                contribution = MgrCircleTransaction.objects.create(circle_member=circle_member,
+                                                                                   transaction_type="DEPOSIT",
+                                                                                   amount=amount,
+                                                                                   transaction_code=transaction_code,
+                                                                                   transaction_desc=transaction_desc,
+                                                                                   transaction_time=datetime.datetime.now(),
+                                                                                   cycle=circle_cycle)
+                                created_objects.append(contribution)
+                                wallet_serializer = WalletTransactionsSerializer(wallet_transaction)
+                                contribution_serializer = ContributionsTransactionSerializer(contribution)
+                                fcm_instance = fcm_utils.Fcm()
+                                admin_tokens = list(CircleMember.objects.filter(is_admin=True, circle=circle).values_list('member__device_token'))
+                                registration_ids = filter(None, admin_tokens)
+                                if len(registration_ids):
+                                    device = "single" if registration_ids == 1  else "multiple"
+                                    fcm_data = {"request_type": "UPDATE_MGR_CONTRIBUTION",
+                                                "circle_acc_number": circle_acc_number,
+                                                "phone_number": member.phone_number,
+                                                "contribution": contribution_serializer.data}
+                                    fcm_instance.data_push(device, registration_ids, fcm_data)
+                                print(wallet_serializer.data)
+                                print(contribution_serializer.data)
+                                data = {"status":1, "wallet_transaction":wallet_serializer.data,
+                                        "contribution":contribution_serializer.data}
+                                return Response(data, status=status.HTTP_200_OK)
+                            except Exception as e:
+                                print(str(e))
+                                general_instance.delete_created_objects(created_objects)
+                                data = {"status":0, "message":"Unable to process transaction."}
+                                return Response(data, status=status.HTTP_200_OK)
+                        data = {"status": 0, "message": "Unable to process transaction.Acceptable "
+                                                        "contribution amount is {} {}".format(member.currency,
+                                                                                              extra_circle.amount)}
+                        return Response(data, status=status.HTTP_200_OK)
+                    data = {"status": 0, "message": response}
+                    return Response(data, status=status.HTTP_200_OK)
+                data = {"status": 0, "message": "Unable to perform transaction. Your circle account is currently deactivated."}
+                return Response(data, status=status.HTTP_200_OK)
+            data = {"status":0, "message": "Unable to perform transaction. Circle is inactive."}
+            return Response(data, status=status.HTTP_200_OK)
+        data = {"status":0, "message":serializer.errors}
+        return Response(data, status=status.HTTP_200_OK)
+
+class MgrContributionDisbursal(APIView):
+    """
+    contribution disbursal endpoint
+    """
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = (IsAuthenticated,)
+    def post(self, request):
+        serializer = ContributionCircleAccSerializer(data=request.data)
+        if serializer.is_valid():
+            circle_acc_number = serializer.validated_data['circle_acc_number']
+            circle = Circle.objects.get(circle_acc_number=circle_acc_number)
+            try:
+                circle_member = CircleMember.objects.get(circle=circle, member=request.user.member)
+            except CircleMember.DoesNotExist:
+                data = {"status":0, "message":"User is not a member for this circle"}
+                return Response(data, status=status.HTTP_200_OK)
+            if circle_member.is_admin:
+                created_objects = []
+                general_instance = general_utils.General()
+                try:
+                    circle_cycle = MGRCircleCycle.objects.get(circle_member__circle=circle, is_complete=False)
+                    recipient = circle_cycle.circle_member
+                    transaction_amount = MgrCircleTransaction.objects.filter(circle_member__circle=circle,
+                                                                       cycle=circle_cycle).aggregate(total_amount=Sum('amount'))
+                    transaction_cost = SharesWithdrawalTariff.objects.get(max_amount__gte=transaction_amount,
+                                                                       min_amount__lte=transaction_amount).amount
+                    actual_amount = transaction_amount - transaction_cost
+                    wallet_instance = wallet_utils.Wallet()
+                    transaction_code = general_instance.generate_unique_identifier('CTW')
+                    transaction_desc = "{} confirmed. KES {} has been sent to {}.".format(transaction_code,
+                                                                                          transaction_amount,
+                                                                                          circle_cycle.circle_member.member.phone_number)
+                    contributions_trx = MgrCircleTransaction.objects.create(transaction_code=transaction_code,
+                                                                            amount=transaction_amount,
+                                                                            transaction_type="WITHDRAW",
+                                                                            transaction_time=datetime.datetime.now(),
+                                                                            transaction_desc=transaction_desc,
+                                                                            circle_member=recipient)
+                    transaction_code = transaction_code.replace('CTW', 'WTC')
+                    wallet_balance = wallet_instance.calculate_wallet_balance(recipient.member.wallet) + actual_amount
+                    wallet_desc = "{} confirmed. You have received {} {} from circle {}. " \
+                                  "New wallet balance is {} {}".format(transaction_code,
+                                                                       recipient.member.currency,
+                                                                       actual_amount,
+                                                                       circle.circle_name,
+                                                                       recipient.member.currency,
+                                                                       wallet_balance)
+                    wallet_transaction = Transactions.objects.create(wallet=recipient.member.wallet,
+                                                                     transaction_code=transaction_code,
+                                                                     transaction_amount=actual_amount,
+                                                                     transaction_type="DEBIT",
+                                                                     transaction_time=datetime.datetime.now(),
+                                                                     transaction_desc=wallet_desc,
+                                                                     source="wallet",
+                                                                     sender=circle.circle_acc_number
+                                                                     )
+                    wallet_serializer = WalletTransactionsSerializer(wallet_transaction)
+                    contribution_serializer = ContributionsTransactionSerializer(contributions_trx)
+                    circle_cycle.is_complete = True
+                    circle_cycle.save()
+                    priority = circle_cycle.circle_member.priority + 1
+                    try:
+                        next_circle_member = CircleMember.objects.get(priority=priority, circle=circle, is_active=True)
+                    except CircleMember.DoesNotExist:
+                        priority = 1
+                        next_circle_member = CircleMember.objects.get(priority=priority, circle=circle)
+                    cycle_num = circle_cycle.cycle + 1
+                    mgr_instance = mgr_utils.MerryGoRound()
+                    disbursal_date = mgr_instance.calculate_disbursal_data(circle, datetime.datetime.now().date())
+                    new_circle_cycle = MGRCircleCycle.objects.create(circle_member=next_circle_member,
+                                                                     disbursal_date=disbursal_date,
+                                                                     cycle=cycle_num
+                                                                     )
+                    data = {"status":0,
+                            "wallet_transaction":wallet_serializer.data,
+                            "contribution":contribution_serializer.data,
+                            }
+                    fcm_instance = fcm_utils.Fcm()
+                    fcm_data = {"request_type": "UPDATE_DISBURSEMENT_DATE",
+                                "circle_acc_number": circle.circle_acc_number,
+                                "disbursal_date": disbursal_date}
+                    registration_ids = fcm_instance.get_circle_members_token(circle, None)
+                    fcm_instance.data_push("multiple", registration_ids, fcm_data)
+                    title = "Circle {} Contribution".format(circle.circle_name)
+                    extra_circle = circle.extra_circle.get()
+                    message = "Your contribution of KES {} is due before {}.".format(extra_circle.amount,
+                                                                                     disbursal_date)
+                    curr_time = datetime.datetime.now()
+                    fcm_data = {"request_type": "SYSTEM_WARNING_MSG",
+                                "title": title,
+                                "message": message,
+                                "time": curr_time}
+                    fcm_instance.data_push("multiple", registration_ids, fcm_data)
+                    return Response(data, status=status.HTTP_200_OK)
+
+                except Exception as e:
+                    general_instance.delete_created_objects(created_objects)
+                    data = {"status":0, "message":"Unable to disburse contribution."}
+                    return Response(data, status=status.HTTP_200_OK)
+
+            data = {"status":0, "message":"Unauthorized access."}
+            return Response(data, status=status.HTTP_200_OK)
+        data = {"status":0, "message":serializer.errors}
+        return Response(data, status=status.HTTP_200_OK)
+
+@api_view(['POST'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
+def get_circle_members_contributions(request):
+    serializer = ContributionCircleAccSerializer(data=request.data)
+    if serializer.is_valid():
+        circle = Circle.objects.get(circle_acc_number=ContributionCircleAccSerializer)
+        member = request.user.member
+        try:
+            try:
+                circle_member = CircleMember.objects.get(circle=circle, member=member)
+
+            except CircleMember.DoesNotExist:
+                msg = "Unable to fetch contributions"
+                data = {"status":0, "message":msg}
+                return Response(data, status=status.HTTP_200_OK)
+
+            if not circle_member.is_admin:
+                msg = "Unauthorised access."
+                data = {"status": 0, "message": msg}
+                return Response(data, status=status.HTTP_200_OK)
+
+            contributions = MgrCircleTransaction.objects.filter(circle_member__circle=circle)
+            contribution_serializer = ContributionsTransactionSerializer(contributions, many=True)
+            data = {"contributions": contribution_serializer.data, "status": 1}
+            return Response(data, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            print(str(e))
+            msg = "Unable to fetch contributions"
+            data = {"status": 0, "message": msg}
+            return Response(data, status=status.HTTP_200_OK)
+
+    data = {"status":0, "message":serializer.errors}
+    return Response(data, status=status.HTTP_200_OK)
+
+@api_view(['POST'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
+def get_circle_members_trxs(request):
+    serializer = ContributionCircleAccSerializer(data=request.data)
+    if serializer.is_valid():
+        try:
+            circle = Circle.objects.get(circle_acc_number = serializer.validated_data['circle_acc_number'])
+        except Circle.DoesNotExist:
+            data = {"status":0, "message":"Unable to complete process."}
+        cm = CircleMember.objects.get(circle=circle, member=request.user.member, is_admin=True)
+        IntraCircleShareTransaction.objects.filter()
+    data = {"status":0, "message":serializer.errors}
     return Response(data, status=status.HTTP_200_OK)

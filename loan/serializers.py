@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from django.db.models import Q
 from loan.models import LoanApplication, LoanTariff, LoanRepayment, LoanAmortizationSchedule, GuarantorRequest, LoanProcessingFee
 from app_utility import loan_utils
 import datetime
@@ -290,3 +291,72 @@ class ProcessingFeeSerializer(serializers.ModelSerializer):
     class Meta:
         model = LoanProcessingFee
         fields = ['processing_fee']
+
+
+class CircleLoansSerializer(serializers.ModelSerializer):
+    """
+    Serializer for loan listing endpoint
+    """
+    time_of_application = serializers.SerializerMethodField()
+    time_approved = serializers.SerializerMethodField()
+    time_disbursed = serializers.SerializerMethodField()
+    time_of_last_payment = serializers.SerializerMethodField()
+    locked_shares = serializers.SerializerMethodField()
+    guarantors = serializers.SerializerMethodField()
+    phone_number = serializers.SerializerMethodField()
+    is_defaulted = serializers.SerializerMethodField()
+
+    class Meta:
+        model = LoanApplication
+        fields = ['phone_number', 'amount', 'loan_code', 'locked_shares', 'num_of_repayment_cycles',
+                  'time_of_application',
+                  'is_approved', 'time_approved', 'is_disbursed', 'time_disbursed', 'is_fully_repaid',
+                  'time_of_last_payment', 'guarantors', 'is_defaulted']
+
+    def get_time_of_application(self, loan):
+        return loan.time_of_application.strftime("%Y-%m-%d %H:%M:%S")
+
+    def get_time_approved(self, loan):
+        if loan.time_approved is None:
+            return loan.time_approved
+        return loan.time_approved.strftime("%Y-%m-%d %H:%M:%S")
+
+    def get_time_disbursed(self, loan):
+        if loan.time_disbursed is None:
+            return loan.time_disbursed
+        return loan.time_disbursed.strftime("%Y-%m-%d %H:%M:%S")
+
+    def get_time_of_last_payment(self, loan):
+        if loan.time_of_last_payment is None:
+            return loan.time_of_last_payment
+        return loan.time_of_last_payment.strftime("%Y-%m-%d %H:%M:%S")
+
+    def get_locked_shares(self, loan):
+        try:
+            ln = loan.locked.filter(shares_transaction__shares=loan.circle_member.shares.get())
+            return ln[0].shares_transaction.num_of_shares
+        except:
+            return 0
+
+    def get_guarantors(self, loan):
+        guarantors = loan.guarantor.filter(~Q(circle_member=loan.circle_member))
+        if guarantors.exists():
+            guarantor_list = [{'phone_number': g.circle_member.member.phone_number,
+                               'amount': g.num_of_shares, 'status': g.has_accepted} for g in guarantors]
+        else:
+            guarantor_list = []
+        return guarantor_list
+
+    def get_phone_number(self, loan):
+        print('phone_number')
+        print(loan.circle_member.member.phone_number)
+        return loan.circle_member.member.phone_number
+
+    def get_is_defaulted(self, loan):
+        loan_repayment_date = loan.loan_amortization.filter().order_by('-id').values_list('repayment_date', flat=True)[
+            0]
+        today_date = datetime.datetime.now().date()
+        if today_date > loan_repayment_date:
+            return True
+        else:
+            return False

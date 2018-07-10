@@ -1,7 +1,7 @@
 from __future__ import division
-from shares.models import SharesWithdrawalTariff,IntraCircleShareTransaction
+from shares.models import SharesWithdrawalTariff, IntraCircleShareTransaction
 from circle.models import CircleMember
-from django.db.models import Min,Max
+from django.db.models import Min, Max
 from django.conf import settings
 
 from app_utility import circle_utils, general_utils

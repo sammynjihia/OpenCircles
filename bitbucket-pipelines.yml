@@ -11,14 +11,10 @@ pipelines:
   branches:
     test_branch:
       - step:
-          name: Clone project
-          script:
-            - ssh sammienjihia@35.231.136.113 # "git clone https://sammie_njihia:$MY_BB_PW@bitbucket.org/flemishinformaticsltd/opencircles.git"
-            - echo "Succefully cloned project"
-      - step:
           name: Pull changes
           script:
-            - git pull origin test_branch
+            - ssh sammienjihia@35.231.136.113 "git pull origin test_branch"
+            - echo "Successfully pulled changes"
 
 
 

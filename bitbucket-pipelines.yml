@@ -16,12 +16,9 @@ pipelines:
             - ssh sammienjihia@35.231.136.113 # "git clone https://sammie_njihia:$MY_BB_PW@bitbucket.org/flemishinformaticsltd/opencircles.git"
             - echo "Succefully cloned project"
       - step:
-          name: Create virtual env
+          name: Pull changes
           script:
-            - sudo apt-get update
-            - sudo apt-get install python-pip python-dev libpq-dev postgresql postgresql-contrib nginx
-            - sudo -H pip install --upgrade pip
-            - sudo -H pip install virtualenv
-            - virtualenv .
+            - git pull origin test_branch
+
 
 

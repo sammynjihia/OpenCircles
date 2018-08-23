@@ -14,7 +14,7 @@ pipelines:
           name: Pull changes
           script:
             - ssh sammienjihia@35.231.136.113
-            - cd opencircles
+            - cd $D_PATH
             - "git pull origin test_branch"
             - echo "Successfully pulled changes"
 

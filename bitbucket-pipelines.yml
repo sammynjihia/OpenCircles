@@ -9,7 +9,7 @@ image: python:2.7
 pipelines:
 
   branches:
-    staging:
+    test_branch:
       - step:
           name: Clone project
           script:

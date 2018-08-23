@@ -13,7 +13,7 @@ pipelines:
       - step:
           name: Clone project
           script:
-            - ssh sammienjihia@35.231.136.113 "git clone https://sammie_njihia:$MY_BB_PW@bitbucket.org/flemishinformaticsltd/opencircles.git"
+            - ssh sammienjihia@35.231.136.113 # "git clone https://sammie_njihia:$MY_BB_PW@bitbucket.org/flemishinformaticsltd/opencircles.git"
             - echo "Succefully cloned project"
       - step:
           name: Create virtual env

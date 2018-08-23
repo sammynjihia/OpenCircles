@@ -17,7 +17,7 @@ pipelines:
             - ssh sammienjihia@35.231.136.113 "cd $D_PATH && git pull origin test_branch"
             - echo "Successfully pulled changes"
             - echo $BITBUCKET_COMMIT
-            - ./notify-sentry-of-release.bash
+            - bash notify-sentry-of-release.bash
 
 
 

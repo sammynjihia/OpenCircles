@@ -19,8 +19,7 @@ if [ -z "${SENTRY_PROJECT}" ]; then
     SENTRY_PROJECT=${BITBUCKET_REPO_SLUG}
 fi
 
-curl https://sentry.io/api/0/organizations/${SENTRY_ORGANIZATION}/releases/ \
-    -H "Authorization: Bearer ${SENTRY_TOKEN}" \
+curl -H 'Authorization: Bearer ${SENTRY_TOKEN}' https://sentry.io/api/0/organizations/${SENTRY_ORGANIZATION}/releases/ \
     -X POST \
     -H "Content-Type:application/json" \
     -d "{\"version\":\"${BITBUCKET_COMMIT}\",\"ref\":\"${BITBUCKET_BRANCH}\",\"projects\": [\"${SENTRY_PROJECT}\"]}"

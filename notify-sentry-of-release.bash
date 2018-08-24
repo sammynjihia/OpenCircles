@@ -20,7 +20,7 @@ if [ -z "${SENTRY_PROJECT}" ]; then
 fi
 
 curl https://sentry.io/api/0/organizations/${SENTRY_ORGANIZATION}/releases/ \
-    -H "Authorization: Bearer ${SENTRY_TOKEN}" \
+    -H "Authorization: Bearer 1234" \
     -X POST \
     -H "Content-Type:application/json" \
     -d "{\"version\":\"${BITBUCKET_COMMIT}\",\"ref\":\"${BITBUCKET_BRANCH}\",\"projects\": [\"${SENTRY_PROJECT}\"]}"

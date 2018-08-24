@@ -23,3 +23,4 @@ curl -H 'Authorization: Bearer ${SENTRY_TOKEN}' https://sentry.io/api/0/organiza
     -X POST \
     -H "Content-Type:application/json" \
     -d "{\"version\":\"${BITBUCKET_COMMIT}\",\"ref\":\"${BITBUCKET_BRANCH}\",\"projects\": [\"${SENTRY_PROJECT}\"]}"
+

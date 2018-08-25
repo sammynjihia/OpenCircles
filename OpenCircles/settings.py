@@ -17,6 +17,7 @@ from decouple import config,Csv
 from celery.schedules import crontab
 
 
+
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # i\)+!o9o+acs+ih!tm#sp_n89xze*-ux4izujow6\)y&\(aqqd&vr

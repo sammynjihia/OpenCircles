@@ -18,6 +18,8 @@ from wallet.serializers import WalletTransactionsSerializer
 
 import app_utility
 
+from app_admin import chat_utils
+
 class Loan():
     def validate_loan_amount(self, request, loan_amount, circle):
         circle_member_loan_limit = self.calculate_loan_limit(circle, request.user.member)
@@ -120,7 +122,6 @@ class Loan():
         return remaining_amount
 
     def loan_repayment_reminder(self):
-        today = datetime.now().date()
         loans = LoanApplication.objects.filter(is_fully_repaid=False, is_disbursed=True, is_approved=True)
         for loan in loans:
             print("loan to be reminded")
@@ -137,8 +138,6 @@ class Loan():
                 print("delta")
                 print(delta)
                 if delta in days_to_send:
-                    fcm_instance = app_utility.fcm_utils.Fcm()
-                    title = "Circle {} loan repayment".format(circle.circle_name)
                     if delta == 0:
                         message = "You loan repayment of {} {} in circle {} is due today." \
                                   "Kindly make payments before end of today to avoid penalties.".format(member.currency,
@@ -150,12 +149,8 @@ class Loan():
                                                      circle.circle_name, latest_schedule.repayment_date)
                     registration_id = member.device_token
                     if len(registration_id):
-                        today = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                        fcm_data = {"request_type":"SYSTEM_WARNING_MSG",
-                                    "title":title,
-                                    "message":message, "time":today}
-                        registration_id = member.device_token
-                        fcm_instance.data_push("single", registration_id, fcm_data)
+                        chat_instance = chat_utils.ChatUtils()
+                        chat_instance.send_single_chat(message, member, 1)
                     else:
                         if delta == 0:
                             sms = app_utility.sms_utils.Sms()
@@ -241,20 +236,15 @@ class Loan():
             delta = diff.days
             if delta in expiry_days or delta < 0:
                 circle, member = loan.circle_member.circle, loan.circle_member.member
-                fcm_instance = app_utility.fcm_utils.Fcm()
                 if delta == 1:
                     shares = loan.circle_member.shares.get()
                     try:
                         LockedShares.objects.filter(loan=loan).get(shares_transaction__shares=shares)
-                        today = datetime.now()
-                        today = today.strftime("%Y-%m-%d %H:%M:%S")
-                        message = "Your loan of {} {} will be cancelled on {} due to few " \
-                                  "loan guarantors.".format(member.currency,loan.amount, loan_expiry_date)
-                        fcm_data = {"request_type":"SYSTEM_WARNING_MSG",
-                                    "title":"Loan Cancellation",
-                                    "message":message,"time":today}
-                        registration_id = member.device_token
-                        fcm_instance.data_push("single", registration_id, fcm_data)
+                        message = "Your loan of {} {} in circle {} will be cancelled on {} due to few " \
+                                  "loan guarantors.".format(member.currency, loan.amount,
+                                                            circle.circle_name, loan_expiry_date)
+                        chat_instance = chat_utils.ChatUtils()
+                        chat_instance.send_single_chat(message, member, 1)
                     except LockedShares.DoesNotExist:
                         pass
                 else:

@@ -1,10 +1,11 @@
 from rest_framework import serializers
 from .models import Shares,LockedShares, IntraCircleShareTransaction, SharesWithdrawalTariff, MgrCircleTransaction
+from circle.models import MGRCirclePenalty
 from django.db.models import Sum
 
-class PurchaseSharesSerializer(serializers.Serializer):
+class DepositSerializer(serializers.Serializer):
     """
-    Serializer for purchase shares endpoint
+    Serializer for deposits endpoint
     """
     circle_acc_number = serializers.CharField()
     amount = serializers.IntegerField()
@@ -81,6 +82,30 @@ class ContributionsTransactionSerializer(serializers.ModelSerializer):
     def get_circle_acc_number(self, transaction):
         return transaction.circle_member.circle.circle_acc_number
 
+class AdminContributionsTransactionSerializer(serializers.ModelSerializer):
+    """
+    Serializer for mgr contribution endpoint
+    """
+    time_of_transaction = serializers.SerializerMethodField()
+    type_of_transaction = serializers.CharField(source='transaction_type')
+    circle_acc_number = serializers.SerializerMethodField()
+    phone_number = serializers.SerializerMethodField()
+
+    class Meta:
+        model = MgrCircleTransaction
+        fields = ['type_of_transaction', 'amount', 'time_of_transaction',
+                  'circle_acc_number', 'phone_number']
+
+    def get_time_of_transaction(self, transaction):
+        time = transaction.transaction_time.strftime("%Y-%m-%d %H:%M:%S")
+        return time
+
+    def get_circle_acc_number(self, transaction):
+        return transaction.circle_member.circle.circle_acc_number
+
+    def get_phone_number(self, transaction):
+        return transaction.circle_member.member.phone_number
+
 class SharesWithdrawalSerializer(serializers.Serializer):
     """
     serializer for shares withdrawal endpoint
@@ -98,14 +123,33 @@ class SharesTariffSerializer(serializers.ModelSerializer):
         model = SharesWithdrawalTariff
         fields = ['min_amount', 'max_amount', 'charges']
 
-    """
-    Serializer for circle member shares
-    """
-    circle_acc_number = serializers.CharField()
-    phone_number = serializers.CharField()
 
 class ContributionCircleAccSerializer(serializers.Serializer):
     """
     Serializer for contribution Disbursal endpoint
     """
     circle_acc_number = serializers.CharField()
+
+class CircleMemberTransactionSerializer(serializers.Serializer):
+    """
+    Serializer for circle member shares
+    """
+    circle_acc_number = serializers.CharField()
+    phone_number = serializers.CharField()
+
+class CircleMemberPenalties(serializers.ModelSerializer):
+    """
+    Serializer for circle member penalties endpoint
+    """
+    phone_number = serializers.SerializerMethodField()
+    date_defaulted = serializers.SerializerMethodField()
+    class Meta:
+        model = MGRCirclePenalty
+        fields = ['phone_number', 'amount', 'fine', 'date_defaulted']
+
+    def get_phone_number(self, penalty):
+        return penalty.circle_member.member.phone_number
+
+    def get_date_defaulted(self, penalty):
+        time = penalty.date_defaulted.strftime("%Y-%m-%d %H:%M:%S")
+        return time

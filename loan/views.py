@@ -766,7 +766,12 @@ class Loans(APIView):
         if serializers.is_valid():
             circle_acc_number = serializers.validated_data['circle_acc_number']
             circle = Circle.objects.get(circle_acc_number=circle_acc_number)
-            circle_member = CircleMember.objects.get(circle=circle, member=request.user.member)
+            try:
+                circle_member = CircleMember.objects.get(circle=circle, member=request.user.member)
+            except CircleMember.DoesNotExist:
+                message = "User is not a member of this circle"
+                data = {"status": 0, "message": message}
+                return Response(data, status=status.HTTP_200_OK)
             loans = loanapplication.objects.filter(circle_member=circle_member, is_fully_repaid=False)
             if loans.exists():
                 loans = LoansSerializer(loans, many=True)

@@ -3,7 +3,8 @@ from django.db import IntegrityError
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 from django.conf import settings
 
-from circle.models import Circle, CircleMember, CircleInvitation, AllowedGuarantorRequest, DeclinedCircles, MGRCircleCycle
+from circle.models import Circle, CircleMember, CircleInvitation, AllowedGuarantorRequest, DeclinedCircles,\
+    MGRCircleCycle
 from member.models import Contacts, Member
 from shares.models import Shares, IntraCircleShareTransaction
 from wallet.models import Transactions, ReferralFee
@@ -20,7 +21,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.authentication import TokenAuthentication, BasicAuthentication
 
 
-from app_utility import circle_utils, wallet_utils, sms_utils, general_utils, fcm_utils, member_utils, loan_utils
+from app_utility import circle_utils, wallet_utils, sms_utils, general_utils, fcm_utils, member_utils, loan_utils, mgr_utils
 
 import datetime,json
 
@@ -31,7 +32,7 @@ from loan.tasks import updating_loan_limit
 # Create your views here.
 class CircleCreation(APIView):
     """
-    Creates new circle when circle_name,circle_type and contact_list(should be a list/array datatype) are provided
+    Creates new circle when circle_name, circle_type and contact_list(should be a list/array datatype) are provided
     """
     authentication_classes = (TokenAuthentication,)
     permission_classes = (IsAuthenticated,)
@@ -44,14 +45,14 @@ class CircleCreation(APIView):
                                " to delayed loan repayment. Kindly repay your loan to be able to create a circle."}
             return Response(data, status=status.HTTP_200_OK)
         if "contact_list" in request.data:
-            mutable = request.data._mutable
-            request.data._mutable = True
-            request.data["contact_list"] = json.loads(request.data["contact_list"])
+            # mutable = request.data._mutable
+            # request.data._mutable = True
+            # request.data["contact_list"] = json.loads(request.data["contact_list"])
             if "loan_tariff" in request.data:
-                request.data["loan_tariff"] = json.loads(request.data["loan_tariff"])
+                # request.data["loan_tariff"] = json.loads(request.data["loan_tariff"])
                 circle_loan_tariff = request.data["loan_tariff"]
             contacts = request.data["contact_list"] if "contact_list" in request.data else []
-            request.data._mutable = mutable
+            # request.data._mutable = mutable
         circle_model_serializers = circle_utils.Circle().get_circle_model_serializers(request.data['circle_type'].decode())
         if type(circle_model_serializers) == dict:
             serializer = eval(circle_model_serializers["circle_serializer"], globals(), {'request_data':request.data})
@@ -60,10 +61,8 @@ class CircleCreation(APIView):
             data = {"status": 0, "message": error}
             return Response(data, status=status.HTTP_200_OK)
         if serializer.is_valid():
-            print(serializer.validated_data)
             wallet_instance = wallet_utils.Wallet()
             valid = True if request.user.check_password(serializer.validated_data['pin']) else False
-            print(valid)
             response = "Incorrect pin.Unable to create circle"
             if 'minimum_share' in serializer.validated_data:
                 minimum_share = serializer.validated_data['minimum_share']
@@ -87,10 +86,11 @@ class CircleCreation(APIView):
                     circle = serializer.save(initiated_by=member, circle_acc_number=acc_number)
                     created_objects.append(circle)
                     circle_member = CircleMember.objects.create(member=member, circle=circle, is_admin=True)
-                    if circle.circle_model_type == "Merry Go Round":
-                        msg = "Circle created successfully. Circle will be activated when all invited members join"
+                    if circle_model_serializers["circle_model_code"] == 2:
+                        msg = "Circle created successfully. Circle will be activated when all invited members join."
+
                     else:
-                        msg = "Circle created successfully.Circle will be activated when atleast four members join."
+                        msg = "Circle created successfully. Circle will be activated when atleast four members join."
                     data = {"status": 1,
                             "message": msg
                             }
@@ -146,7 +146,6 @@ class CircleCreation(APIView):
                                           for contact in new_contacts if contact["phone"] != member.phone_number]
                         if circle_model_serializers["circle_model_code"] == 2:
                             member_priority = [contact['priority'] for contact in contacts if contact['phone'] == member.phone_number]
-                            print(member_priority)
                             if len(member_priority):
                                 circle_member.priority = member_priority[0]
                                 circle_member.save()
@@ -156,7 +155,6 @@ class CircleCreation(APIView):
                     circle_serializer = eval(circle_model_serializers["circle_deserializer"], globals(),
                                       {"circle":circle, "is_many":False, "request_context": {"request":request}})
                     data["circle"] = circle_serializer.data
-                    print(data["circle"])
                     return Response(data,status=status.HTTP_201_CREATED)
                 except Exception as e:
                     print(str(e))
@@ -252,6 +250,7 @@ class MemberCircle(APIView):
                     suggested_ids = [key.id for key, value in suggested_circles]
             suggested_circles_ids = invited_circles_ids + suggested_ids + circles_ids
             circle_serializer_data = []
+
             circle_models = Circle.objects.filter(id__in=suggested_circles_ids).values_list('circle_model_type',
                                                                                             flat=True).distinct()
             for circle_model in circle_models:
@@ -326,7 +325,7 @@ class AllowedGuaranteeRegistration(APIView):
                 return Response(data, status=status.HTTP_200_OK)
             fcm_instance = fcm_utils.Fcm()
             registration_id = guarantee_member.device_token
-            fcm_data = {"request_type":"UPDATE_ALLOW_GUARANTOR_REQUEST",
+            fcm_data = {"request_type": "UPDATE_ALLOW_GUARANTOR_REQUEST",
                         "circle_acc_number":circle.circle_acc_number,
                         "phone_number":member.phone_number,
                         "allow_guarantor_request":True}
@@ -437,6 +436,7 @@ class JoinCircle(APIView):
     permission_classes = (IsAuthenticated,)
     def post(self, request):
         circle_model_type = Circle.objects.get(circle_acc_number=request.data["circle_acc_number"]).circle_model_type
+        print(circle_model_type)
         circle_instance = circle_utils.Circle()
         circle_model_serializers = circle_instance.get_circle_model_serializers(circle_model_type)
         serializer = eval(circle_model_serializers["join_circle_serializer"], globals(), {"request_data":request.data})
@@ -462,6 +462,7 @@ class JoinCircle(APIView):
                         return Response(data, status=status.HTTP_200_OK)
 
                 if valid:
+                    print(valid)
                     created_objects = []
                     try:
                         member = request.user.member
@@ -470,6 +471,8 @@ class JoinCircle(APIView):
                                 try:
                                     priority = CircleInvitation.objects.get(phone_number=member.phone_number,
                                                                             invited_by__circle=circle).priority
+                                    print("priority")
+                                    print(priority)
                                     if priority == 0:
                                         cm = CircleMember.objects.filter(circle=circle).order_by('-priority')[0]
                                         priority = cm.priority + 1
@@ -479,6 +482,8 @@ class JoinCircle(APIView):
                                     return Response(data, status=status.HTTP_200_OK)
 
                             circle_member = CircleMember.objects.create(circle=circle, member=member, priority=priority)
+                            print("circle_member")
+                            print(circle_member)
                             created_objects.append(circle_member)
                         except IntegrityError:
                             data = {"status": 0, "message": "Unable to join circle. You are already a member of this circle."}
@@ -531,6 +536,8 @@ class JoinCircle(APIView):
                         fcm_instance = fcm_utils.Fcm()
                         old_circle_status = circle.is_active
                         is_active = old_circle_status
+                        print("status")
+                        print(old_circle_status)
                         if not old_circle_status:
                             new_circle_status = circle_instance.check_update_circle_status(circle)
                             if new_circle_status:
@@ -540,6 +547,7 @@ class JoinCircle(APIView):
                                             "is_active":is_active}
                                 registration_ids = fcm_instance.get_circle_members_token(circle, None)
                                 fcm_instance.data_push("mutiple", registration_ids, fcm_data)
+                                print("update circle status fcm")
                                 print(fcm_data)
 
                         else:
@@ -549,8 +557,10 @@ class JoinCircle(APIView):
                                 if cycles.exists():
                                     circle_member.is_queueing = True
                                     circle_member.save()
-                                    data["message"] = "Welcome to {}. Your will be notified " \
-                                                      "when to start contributing.".format(circle.circle_name)
+
+                        if circle.circle_model_type == 'Merry Go Round':
+                            data["message"] = "Welcome to circle {}. Your will be notified " \
+                                              "when to start contributing.".format(circle.circle_name)
 
                         print(old_circle_status)
                         fcm_data = {"request_type":"NEW_CIRCLE_MEMBERSHIP",
@@ -558,7 +568,6 @@ class JoinCircle(APIView):
                                     "circle_member":circle_member_serializer.data}
                         registration_ids = fcm_instance.get_circle_members_token(circle, member)
                         fcm_instance.data_push("mutiple", registration_ids, fcm_data)
-                        print(fcm_data)
                         ref = False
                         if existing_circle_member == 0 and circle.circle_model_type != "Merry Go Round":
                             try:
@@ -576,7 +585,7 @@ class JoinCircle(APIView):
                                 ReferralFee.objects.create( member=member,
                                                             circle=circle,
                                                             is_disbursed=False,
-                                                            extra_info="user has been invited by more than one circle member")
+                                                            extra_info="User has been invited by more than one circle member")
                         if not ref:
                             CircleInvitation.objects.filter(phone_number=member.phone_number,
                                                             invited_by__circle=circle).delete()
@@ -619,10 +628,6 @@ class CircleInvite(APIView):
             phone = sms_instance.format_phone_number(serializer.validated_data['phone_number'])
             circle_member = CircleMember.objects.get(member=request.user.member, circle=circle)
             circle_model_serializers = circle_utils.Circle().get_circle_model_serializers(circle.circle_model_type)
-            if circle_model_serializers["circle_model_code"] == 2:
-                if not circle_member.is_admin:
-                    data = {"status": 0, "message": "Unauthorized access to this service."}
-                    return Response(data, status=status.HTTP_200_OK)
             try:
                 CircleMember.objects.get(circle=circle, member=Member.objects.filter(phone_number=phone))
                 data = {"status":0, "message":"The user is already a member of the circle."}
@@ -644,39 +649,59 @@ class CircleInvite(APIView):
                         circle_invite = CircleInvitation.objects.create(phone_number=phone,
                                                                         invited_by=circle_member,
                                                                         is_member=member_instance.get_is_member(phone))
+                        if circle_model_serializers["circle_model_code"] == 2:
+                            # invite will be sent when admin approves, add that feature later on
+                            if not circle_member.is_admin:
+                                circle_invite.is_approved = False
+                                circle_invite.save()
                         print(circle_invite)
                         created_objects.append(circle_invite)
-                        try:
-                            invited_member = Member.objects.get(phone_number=phone)
-                            DeclinedCircles.objects.filter(circle=circle, member=invited_member).delete()
-                            registration_id = invited_member.device_token
-                            if len(registration_id):
-                                fcm_instance = fcm_utils.Fcm()
-                                invited_by = "{} {}".format(request.user.first_name, request.user.last_name)
-                                invited_serializer = eval(circle_model_serializers["invited_circle_member_deserializer"], globals(),
-                                                         {"circle": circle, "is_many": False,
-                                                          "request_context": {"invited_by":invited_by}})
-                                fcm_data = {"request_type":"NEW_CIRCLE_INVITATION",
-                                            "circle":invited_serializer.data}
-                                fcm_instance.data_push("single", registration_id, fcm_data)
-                            else:
-                                message = "{} {} has invited you to join circle {} on " \
-                                          "Opencircles.".format(request.user.first_name,
-                                                                request.user.last_name,
-                                                                circle.circle_name)
-                                sms_instance.sendsms(phone, message)
-                        except Member.DoesNotExist:
-                            #send sms
-                            message = "{} {} has invited you to join circle {} on Opencircles." \
-                                      "Opencircles is a peer to peer credit and savings platform that makes you " \
-                                      "and your close friends, family and colleagues into investment and " \
-                                      "saving partners.Get it on {} ".format(request.user.first_name,
-                                                                             request.user.last_name,
-                                                                             circle.circle_name,
-                                                                             settings.APP_STORE_LINK)
-                            sms_instance.sendsms(phone, message)
-                        ms ="Invitation to {} has been sent.".format(phone)
-                        data = {"status":1, "message":ms}
+                        if circle_invite.is_approved:
+                            try:
+                                invited_member = Member.objects.get(phone_number=phone)
+                                DeclinedCircles.objects.filter(circle=circle, member=invited_member).delete()
+                                registration_id = invited_member.device_token
+                                if len(registration_id):
+                                    fcm_instance = fcm_utils.Fcm()
+                                    invited_by = "{} {}".format(request.user.first_name, request.user.last_name)
+                                    invited_serializer = eval(circle_model_serializers["invited_circle_member_deserializer"], globals(),
+                                                             {"circle": circle, "is_many": False,
+                                                              "request_context": {"invited_by":invited_by}})
+                                    fcm_data = {"request_type":"NEW_CIRCLE_INVITATION",
+                                                "circle":invited_serializer.data}
+                                    fcm_instance.data_push("single", registration_id, fcm_data)
+                                else:
+                                    message = "{} {} has invited you to join circle {} on " \
+                                              "Opencircles.".format(request.user.first_name,
+                                                                    request.user.last_name,
+                                                                    circle.circle_name)
+                                    #to_do:uncomment
+                                    # sms_instance.sendsms(phone, message)
+                            except Member.DoesNotExist:
+                                #send sms
+                                message = "{} {} has invited you to join circle {} on Opencircles." \
+                                          "Opencircles is a peer to peer credit and savings platform that makes you " \
+                                          "and your close friends, family and colleagues into investment and " \
+                                          "saving partners.Get it on {} ".format(request.user.first_name,
+                                                                                 request.user.last_name,
+                                                                                 circle.circle_name,
+                                                                                 settings.APP_STORE_LINK)
+                                #to_do:uncomment
+                                # sms_instance.sendsms(phone, message)
+                            ms ="Circle invitation to {} has been sent.".format(phone)
+                            data = {"status":1, "message":ms}
+                        else:
+                            fcm_instance = fcm_utils.Fcm()
+                            registration_ids = fcm_instance.get_circle_admins_tokens(circle)
+                            invited_by = "{} {}".format(request.user.first_name, request.user.last_name)
+                            fcm_data = {"request_type":"CIRCLE_INVITATION_REQUEST",
+                                        "circle_acc_number":circle.circle_acc_number,
+                                        "invitee": phone,
+                                        "invited_by": request.user.member.phone_number,
+                                        "circle_type": circle.circle_model_type}
+                            fcm_instance.data_push("multiple", registration_ids, fcm_data)
+                            ms = "Invitation waiting admin's approval."
+                            data = {"status": 1, "message": ms}
                     except Exception as e:
                         print(str(e))
                         general_utils.General().delete_created_objects(created_objects)
@@ -728,7 +753,7 @@ class CircleTransactions(APIView):
     authentication_classes = (TokenAuthentication,)
     permission_classes = (IsAuthenticated,)
 
-    def post(self,request):
+    def post(self, request):
         serializer = CircleMemberDetailsSerializer(data=request.data)
         if serializer.is_valid():
             instance = sms_utils.Sms()
@@ -747,4 +772,146 @@ class CircleTransactions(APIView):
             data = {"status":1, "transactions":circle_transaction_serializer.data}
             return Response(data, status=status.HTTP_200_OK)
 
+class CircleMemberTransactions(APIView):
+    """
+    Retrieves recent circle member transactions
+    """
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = (IsAuthenticated,)
 
+    def post(self, request):
+        serializer = CircleAccNumberSerializer(data=request.data)
+        if serializer.is_valid():
+            circle = Circle.objects.get(circle_acc_number=serializer.validated_data['circle_acc_number'])
+            try:
+                circle_member = CircleMember.objects.get(circle=circle, member=request.user.member, is_admin=True)
+            except CircleMember.DoesNotExist:
+                data = {"status":0, "message":"Unauthorised access."}
+                return  Response(data, status=status.HTTP_200_OK)
+        #     to be continued
+        data = {"status":0, "message":serializer.errors}
+        return Response(data, status=status.HTTP_200_OK)
+
+class AdminCircleInvitationResponse(APIView):
+    """
+    admin's response to circle invite
+    """
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = (IsAuthenticated,)
+
+    def post(self, request):
+        serializer = AdminCircleInviteResponse(data=request.data)
+        print(request.data)
+        if serializer.is_valid():
+            phone_number = serializer.validated_data['invitee_phone_number']
+            circle = Circle.objects.get(circle_acc_number=serializer.validated_data['circle_acc_number'])
+            try:
+                circle_member = CircleMember.objects.get(circle=circle, member=request.user.member)
+                if not circle_member.is_admin:
+                    data = {"status":0, "message":"Unauthorised access."}
+                    return Response(data, status=status.HTTP_200_OK)
+                try:
+                    circle_invite = CircleInvitation.objects.get(phone_number=phone_number,
+                                                                 invited_by__circle=circle, is_approved=False)
+                    fcm_instance = fcm_utils.Fcm()
+                    invited_by = circle_invite.invited_by.member
+                    registration_id = invited_by.device_token
+                    allowed = serializer.validated_data['is_allowed']
+                    if allowed == "true":
+                        circle_invite.is_approved = True
+                        circle_invite.save()
+                        try:
+                            invited_member = Member.objects.get(phone_number=phone_number)
+                            circle_model_serializers = circle_utils.Circle().get_circle_model_serializers(circle.circle_model_type)
+                            DeclinedCircles.objects.filter(circle=circle, member=invited_member).delete()
+                            registration_id = invited_member.device_token
+                            if len(registration_id):
+                                invited_by = "{} {}".format(request.user.first_name, request.user.last_name)
+                                invited_serializer = eval(
+                                    circle_model_serializers["invited_circle_member_deserializer"], globals(),
+                                    {"circle": circle, "is_many": False,
+                                     "request_context": {"invited_by": invited_by}})
+                                fcm_data = {"request_type": "NEW_CIRCLE_INVITATION",
+                                            "circle": invited_serializer.data}
+                                fcm_instance.data_push("single", registration_id, fcm_data)
+                            else:
+                                message = "{} {} has invited you to join circle {} on " \
+                                          "Opencircles.".format(request.user.first_name,
+                                                                request.user.last_name,
+                                                                circle.circle_name)
+                                #to_do:uncomment
+                                # sms_instance.sendsms(phone, message)
+                        except Member.DoesNotExist:
+                            # send sms
+                            message = "{} {} has invited you to join circle {} on Opencircles." \
+                                      "Opencircles is a peer to peer credit and savings platform that makes you " \
+                                      "and your close friends, family and colleagues into investment and " \
+                                      "saving partners.Get it on {} ".format(request.user.first_name,
+                                                                             request.user.last_name,
+                                                                             circle.circle_name,
+                                                                             settings.APP_STORE_LINK)
+                            #to_do:uncomment
+                            # sms_instance.sendsms(phone, message)
+                        msg ="Circle invitation to {} has been sent.".format(phone_number)
+                        fcm_data = {"request_type": "ADMIN_CIRCLE_INVITE_RESPONSE",
+                                    "message": msg}
+                        fcm_instance.data_push('single', registration_id, fcm_data)
+                        msg = "Circle invitation to {} by {} {} has been approved.".format(phone_number,
+                                                                                           invited_by.user.first_name,
+                                                                                           invited_by.user.last_name)
+                        data = {"status":1, "message":msg}
+                    else:
+                        circle_invite.delete()
+                        msg = "Circle invitation to {} has been disapproved.".format(phone_number)
+                        fcm_data = {"request_type":"ADMIN_CIRCLE_INVITE_RESPONSE",
+                                    "message":msg}
+                        fcm_instance.data_push('single', registration_id, fcm_data)
+                        msg = "Circle invitation to {} by {} {} has been disapproved.".format(phone_number,
+                                                                                              invited_by.user.first_name,
+                                                                                       invited_by.user.last_name)
+                        data = {"status": 1, "message": msg}
+                except CircleInvitation.DoesNotExist:
+                    data = {"status":0, "message":"Circle invitation does not exist."}
+            except CircleMember.DoesNotExist:
+                data = {"status":0, "message":"You are not a member of this circle."}
+
+            return Response(data, status=status.HTTP_200_OK)
+
+        data = {"status":0, "message":serializer.errors}
+        return Response(data, status=status.HTTP_200_OK)
+
+@api_view(['POST'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
+def get_circle_invites(request):
+    serializer = CircleAccNumberSerializer(data=request.data)
+    if serializer.is_valid():
+        try:
+            circle_acc_number = serializer.validated_data['circle_acc_number']
+            CircleMember.objects.get(member=request.user.member, circle__circle_acc_number=circle_acc_number,
+                                          is_admin=True)
+            circle_invites = CircleInvitation.objects.filter(invited_by__circle__circle_acc_number=circle_acc_number,
+                                                             is_approved=False)
+            circle_invites_serializer = CircleInvitesSerializer(circle_invites, many=True)
+            data = {"status":1, "circle_invites":circle_invites_serializer.data}
+
+        except CircleMember.DoesNotExist:
+            data = {"status":0, "message":"Unauthorized access."}
+
+        return Response(data, status=status.HTTP_200_OK)
+    data = {"status":0, "message":serializer.errors}
+    return Response(data, status=status.HTTP_200_OK)
+
+@api_view(['POST'])
+# @authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
+def disburse_contrib(request):
+    try:
+        mgr_utils.MerryGoRound().disburse_contributions()
+        data = {"status": 0, "message": "success"}
+        return Response(data, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        print(str(e))
+        data = {"status": 0, "message": "failed"}
+        return Response(data, status=status.HTTP_200_OK)

@@ -122,6 +122,38 @@ class ChatUtils:
             return response
 
     @staticmethod
+    def send_chat_to_active_circle_members(message, circle, message_channel, is_admin, device_tokens):
+        if message_channel == 1:
+            instance = fcm_utils.Fcm()
+            if device_tokens is None:
+                device_tokens = instance.get_active_circle_members_tokens(circle, False, is_admin)
+            fcm_data = {
+                'request_type': 'REPLY_TO_CHAT',
+                'sender': 'Opencircles',
+                'body': message,
+                'time_sent': datetime.datetime.now().strftime('%Y-%m-%d %H-%m-%s')
+            }
+            members = Member.objects.filter(device_token__in=device_tokens)
+            chat_query = [Chat(sender='Opencircles', recipient='SELF', body=message, owner=m,
+                               time_chat_sent=datetime.datetime.now(), has_been_responded_to=True
+                               ) for m in members]
+            Chat.objects.bulk_create(chat_query)
+            try:
+                instance.data_push("multiple", device_tokens, fcm_data)
+                return True
+            except:
+                return False
+        else:
+            circle_members_phone_number = CircleMember.objects.filter(circle=circle,
+                                                                      is_active=True,
+                                                                      is_queueing=False).values_list('member__phone_number', \
+                                                                                                 flat=True)
+            phone_numbers = ','.join(circle_members_phone_number)
+            print(phone_numbers)
+            response, unsent = sms_utils.Sms().sendmultiplesms(phone_numbers, message)
+            return response
+
+    @staticmethod
     def send_chat_to_all_members(message, message_channel):
         if message_channel == 1:
             instance = fcm_utils.Fcm()

@@ -17,6 +17,9 @@ urlpatterns = [
     url(r'^get_allowed_guarantee_requests/$', CircleMemberGuaranteeList.as_view(), name='allowed-guarantee-requests'),
     url(r'^circle_name_verification/$', check_circle_name, name='circle_name_verification'),
     url(r'^get_circle_members/$', get_circle_members, name='get_circle_members'),
-    url(r'^get_circle_transactions/$', CircleTransactions.as_view(), name='get_circle_transactions')
+    url(r'^get_circle_transactions/$', CircleTransactions.as_view(), name='get_circle_transactions'),
+    url(r'^approve_circle_invite', AdminCircleInvitationResponse.as_view(), name=''),
+    url(r'^get_circle_invites', get_circle_invites, name=''),
+    url(r'^d_contrib', disburse_contrib, name='')
 
 ]

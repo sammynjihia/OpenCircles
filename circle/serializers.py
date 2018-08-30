@@ -245,10 +245,11 @@ class CircleMGRSerializer(serializers.ModelSerializer):
                   'date_created', 'member_count']
 
     def get_member_count(self, circle):
+        print('count')
         return CircleMember.objects.filter(circle_id=circle.id).count()
 
     def get_initiated_by(self, circle):
-        return Member.objects.get(id=circle.initiated_by_id).user.email
+        return circle.initiated_by.user.email
 
     def get_date_created(self, circle):
         date =  circle.time_initiated
@@ -289,6 +290,7 @@ class CircleMGRSerializer(serializers.ModelSerializer):
             return ''
 
     def get_contribution_schedule(self, circle):
+        print(circle.mgr_circle.get().schedule)
         return circle.mgr_circle.get().schedule
 
     def get_contribution_day(self, circle):
@@ -650,8 +652,8 @@ class CircleMGRMemberSerializer(serializers.ModelSerializer):
 
     def get_is_next(self, member):
         circle = self.context.get('circle')
-        circle_cycle = MGRCircleCycle.objects.filter(circle_member__circle=circle,
-                                                     circle_member__member=member,
+        circle_member = CircleMember.objects.get(circle=circle, member=member)
+        circle_cycle = MGRCircleCycle.objects.filter(circle_member=circle_member,
                                                      is_complete=False)
         if circle_cycle.exists():
             return True
@@ -830,12 +832,11 @@ class UnloggedMGRCircleMemberSerializer(serializers.ModelSerializer):
     def get_is_next(self, member):
         circle = self.context.get('circle')
         circle_member = CircleMember.objects.get(circle=circle, member=member)
-        circle_cycles = MGRCircleCycle.objects.filter(circle_member__circle=circle)
+        circle_cycle = MGRCircleCycle.objects.filter(circle_member=circle_member,
+                                                     is_complete=False)
+        if circle_cycle.exists():
+            return True
 
-        if circle_cycles.exists():
-            circle_cycle = circle_cycles.filter(member, is_complete=False)
-            if circle_cycle.exists():
-                return True
         else:
             if circle_member.priority == 1:
                 return True
@@ -874,4 +875,33 @@ class CircleAccNumberSerializer(serializers.Serializer):
     Serializer for circle acc number endpoint
     """
     circle_acc_number = serializers.CharField()
+
+class AdminCircleInviteResponse(serializers.Serializer):
+    """
+    Serializer for admin circle invite response
+    """
+    circle_acc_number = serializers.CharField()
+    invitee_phone_number = serializers.CharField()
+    is_allowed = serializers.CharField()
+
+class CircleInvitesSerializer(serializers.ModelSerializer):
+    """
+    Serializer for circle invites
+    """
+    circle_acc_number = serializers.SerializerMethodField()
+    invited_by = serializers.SerializerMethodField()
+    invitee = serializers.SerializerMethodField()
+
+    class Meta:
+        model = CircleInvitation
+        fields = ['circle_acc_number', 'invited_by', 'invitee']
+
+    def get_circle_acc_number(self, circle_invite):
+        return circle_invite.invited_by.circle.circle_acc_number
+
+    def get_invited_by(self, circle_invite):
+        return circle_invite.invited_by.member.phone_number
+
+    def get_invitee(self, circle_invite):
+        return circle_invite.phone_number
 

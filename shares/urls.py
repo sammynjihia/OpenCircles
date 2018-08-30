@@ -11,5 +11,7 @@ urlpatterns = [
     url(r'^get_circle_member_shares_transactions/$', views.get_circle_member_shares_transactions,
         name='circle_member_shares_transactions'),
     url(r'^get_contributions/$', views.get_circle_members_contributions, name='circle_member_contributions'),
-    url(r'^make_contributions/$', views.MgrContribution.as_view(), name='make-contributions')
+    url(r'^make_contributions/$', views.MgrContribution.as_view(), name='make-contributions'),
+    url(r'^defaulted_contributions/$', views.get_circle_member_defaulted_contributions, name='defaulted_contributions'),
+    url(r'^disburse_contributions/$', views.MgrContributionDisbursal.as_view(), name='disburse-contributions'),
 ]

@@ -68,7 +68,7 @@ class MGRCircle(models.Model):
 
 class CircleMember(models.Model):
     circle = models.ForeignKey(Circle, null=False, blank=False)
-    member = models.ForeignKey(Member, null=False, blank=False)
+    member = models.ForeignKey(Member, null=False, blank=False, related_name='circle_member')
     allow_public_guarantees_request = models.BooleanField(default=True)
     time_joined = models.DateTimeField(null=False, auto_now_add=True)
     is_active = models.BooleanField(default=True)
@@ -80,8 +80,16 @@ class CircleMember(models.Model):
         db_table = 'CircleMember'
         unique_together = ("circle", "member")
 
+class CircleMemberQueue(models.Model):
+    node = models.ForeignKey(CircleMember, null=False, blank=False, related_name='current_cmq')
+    next_node = models.ForeignKey(CircleMember, null=True, related_name='next_cmq')
+    is_first = models.BooleanField(default=False)
+
+    class Meta:
+        db_table = 'CircleMemberQueue'
+
 class MGRCircleCycle(models.Model):
-    cycle = models.FloatField()
+    cycle = models.IntegerField()
     circle_member = models.ForeignKey(CircleMember, null=False, blank=False, related_name='mgr_circle_cycle')
     disbursal_date = models.DateField()
     is_complete = models.BooleanField(default=False)
@@ -91,13 +99,16 @@ class MGRCircleCycle(models.Model):
         db_table = 'MGRCircleCycle'
         unique_together = ("cycle", "circle_member")
 
-class CirclePenalty(models.Model):
+class MGRCirclePenalty(models.Model):
     cycle = models.ForeignKey(MGRCircleCycle, null=False, blank=False)
     circle_member = models.ForeignKey(CircleMember, null=False, blank=False)
     amount = models.IntegerField()
+    fine = models.FloatField(default=0)
+    date_defaulted = models.DateTimeField(auto_now=True)
+    is_paid = models.BooleanField(default=False)
 
     class Meta:
-        db_table = 'CirclePenalty'
+        db_table = 'MGRCirclePenalty'
 
 class CircleInvitation(models.Model):
     invited_by = models.ForeignKey(CircleMember, null=False, blank=False)
@@ -107,6 +118,7 @@ class CircleInvitation(models.Model):
     status = models.CharField(max_length=10, default='Pending', choices=INVITE_STATUS)
     is_sent = models.BooleanField(default=False)
     priority = models.IntegerField(default=0)
+    is_approved = models.BooleanField(default=True)
 
     class Meta:
         db_table = 'CircleInvitation'

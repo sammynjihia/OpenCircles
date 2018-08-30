@@ -41,3 +41,18 @@ class Fcm():
                                                                                                    is_member=True).values_list('phone_number',flat=True))
         registration_ids = [im.device_token for im in invited_members]
         return registration_ids
+
+    def get_circle_admins_tokens(self, circle):
+        admin_tokens = CircleMember.objects.filter(circle=circle, is_admin=True).values_list('member__device_token', flat=True)
+        registration_ids = filter(None, admin_tokens)
+        return registration_ids
+
+    def get_active_circle_members_tokens(self, circle, is_queueing, is_admin):
+        tokens = CircleMember.objects.filter(circle=circle, is_active=True).values_list('member__device_token', flat=True)
+        if is_queueing is not None:
+            tokens = tokens.filter(is_queueing=is_queueing)
+        if is_admin is not None:
+            tokens = tokens.filter(is_admin=is_admin)
+        registration_ids = filter(None, tokens)
+        return registration_ids
+

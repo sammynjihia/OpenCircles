@@ -13,6 +13,8 @@ from dateutil.relativedelta import relativedelta
 from wallet.serializers import WalletTransactionsSerializer
 from circle import tasks
 
+from app_admin import chat_utils
+
 import operator, re, datetime
 
 class Circle():
@@ -51,12 +53,12 @@ class Circle():
                 min_num_circle_member = settings.MIN_NUM_CIRCLE_MEMBER
 
             if CircleMember.objects.filter(circle=circle).count() >= min_num_circle_member:
-                circle.is_active=True
-                circle.save()
                 if is_mgr:
                     circle_id = circle.id
                     initial_time = datetime.datetime.now().date()
-                    tasks.create_circle_cycle.delay(circle_id, initial_time)
+                    tasks.create_circle_cycle(circle_id, initial_time)
+                circle.is_active = True
+                circle.save()
                 return True
             return False
         return True
@@ -246,22 +248,18 @@ class Circle():
                 amortize_loan = loan.loan_amortization.filter().latest('id')
                 if delta == 1:
                     CircleMember.objects.filter(circle=circle, member=member).update(is_active=False)
-                    title = "Circle {} account deactivation".format(circle.circle_name)
 
-                    message = "Your account has been deactivated due to late repayment of loan {} of" \
-                              " KES {} in circle {}. Kindly repay your loan to continue saving, " \
-                              "borrowing and earning interests from other circle members' loans.".format(loan.loan_code,
+                    message = "Your circle {} account has been deactivated due to late repayment of loan {} of" \
+                              " KES {}. Kindly repay your loan to continue saving, " \
+                              "borrowing and earning interests from other circle members' loans.".format(circle.circle_name,
+                                                                                                         loan.loan_code,
                                                                                                          amortize_loan.total_repayment,
-                                                                                                         circle.circle_name)
+                                                                                                         )
                     fcm_instance = fcm_utils.Fcm()
                     registration_id = member.device_token
                     if len(registration_id):
-                        curr_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                        fcm_data = {"request_type":"SYSTEM_WARNING_MSG",
-                                    "title":title,
-                                    "message":message,
-                                    "time":curr_time}
-                        fcm_instance.data_push("single", registration_id, fcm_data)
+                        chat_instance = chat_utils.ChatUtils()
+                        chat_instance.send_single_chat(message, member, 1)
                         fcm_data = {"request_type":"UPDATE_CIRCLE_MEMBER_STATUS",
                                     "phone_number":member.phone_number,
                                     "circle_acc_number":circle.circle_acc_number,
@@ -277,18 +275,14 @@ class Circle():
                                                                                                         loan.loan_code)
                         sms_instance.sendsms(member.phone_number, message)
                 else:
-                    title = "Circle {} loan repayment".format(circle.circle_name)
                     message = "Kindly repay your loan {} of KES {} in circle {} to continue saving, " \
                               "borrowing and earning interests from other " \
                               "circle members' loans.".format(loan.loan_code,
                                                               amortize_loan.total_repayment, circle.circle_name)
-                    fcm_instance = fcm_utils.Fcm()
                     registration_id = member.device_token
                     if len(registration_id):
-                        curr_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                        fcm_data = {"request_type":"SYSTEM_WARNING_MSG", "title":title,
-                                    "message":message, "time":curr_time}
-                        fcm_instance.data_push("single", registration_id, fcm_data)
+                        chat_instance = chat_utils.ChatUtils()
+                        chat_instance.send_single_chat(message, member, 1)
                     else:
                         sms_instance = sms_utils.Sms()
                         message = "Kindly repay your loan {} of KES {} in circle {} to continue saving, borrowing and earning " \

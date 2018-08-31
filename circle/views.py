@@ -45,14 +45,14 @@ class CircleCreation(APIView):
                                " to delayed loan repayment. Kindly repay your loan to be able to create a circle."}
             return Response(data, status=status.HTTP_200_OK)
         if "contact_list" in request.data:
-            # mutable = request.data._mutable
-            # request.data._mutable = True
-            # request.data["contact_list"] = json.loads(request.data["contact_list"])
+            mutable = request.data._mutable
+            request.data._mutable = True
+            request.data["contact_list"] = json.loads(request.data["contact_list"])
             if "loan_tariff" in request.data:
-                # request.data["loan_tariff"] = json.loads(request.data["loan_tariff"])
+                request.data["loan_tariff"] = json.loads(request.data["loan_tariff"])
                 circle_loan_tariff = request.data["loan_tariff"]
             contacts = request.data["contact_list"] if "contact_list" in request.data else []
-            # request.data._mutable = mutable
+            request.data._mutable = mutable
         circle_model_serializers = circle_utils.Circle().get_circle_model_serializers(request.data['circle_type'].decode())
         if type(circle_model_serializers) == dict:
             serializer = eval(circle_model_serializers["circle_serializer"], globals(), {'request_data':request.data})

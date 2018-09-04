@@ -237,12 +237,14 @@ class CircleMGRSerializer(serializers.ModelSerializer):
     amount = serializers.SerializerMethodField()
     fine = serializers.SerializerMethodField()
     circle_type = serializers.SerializerMethodField()
+    disbursal_date = serializers.SerializerMethodField()
+    recipient = serializers.SerializerMethodField()
 
     class Meta:
         model = Circle
         fields = ['circle_name', 'circle_type', 'circle_acc_number', 'contribution_schedule', 'contribution_day',
                   'amount', 'fine', 'is_active', 'is_member', 'is_invited', 'invited_by', 'members', 'initiated_by',
-                  'date_created', 'member_count']
+                  'date_created', 'member_count', 'disbursal_date', 'recipient']
 
     def get_member_count(self, circle):
         print('count')
@@ -290,7 +292,6 @@ class CircleMGRSerializer(serializers.ModelSerializer):
             return ''
 
     def get_contribution_schedule(self, circle):
-        print(circle.mgr_circle.get().schedule)
         return circle.mgr_circle.get().schedule
 
     def get_contribution_day(self, circle):
@@ -304,6 +305,18 @@ class CircleMGRSerializer(serializers.ModelSerializer):
 
     def get_circle_type(self, circle):
         return circle.circle_model_type
+
+    def get_disbursal_date(self, circle):
+        cycle = MGRCircleCycle.objects.filter(circle_member__circle=circle, is_complete=False)
+        if cycle.exists():
+            return cycle[0].disbursal_date.strftime("%Y-%m-%d")
+        return
+
+    def get_recipient(self, circle):
+        cycle = MGRCircleCycle.objects.filter(circle_member__circle=circle, is_complete=False)
+        if cycle.exists():
+            return cycle[0].circle_member.member.phone_number
+        return
 
 class InvitedCircleSerializer(serializers.ModelSerializer):
     """

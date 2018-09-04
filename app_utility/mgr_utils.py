@@ -181,6 +181,11 @@ class MerryGoRound():
                     "message":message}
         print(fcm_data)
         fcm_instance.data_push("multiple", registration_ids,fcm_data)
+        fcm_data = {"request_type": "UPDATE_CONTRIBUTION_RECIPIENT",
+                    "circle_acc_number": circle.circle_acc_number,
+                    "recipient": circle_member.phone_number}
+        registration_ids = fcm_instance.get_active_circle_members_tokens(circle, False, True)
+        fcm_instance.data_push("multiple", registration_ids, fcm_data)
 
         return True, ''
 

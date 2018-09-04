@@ -29,6 +29,8 @@ from circle.tasks import send_circle_invites, referral_programme_promotion
 
 from loan.tasks import updating_loan_limit
 
+from raven.contrib.django.raven_compat.models import client
+
 # Create your views here.
 class CircleCreation(APIView):
     """
@@ -158,6 +160,7 @@ class CircleCreation(APIView):
                     return Response(data,status=status.HTTP_201_CREATED)
                 except Exception as e:
                     print(str(e))
+                    client.captureException()
                     instance = general_utils.General()
                     instance.delete_created_objects(created_objects)
                     error = "Unable to create circle"

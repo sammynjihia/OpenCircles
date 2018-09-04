@@ -59,7 +59,7 @@ class CircleCreation(APIView):
         if type(circle_model_serializers) == dict:
             serializer = eval(circle_model_serializers["circle_serializer"], globals(), {'request_data':request.data})
         else:
-            error = "Unable to create circle"
+            error = "Warning! Unable to create circle"
             data = {"status": 0, "message": error}
             return Response(data, status=status.HTTP_200_OK)
         if serializer.is_valid():

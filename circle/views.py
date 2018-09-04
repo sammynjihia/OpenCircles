@@ -77,12 +77,14 @@ class CircleCreation(APIView):
             if valid:
                 created_objects=[]
                 try:
-                    try:
-                        last_circle_created = Circle.objects.all().order_by('-circle_acc_number')[0]
+                    last_circle_created = Circle.objects.all().order_by('-circle_acc_number')
+                    if last_circle_created.exists():
+                        last_circle_created = last_circle_created[0]
                         last_acc_number = int(last_circle_created.circle_acc_number)
                         acc_number = last_acc_number + 1
-                    except ObjectDoesNotExist:
+                    else:
                         acc_number = 100000
+                        
                     general_instance = general_utils.General()
                     member = request.user.member
                     circle = serializer.save(initiated_by=member, circle_acc_number=acc_number)

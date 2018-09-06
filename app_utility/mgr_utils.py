@@ -5,7 +5,7 @@ from django.db.models import Sum, Q
 
 from circle.models import MGRCircleCycle, CircleMember, CircleMemberQueue, MGRCirclePenalty
 from shares.models import MgrCircleTransaction, SharesWithdrawalTariff
-from wallet.models import Transactions
+from wallet.models import Transactions, RevenueStreams
 
 from shares.serializers import AdminContributionsTransactionSerializer
 from wallet.serializers import WalletTransactionsSerializer
@@ -183,7 +183,7 @@ class MerryGoRound():
         fcm_instance.data_push("multiple", registration_ids,fcm_data)
         fcm_data = {"request_type": "UPDATE_CONTRIBUTION_RECIPIENT",
                     "circle_acc_number": circle.circle_acc_number,
-                    "recipient": circle_member.phone_number}
+                    "recipient": circle_member.member.phone_number}
         registration_ids = fcm_instance.get_active_circle_members_tokens(circle, False, True)
         fcm_instance.data_push("multiple", registration_ids, fcm_data)
 
@@ -200,7 +200,6 @@ class MerryGoRound():
                       "for the next round.".format(circle.circle_name, circle.mgr_circle.get().amount)
             chat_instance = chat_utils.ChatUtils()
             chat_instance.send_chat_to_active_circle_members(message, circle, 1, None, None)
-
 
     def calculate_disbursal_date(self, circle, initial_time):
         mgr_circle = circle.mgr_circle.get()
@@ -244,6 +243,11 @@ class MerryGoRound():
             else:
                 return
             created_objects.append(contributions_trx)
+            revenue = RevenueStreams.objects.create(stream_amount=transaction_cost,
+                                                    stream_type="CONTRIBUTION WITHDRAW",
+                                                    stream_code=transaction_code,
+                                                    time_of_transaction=datetime.datetime.now())
+            created_objects.append(revenue)
             transaction_code = transaction_code.replace('CTW', 'WTC')
             wallet_balance = wallet_instance.calculate_wallet_balance(recipient.member.wallet) + actual_amount
             wallet_desc = "{} confirmed. You have received {} {} from circle {}. Transaction cost {} {}." \
@@ -301,7 +305,7 @@ class MerryGoRound():
                 print(total_circle_members)
                 print(circle.mgr_circle.get().amount)
                 circle_amount = circle.mgr_circle.get().amount
-                expected_total_amount = total_circle_members * circle_amount
+                expected_total_amount = (total_circle_members-1) * circle_amount
                 member = circle_cycle.circle_member.member
                 if total_contributed_amount == expected_total_amount:
                     try:
@@ -464,6 +468,11 @@ class MerryGoRound():
                 else:
                     return
                 created_objects.append(withdraw_depo)
+                revenue = RevenueStreams.objects.create(stream_amount=transaction_cost,
+                                                        stream_type="CONTRIBUTION WITHDRAW",
+                                                        stream_code=transaction_code,
+                                                        time_of_transaction=datetime.datetime.now())
+                created_objects.append(revenue)
                 #to_do:update contribution on admin side with fcm
                 wallet = recipient_circle_member.member.wallet
                 wallet_instance = wallet_utils.Wallet()

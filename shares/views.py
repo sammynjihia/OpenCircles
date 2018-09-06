@@ -233,7 +233,7 @@ class SharesWithdrawal(APIView):
                                                                                                     circle.circle_name,
                                                                                                     member.currency,
                                                                                                     shares_tariff.amount)
-                                            shares_transaction =  IntraCircleShareTransaction.objects.create(
+                                            shares_transaction = IntraCircleShareTransaction.objects.create(
                                                                                                         shares=shares,
                                                                                                         transaction_type="WITHDRAW",
                                                                                                         num_of_shares=total_amount,
@@ -360,6 +360,11 @@ class MgrContribution(APIView):
             mgr_circle = circle.mgr_circle.get()
             member = request.user.member
             circle_member = CircleMember.objects.get(circle=circle, member=member)
+            circle_cycle = MGRCircleCycle.objects.filter(circle_member__circle=circle,
+                                                         is_complete=False).latest('id')
+            if circle_cycle.circle_member == circle_member:
+                data = {"status": 0, "message": "Unable to process contribution. You are this round contribution recipient."}
+                return Response(data, status=status.HTTP_200_OK)
             wallet_instance = wallet_utils.Wallet()
             mgr_instance = mgr_utils.MerryGoRound()
             penalty_amount = mgr_utils.MerryGoRound().get_circle_member_penalty_amount(circle_member)
@@ -417,7 +422,8 @@ class MgrContribution(APIView):
                     print(wallet_transaction)
                     created_objects.append(wallet_transaction)
                     if is_contribution:
-                        circle_cycle = MGRCircleCycle.objects.filter(circle_member__circle=circle).latest('id')
+                        circle_cycle = MGRCircleCycle.objects.filter(circle_member__circle=circle,
+                                                                     is_complete=False).latest('id')
                         transaction_code = transaction_code.replace('WTD', 'CTD')
                         transaction_desc = "{} confirmed. You have contributed {} {}.".format(transaction_code,
                                                                                               member.currency,
@@ -526,6 +532,11 @@ class MgrContributionDisbursal(APIView):
                             data = {"status": 0, "message": msg}
                             return Response(data, status=status.HTTP_200_OK)
                         created_objects.append(contributions_trx)
+                        revenue = RevenueStreams.objects.create(stream_amount=transaction_cost,
+                                                                stream_type="CONTRIBUTION WITHDRAW",
+                                                                stream_code=transaction_code,
+                                                                time_of_transaction=datetime.datetime.now())
+                        created_objects.append(revenue)
                         transaction_code = transaction_code.replace('CTW', 'WTC')
                         wallet_balance = wallet_instance.calculate_wallet_balance(recipient.member.wallet) + actual_amount
                         wallet_desc = "{} confirmed. You have received {} {} from circle {}. " \

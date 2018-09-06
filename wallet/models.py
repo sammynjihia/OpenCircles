@@ -48,11 +48,12 @@ class RevenueStreams(models.Model):
     STREAM_TYPE_CHOICE = (
         ('LOAN INTEREST', 'revenue from loan'),
         ('SHARES WITHDRAW', 'charges of shares withdrawal'),
-        ('LOAN PROCESSING', 'charges of loan processing')
+        ('LOAN PROCESSING', 'charges of loan processing'),
+        ('CONTRIBUTION WITHDRAW', 'charges of contribution withdrawal')
     )
     stream_code = models.CharField(max_length=20)
     stream_amount = models.FloatField()
-    stream_type = models.CharField(max_length=20, choices=STREAM_TYPE_CHOICE)
+    stream_type = models.CharField(max_length=25, choices=STREAM_TYPE_CHOICE)
     time_of_transaction = models.DateTimeField()
     extra_info = models.TextField(default="", null=True)
 
